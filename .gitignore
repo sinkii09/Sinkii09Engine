@@ -1,0 +1,37 @@
+# VS/VSCode project settings
+.vscode/
+*.csproj
+*.sln
+*.user
+*.pidb
+*.unityproj
+*.vsconfig
+.vs/
+
+
+# Unity generated files
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Uu]serSettings/
+# IDE-specific files
+.idea/
+*.iml
+
+# Other generated files
+*.swp
+*.log
+.DS_Store
+*.apk
+*.unitypackage
+
+
+# Ignore user-specific settings in ProjectSettings
+ProjectSettings/EditorSettings.asset
+ProjectSettings/Layouts/
+ProjectSettings/VersionControlSettings.asset
+

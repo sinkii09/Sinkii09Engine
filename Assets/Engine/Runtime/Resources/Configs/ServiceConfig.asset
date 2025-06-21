@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f98e3c420cbb5b49a85e310d34cf567, type: 3}
+  m_Name: ServiceConfig
+  m_EditorClassIdentifier: 
+  Services:
+  - rid: 942064243350437968
+  - rid: 942064243350437969
+  - rid: 942064243350437970
+  - rid: 942064243350437971
+  references:
+    version: 2
+    RefIds:
+    - rid: 942064243350437968
+      type: {class: ResourceService, ns: Sinkii09.Engine.Services, asm: Sinkii09.Engine}
+      data: 
+    - rid: 942064243350437969
+      type: {class: ScriptService, ns: Sinkii09.Engine.Services, asm: Sinkii09.Engine}
+      data: 
+    - rid: 942064243350437970
+      type: {class: ScriptPlayerService, ns: Sinkii09.Engine.Services, asm: Sinkii09.Engine}
+      data: 
+    - rid: 942064243350437971
+      type: {class: ActorService, ns: Sinkii09.Engine.Services, asm: Sinkii09.Engine}
+      data: 
