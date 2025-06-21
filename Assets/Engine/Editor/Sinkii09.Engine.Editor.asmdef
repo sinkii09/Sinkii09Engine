@@ -1,0 +1,16 @@
+{
+    "name": "Sinkii09.Engine.Editor",
+    "rootNamespace": "Sinkii09.Engine.Editor",
+    "references": [
+        "GUID:6dc0e8dc50893ab44b750e7d772021f2"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

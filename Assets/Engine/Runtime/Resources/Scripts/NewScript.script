@@ -1,0 +1,1 @@
+@SampleMultiParam message:"Hello" count:5 speed:2.5 isActive:true tags:"foo,bar,baz" namedValue:"label:42"

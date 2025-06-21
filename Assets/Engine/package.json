@@ -1,0 +1,21 @@
+{
+  "name": "com.sinkii09.engine",
+  "version": "0.1.0",
+  "displayName": "Sinkii09 Engine",
+  "description": "Reusable core systems used across multiple projects.",
+  "unity": "2021.3",
+  "unityRelease": "0f1",
+  "author": {
+    "name": "Sinkii09"
+  },
+  "dependencies": {
+
+  },
+  "keywords": [
+    "engine",
+    "core",
+    "framework",
+    "utilities",
+    "systems"
+  ]
+}
