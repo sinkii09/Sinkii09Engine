@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using Sinkii09.Engine.Common.Script;
 using Sinkii09.Engine.Configs;
+using Sinkii09.Engine.Initializer;
 using System;
 
 namespace Sinkii09.Engine.Services
@@ -16,6 +17,8 @@ namespace Sinkii09.Engine.Services
         void UnloadScript(string name);
         void UnloadAllScripts();
     }
+
+    [InitializeAtRuntime]
     public class ScriptService : IScriptService
     {
         public event Action OnScriptLoadStarted;
@@ -24,13 +27,16 @@ namespace Sinkii09.Engine.Services
         private IResourceService _resourceService;
         private ScriptsConfig _scriptsConfig;
         private ResourceLoader<Script> _resourceLoader;
+
+        public ScriptService(IResourceService resourceService, ScriptsConfig scriptsConfig)
+        {
+            _resourceService = resourceService;
+            _scriptsConfig = scriptsConfig;
+            _resourceLoader = _scriptsConfig.ResouceLoaderConfig.CreateFor<Script>(_resourceService);
+        }
+
         public UniTask<bool> Initialize()
         {
-            _resourceService = Engine.GetService<IResourceService>();
-            _scriptsConfig = Engine.GetConfig<ScriptsConfig>();
-
-            _resourceLoader = _scriptsConfig.ResouceLoaderConfig.CreateFor<Script>(_resourceService);
-
             return UniTask.FromResult(true);
         }
 

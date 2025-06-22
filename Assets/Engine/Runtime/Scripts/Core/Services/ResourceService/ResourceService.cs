@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Sinkii09.Engine.Initializer;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,6 +12,8 @@ namespace Sinkii09.Engine.Services
         IResourceProvider GetProvider(ProviderType providerType);
         List<IResourceProvider> GetProviders(ProviderType providerTypes);
     }
+
+    [InitializeAtRuntime]
     public class ResourceService : IResourceService
     {
         private readonly Dictionary<ProviderType, IResourceProvider> _providers = new Dictionary<ProviderType, IResourceProvider>();

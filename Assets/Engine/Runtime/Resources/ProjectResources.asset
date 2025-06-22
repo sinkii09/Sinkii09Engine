@@ -9,16 +9,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: bcc7208ff65a3b24ea2015982cd56ccf, type: 3}
   m_Name: ProjectResources
-  m_EditorClassIdentifier: Sinkii09.Engine:Sinkii09.Engine.Common.Resources:ProjectResources
+  m_EditorClassIdentifier: 
   resourcePaths:
   - ProjectResources 1
   - ProjectResources
   - Configs/ScriptsConfig
-  - Configs/ServiceConfig
   - EditorIcons/ScriptAssetIcon
   - EditorIcons/ScriptAssetIcon1
   - EditorIcons/stack
   - EditorIcons/work-plan
-  - Scripts/myscript
+  - Scripts/NewScript 1
+  - Scripts/NewScript 2
+  - Scripts/NewScript 3
+  - Scripts/NewScript
+  - Sirenix/GlobalSerializationConfig

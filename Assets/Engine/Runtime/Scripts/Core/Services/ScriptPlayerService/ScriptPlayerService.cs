@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Sinkii09.Engine.Commands;
+using Sinkii09.Engine.Initializer;
 
 namespace Sinkii09.Engine.Services
 {
@@ -16,6 +17,8 @@ namespace Sinkii09.Engine.Services
         void Play(IScript script);
         void Stop();
     }
+
+    [InitializeAtRuntime]
     public class ScriptPlayerService : IScriptPlayerService
     {
         public bool IsPlaying { get; private set; }
