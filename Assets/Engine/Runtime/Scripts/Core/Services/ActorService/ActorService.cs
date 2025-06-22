@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using Sinkii09.Engine.Initializer;
 
 namespace Sinkii09.Engine.Services
 {
@@ -6,6 +7,8 @@ namespace Sinkii09.Engine.Services
     {
         // Define methods and properties for the actor service
     }
+
+    [InitializeAtRuntime]
     public class ActorService : IActorService
     {
         public UniTask<bool> Initialize()

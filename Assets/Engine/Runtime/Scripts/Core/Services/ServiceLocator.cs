@@ -2,6 +2,7 @@ using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
 
 namespace Sinkii09.Engine.Services
@@ -34,6 +35,7 @@ namespace Sinkii09.Engine.Services
         {
             foreach (var service in _services.Values)
             {
+                if (!Engine.Initializing) return false;
                 if (!await service.Initialize())
                 {
                     Debug.LogError($"Failed to initialize service {service.GetType().Name}.");

@@ -1,7 +1,9 @@
+using Sinkii09.Engine.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using ZLinq;
 
 namespace Sinkii09.Engine.Configs
 {
@@ -18,8 +20,8 @@ namespace Sinkii09.Engine.Configs
         public ConfigProvider(string resourcePath = DEFAULT_CONFIG_PATH)
         {
             var baseConfigType = typeof(Configuration);
-            //TODO: Use reflection to find all subclasses of Configuration in the current domain
-            var configTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(assembly => assembly.GetTypes())
+
+            var configTypes = ReflectionUtils.ExportedDomainTypes.AsValueEnumerable()
                 .Where(type => type.IsSubclassOf(baseConfigType) && !type.IsAbstract);
 
             foreach (var configType in configTypes)
@@ -47,6 +49,7 @@ namespace Sinkii09.Engine.Configs
 
             if (!IsValid(config))
             {
+                Debug.LogWarning($"Configuration {type.Name} not found at path {resourcePath}. Creating a new instance instead.");
                 config = ScriptableObject.CreateInstance(type) as Configuration;
             }
 
