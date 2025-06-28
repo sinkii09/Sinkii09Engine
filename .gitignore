@@ -28,6 +28,8 @@
 .DS_Store
 *.apk
 *.unitypackage
+*.claude
+CLAUDE.md
 
 
 # Ignore user-specific settings in ProjectSettings
