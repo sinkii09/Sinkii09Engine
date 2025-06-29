@@ -9,5 +9,7 @@ from .config import Config
 from .notion_client import NotionClient, NotionText
 from .github_client import GitHubClient
 from .logger import Logger, logger
+from .workplan_parser import WorkPlanParser, WorkPlanItem, ItemType, WorkPlanTemplate
 
-__all__ = ['Config', 'NotionClient', 'NotionText', 'GitHubClient', 'Logger', 'logger']
+__all__ = ['Config', 'NotionClient', 'NotionText', 'GitHubClient', 'Logger', 'logger', 
+          'WorkPlanParser', 'WorkPlanItem', 'ItemType', 'WorkPlanTemplate']
