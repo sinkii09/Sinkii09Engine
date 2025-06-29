@@ -17,16 +17,27 @@ class GitHubClient:
         self.config = config
         self.token = config.github_token
         self.repo_owner = "Sinkii09"
-        self.repo_name = "Engine"
+        self.repo_name = "Sinkii09Engine"
         
         self.headers = {}
         if self.token:
             self.headers['Authorization'] = f'token {self.token}'
     
-    def _make_request(self, url: str, **kwargs) -> requests.Response:
+    def _make_request(self, method: str, url: str, **kwargs) -> requests.Response:
         """Make API request with error handling"""
         try:
-            response = requests.get(url, headers=self.headers, **kwargs)
+            if method.upper() == 'GET':
+                response = requests.get(url, headers=self.headers, **kwargs)
+            elif method.upper() == 'POST':
+                response = requests.post(url, headers=self.headers, **kwargs)
+            elif method.upper() == 'PATCH':
+                response = requests.patch(url, headers=self.headers, **kwargs)
+            elif method.upper() == 'PUT':
+                response = requests.put(url, headers=self.headers, **kwargs)
+            elif method.upper() == 'DELETE':
+                response = requests.delete(url, headers=self.headers, **kwargs)
+            else:
+                raise ValueError(f"Unsupported HTTP method: {method}")
             return response
         except requests.exceptions.RequestException as e:
             logger.error(f"GitHub API request failed: {e}")
@@ -35,7 +46,7 @@ class GitHubClient:
     def get_repository_info(self) -> Optional[Dict[str, Any]]:
         """Get repository information"""
         url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}'
-        response = self._make_request(url)
+        response = self._make_request('GET', url)
         
         if response.status_code == 200:
             return response.json()
@@ -48,7 +59,7 @@ class GitHubClient:
         url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/issues'
         params = {'state': state}
         
-        response = self._make_request(url, params=params)
+        response = self._make_request('GET', url, params=params)
         
         if response.status_code == 200:
             return response.json()
@@ -61,7 +72,7 @@ class GitHubClient:
         url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/commits'
         params = {'per_page': limit}
         
-        response = self._make_request(url, params=params)
+        response = self._make_request('GET', url, params=params)
         
         if response.status_code == 200:
             return response.json()
@@ -129,6 +140,141 @@ class GitHubClient:
             logger.info("Using fallback statistics")
         
         return stats
+    
+    def create_issue(self, title: str, body: str = "", labels: List[str] = None, 
+                    assignees: List[str] = None, milestone: str = None) -> Optional[Dict[str, Any]]:
+        """Create a new GitHub issue"""
+        if not self.token:
+            logger.error("GitHub token required to create issues")
+            return None
+        
+        url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/issues'
+        
+        data = {
+            "title": title,
+            "body": body
+        }
+        
+        if labels:
+            data["labels"] = labels
+        if assignees:
+            data["assignees"] = assignees
+        if milestone:
+            # For simplicity, we'll pass milestone as number if provided
+            try:
+                data["milestone"] = int(milestone)
+            except ValueError:
+                logger.warning(f"Milestone should be a number, got: {milestone}")
+        
+        response = self._make_request('POST', url, json=data)
+        
+        if response.status_code == 201:
+            issue = response.json()
+            logger.success(f"Created issue #{issue['number']}: {title}")
+            return issue
+        else:
+            logger.error(f"Failed to create issue: {response.status_code} - {response.text}")
+            return None
+    
+    def update_issue(self, issue_number: int, title: str = None, body: str = None, 
+                    state: str = None, labels: List[str] = None) -> Optional[Dict[str, Any]]:
+        """Update an existing GitHub issue"""
+        if not self.token:
+            logger.error("GitHub token required to update issues")
+            return None
+        
+        url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/issues/{issue_number}'
+        
+        data = {}
+        if title is not None:
+            data["title"] = title
+        if body is not None:
+            data["body"] = body
+        if state is not None:
+            data["state"] = state
+        if labels is not None:
+            data["labels"] = labels
+        
+        if not data:
+            logger.warning("No update data provided")
+            return None
+        
+        response = self._make_request('PATCH', url, json=data)
+        
+        if response.status_code == 200:
+            issue = response.json()
+            logger.success(f"Updated issue #{issue['number']}: {issue['title']}")
+            return issue
+        else:
+            logger.error(f"Failed to update issue: {response.status_code} - {response.text}")
+            return None
+    
+    def get_issue(self, issue_number: int) -> Optional[Dict[str, Any]]:
+        """Get a specific GitHub issue"""
+        url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/issues/{issue_number}'
+        response = self._make_request('GET', url)
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.warning(f"Failed to get issue #{issue_number}: {response.status_code}")
+            return None
+    
+    def add_issue_comment(self, issue_number: int, comment: str) -> Optional[Dict[str, Any]]:
+        """Add a comment to a GitHub issue"""
+        if not self.token:
+            logger.error("GitHub token required to add comments")
+            return None
+        
+        url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/issues/{issue_number}/comments'
+        data = {"body": comment}
+        
+        response = self._make_request('POST', url, json=data)
+        
+        if response.status_code == 201:
+            comment_data = response.json()
+            logger.success(f"Added comment to issue #{issue_number}")
+            return comment_data
+        else:
+            logger.error(f"Failed to add comment: {response.status_code} - {response.text}")
+            return None
+    
+    def get_milestones(self) -> List[Dict[str, Any]]:
+        """Get repository milestones"""
+        url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/milestones'
+        response = self._make_request('GET', url)
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.warning(f"Failed to get milestones: {response.status_code}")
+            return []
+    
+    def create_milestone(self, title: str, description: str = "", due_date: str = None) -> Optional[Dict[str, Any]]:
+        """Create a new milestone"""
+        if not self.token:
+            logger.error("GitHub token required to create milestones")
+            return None
+        
+        url = f'https://api.github.com/repos/{self.repo_owner}/{self.repo_name}/milestones'
+        
+        data = {
+            "title": title,
+            "description": description
+        }
+        
+        if due_date:
+            data["due_on"] = due_date
+        
+        response = self._make_request('POST', url, json=data)
+        
+        if response.status_code == 201:
+            milestone = response.json()
+            logger.success(f"Created milestone: {title}")
+            return milestone
+        else:
+            logger.error(f"Failed to create milestone: {response.status_code} - {response.text}")
+            return None
     
     def format_issue_for_notion(self, issue: Dict[str, Any]) -> Dict[str, Any]:
         """Format GitHub issue for Notion database entry"""

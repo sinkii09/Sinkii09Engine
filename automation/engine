@@ -12,7 +12,7 @@ automation_dir = Path(__file__).parent
 sys.path.insert(0, str(automation_dir))
 
 from core import Config, logger
-from commands import DashboardManager, WorkspaceManager, GitHubSyncManager
+from commands import DashboardManager, WorkspaceManager, GitHubSyncManager, WorkPlanManager, NotionWorkPlanEnhancer
 
 def create_parser():
     """Create the command-line argument parser"""
@@ -21,11 +21,15 @@ def create_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./automation/engine sync                    # Full project sync
-  ./automation/engine dashboard               # Update dashboard only  
-  ./automation/engine workspace setup        # Setup workspace structure
-  ./automation/engine github sync            # Sync GitHub issues
-  ./automation/engine status                 # Show project status
+  ./automation/engine sync                                    # Full project sync
+  ./automation/engine dashboard                               # Update dashboard only  
+  ./automation/engine workspace setup                        # Setup workspace structure
+  ./automation/engine github sync                            # Sync GitHub issues to Notion
+  ./automation/engine workplan template --template service --output my_plan.md  # Create template
+  ./automation/engine workplan create --file my_plan.md      # Create work plan from file
+  ./automation/engine workplan update --file my_plan.md      # Update existing work plan
+  ./automation/engine workplan enhance --file my_plan.md     # Create enhanced Notion pages with detailed tasks
+  ./automation/engine status                                 # Show project status
         """
     )
     
@@ -60,8 +64,21 @@ Examples:
     # GitHub commands
     github_parser = subparsers.add_parser('github', help='GitHub integration')
     github_parser.add_argument('action', nargs='?', default='status',
-                              choices=['sync', 'status', 'stats'],
+                              choices=['sync', 'status', 'stats', 'create-epic', 'create-enhanced-service-epic', 'issues'],
                               help='GitHub action to perform')
+    github_parser.add_argument('--title', help='Issue title for creation')
+    github_parser.add_argument('--labels', help='Comma-separated labels for issue')
+    github_parser.add_argument('--milestone', help='Milestone number or name')
+    
+    # Work Plan commands
+    workplan_parser = subparsers.add_parser('workplan', help='Work plan management')
+    workplan_parser.add_argument('action', nargs='?', default='list',
+                                choices=['create', 'update', 'template', 'list', 'status', 'enhance'],
+                                help='Work plan action to perform')
+    workplan_parser.add_argument('--file', '-f', help='Work plan markdown file path')
+    workplan_parser.add_argument('--template', '-t', help='Template type (basic, service)')
+    workplan_parser.add_argument('--output', '-o', help='Output file path for templates')
+    workplan_parser.add_argument('--no-sync', action='store_true', help='Skip Notion sync')
     
     # Status command
     status_parser = subparsers.add_parser('status', help='Show overall project status')
@@ -136,6 +153,7 @@ def handle_workspace_command(args, config):
 
 def handle_github_command(args, config):
     """Handle GitHub integration"""
+    # Use GitHubSyncManager for sync operations
     github_sync = GitHubSyncManager(config)
     
     if args.action == 'sync':
@@ -242,6 +260,118 @@ def handle_config_command(args, config):
         except Exception as e:
             logger.error(f"❌ GitHub API error: {e}")
 
+def handle_workplan_command(args, config):
+    """Handle work plan management"""
+    workplan_manager = WorkPlanManager(config)
+    
+    if args.action == 'create':
+        if not args.file:
+            logger.error("--file is required for creating work plans")
+            return
+        
+        sync_to_notion = not args.no_sync
+        result = workplan_manager.create_workplan_from_file(args.file, sync_to_notion)
+        
+        if result['success']:
+            logger.success("🎉 Work plan created successfully!")
+        else:
+            logger.error("❌ Failed to create work plan")
+    
+    elif args.action == 'update':
+        if not args.file:
+            logger.error("--file is required for updating work plans")
+            return
+        
+        sync_to_notion = not args.no_sync
+        result = workplan_manager.update_workplan_from_file(args.file, sync_to_notion)
+        
+        if result['success']:
+            logger.success("🎉 Work plan updated successfully!")
+        else:
+            logger.error("❌ Failed to update work plan")
+    
+    elif args.action == 'template':
+        if not args.template:
+            logger.error("--template is required (basic, service)")
+            return
+        
+        if not args.output:
+            logger.error("--output is required for template generation")
+            return
+        
+        success = workplan_manager.generate_workplan_template(args.template, args.output)
+        
+        if success:
+            logger.success(f"📝 Template created: {args.output}")
+            logger.info("You can now edit this file and create a work plan from it:")
+            logger.info(f"  ./automation/engine workplan create --file {args.output}")
+        else:
+            logger.error("❌ Failed to create template")
+    
+    elif args.action == 'list':
+        logger.section("📋 Available Work Plans")
+        workplans = workplan_manager.list_workplans()
+        
+        if not workplans:
+            logger.info("No work plans found")
+            logger.info("Create a template first:")
+            logger.info("  ./automation/engine workplan template --template basic --output my_workplan.md")
+        else:
+            for wp in workplans:
+                status_icon = "✅" if wp['has_state'] else "📝"
+                logger.info(f"{status_icon} {wp['name']}")
+                logger.info(f"   File: {wp['file']}")
+                if wp['has_state']:
+                    logger.info(f"   Items: {wp.get('items_count', 0)}")
+                    logger.info(f"   Created: {wp.get('created_at', 'Unknown')}")
+                logger.info(f"   Modified: {wp['last_modified']}")
+                logger.info("")
+    
+    elif args.action == 'enhance':
+        if not args.file:
+            logger.error("--file is required for enhancing work plans")
+            return
+        
+        enhancer = NotionWorkPlanEnhancer(config)
+        success = enhancer.create_enhanced_workplan(args.file)
+        
+        if success:
+            logger.success("🎉 Enhanced Notion work plan created successfully!")
+        else:
+            logger.error("❌ Failed to create enhanced work plan")
+    
+    elif args.action == 'status':
+        if not args.file:
+            logger.error("--file is required for status check")
+            return
+        
+        status = workplan_manager.get_workplan_status(args.file)
+        
+        if not status['exists']:
+            logger.warning(f"No work plan state found for: {args.file}")
+            logger.info("Create the work plan first:")
+            logger.info(f"  ./automation/engine workplan create --file {args.file}")
+        else:
+            logger.section(f"📊 Work Plan Status: {Path(args.file).name}")
+            logger.info(f"File: {status['file_path']}")
+            logger.info(f"Created: {status['created_at']}")
+            logger.info(f"Total Items: {status['total_items']}")
+            logger.info(f"  - Epics: {status['epics']}")
+            logger.info(f"  - Issues: {status['issues']}")
+            logger.info(f"  - Tasks: {status['tasks']}")
+            logger.info(f"GitHub Issues Created: {status['github_issues']}")
+            
+            last_results = status.get('last_results', {})
+            if last_results:
+                logger.subsection("Last Operation Results")
+                stats = last_results.get('stats', {})
+                if 'total_created' in stats:
+                    logger.info(f"Created: {stats['total_created']} issues")
+                if 'updated' in stats:
+                    logger.info(f"Updated: {stats['updated']} issues")
+                if 'failed' in stats:
+                    logger.info(f"Failed: {stats['failed']} operations")
+
 def main():
     """Main CLI entry point"""
     parser = create_parser()
@@ -267,6 +397,8 @@ def main():
             handle_workspace_command(args, config)
         elif args.command == 'github':
             handle_github_command(args, config)
+        elif args.command == 'workplan':
+            handle_workplan_command(args, config)
         elif args.command == 'status':
             handle_status_command(args, config)
         elif args.command == 'config':
