@@ -1,0 +1,285 @@
+#!/usr/bin/env python3
+"""
+Sinkii09 Engine Automation CLI
+Unified command-line interface for all automation tasks
+"""
+import sys
+import argparse
+from pathlib import Path
+
+# Add automation directory to path
+automation_dir = Path(__file__).parent
+sys.path.insert(0, str(automation_dir))
+
+from core import Config, logger
+from commands import DashboardManager, WorkspaceManager, GitHubSyncManager
+
+def create_parser():
+    """Create the command-line argument parser"""
+    parser = argparse.ArgumentParser(
+        description="Sinkii09 Engine Automation CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  ./automation/engine sync                    # Full project sync
+  ./automation/engine dashboard               # Update dashboard only  
+  ./automation/engine workspace setup        # Setup workspace structure
+  ./automation/engine github sync            # Sync GitHub issues
+  ./automation/engine status                 # Show project status
+        """
+    )
+    
+    parser.add_argument('--config', help='Path to custom config file')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
+    
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    
+    # Sync command (master sync)
+    sync_parser = subparsers.add_parser('sync', help='Full project synchronization')
+    sync_parser.add_argument('--skip-github', action='store_true', help='Skip GitHub sync')
+    sync_parser.add_argument('--skip-dashboard', action='store_true', help='Skip dashboard update')
+    
+    # Dashboard commands
+    dashboard_parser = subparsers.add_parser('dashboard', help='Dashboard management')
+    dashboard_parser.add_argument('action', nargs='?', default='update', 
+                                choices=['update', 'check', 'status'],
+                                help='Dashboard action to perform')
+    dashboard_parser.add_argument('--preserve', action='store_true', default=True,
+                                help='Preserve child databases and pages')
+    
+    # Workspace commands
+    workspace_parser = subparsers.add_parser('workspace', help='Workspace management')
+    workspace_parser.add_argument('action', nargs='?', default='status',
+                                choices=['setup', 'status', 'list', 'clean'],
+                                help='Workspace action to perform')
+    workspace_parser.add_argument('--force', action='store_true', 
+                                help='Force recreate existing items')
+    workspace_parser.add_argument('--dry-run', action='store_true',
+                                help='Show what would be done without making changes')
+    
+    # GitHub commands
+    github_parser = subparsers.add_parser('github', help='GitHub integration')
+    github_parser.add_argument('action', nargs='?', default='status',
+                              choices=['sync', 'status', 'stats'],
+                              help='GitHub action to perform')
+    
+    # Status command
+    status_parser = subparsers.add_parser('status', help='Show overall project status')
+    
+    # Config command
+    config_parser = subparsers.add_parser('config', help='Configuration management')
+    config_parser.add_argument('action', nargs='?', default='show',
+                              choices=['show', 'validate', 'test'],
+                              help='Config action to perform')
+    
+    return parser
+
+def handle_sync_command(args, config):
+    """Handle full project synchronization"""
+    logger.section("🚀 Sinkii09 Engine - Full Project Sync")
+    
+    success_count = 0
+    total_steps = 3
+    
+    # Step 1: Workspace setup
+    if not args.skip_dashboard:
+        logger.step("Setting up workspace structure", 1, total_steps)
+        workspace = WorkspaceManager(config)
+        workspace.setup_workspace()
+        success_count += 1
+    
+    # Step 2: GitHub sync
+    if not args.skip_github:
+        logger.step("Syncing GitHub issues", 2, total_steps)
+        github_sync = GitHubSyncManager(config)
+        stats = github_sync.sync_issues()
+        if 'error' not in stats:
+            success_count += 1
+    
+    # Step 3: Dashboard update
+    if not args.skip_dashboard:
+        logger.step("Updating dashboard", 3, total_steps)
+        dashboard = DashboardManager(config)
+        if dashboard.update_dashboard(preserve_databases=True):
+            success_count += 1
+    
+    # Results
+    if success_count == total_steps:
+        logger.success(f"🎉 Full sync completed successfully! ({success_count}/{total_steps} steps)")
+        logger.info(f"🔗 Dashboard: https://notion.so/{config.dashboard_id.replace('-', '')}")
+    else:
+        logger.warning(f"⚠️  Sync completed with issues ({success_count}/{total_steps} steps succeeded)")
+
+def handle_dashboard_command(args, config):
+    """Handle dashboard management"""
+    dashboard = DashboardManager(config)
+    
+    if args.action == 'update':
+        logger.section("Dashboard Update")
+        dashboard.update_dashboard(preserve_databases=args.preserve)
+    
+    elif args.action == 'check' or args.action == 'status':
+        dashboard.check_structure()
+
+def handle_workspace_command(args, config):
+    """Handle workspace management"""
+    workspace = WorkspaceManager(config)
+    
+    if args.action == 'setup':
+        workspace.setup_workspace(force_recreate=args.force)
+    
+    elif args.action == 'status' or args.action == 'list':
+        workspace.list_workspace_items()
+    
+    elif args.action == 'clean':
+        workspace.clean_workspace(dry_run=args.dry_run)
+
+def handle_github_command(args, config):
+    """Handle GitHub integration"""
+    github_sync = GitHubSyncManager(config)
+    
+    if args.action == 'sync':
+        github_sync.sync_issues()
+    
+    elif args.action == 'status':
+        github_sync.get_sync_status()
+    
+    elif args.action == 'stats':
+        from core import GitHubClient
+        github = GitHubClient(config)
+        stats = github.get_repository_stats()
+        
+        logger.section("GitHub Repository Statistics")
+        logger.info(f"⭐ Stars: {stats['stars']}")
+        logger.info(f"🔀 Forks: {stats['forks']}")
+        logger.info(f"👀 Watchers: {stats['watchers']}")
+        logger.info(f"🐛 Open Issues: {stats['open_issues']}")
+        logger.info(f"✅ Closed Issues: {stats['closed_issues']}")
+        logger.info(f"📅 Last Commit: {stats['last_commit']}")
+
+def handle_status_command(args, config):
+    """Handle overall status check"""
+    logger.section("🎯 Sinkii09 Engine - Project Status")
+    
+    # Config status
+    logger.subsection("Configuration")
+    tokens = config.validate_tokens()
+    logger.info(f"Notion Token: {'✅' if tokens['notion'] else '❌'}")
+    logger.info(f"GitHub Token: {'✅' if tokens['github'] else '⚠️  Optional'}")
+    
+    # Workspace status
+    logger.subsection("Workspace")
+    workspace = WorkspaceManager(config)
+    workspace_status = workspace.list_workspace_items()
+    
+    # GitHub status
+    logger.subsection("GitHub Integration")
+    github_sync = GitHubSyncManager(config)
+    github_status = github_sync.get_sync_status()
+    
+    # Dashboard status
+    logger.subsection("Dashboard")
+    dashboard = DashboardManager(config)
+    dashboard_status = dashboard.check_structure()
+    
+    # Summary
+    logger.subsection("Summary")
+    logger.info(f"Dashboard: {dashboard_status['databases']} databases, {dashboard_status['pages']} pages")
+    logger.info(f"Workspace: {workspace_status['existing']}/{workspace_status['total']} items configured")
+    if 'error' not in github_status:
+        logger.info(f"GitHub: {github_status['notion']['total']} issues synced")
+
+def handle_config_command(args, config):
+    """Handle configuration management"""
+    if args.action == 'show':
+        logger.section("Configuration")
+        logger.info(f"Project Root: {config.project_root}")
+        logger.info(f"Config File: {config.env_file}")
+        logger.info(f"Dashboard ID: {config.dashboard_id}")
+        
+        logger.subsection("Workspace Pages")
+        for name, page_id in config.workspace_pages.items():
+            logger.info(f"{name}: {page_id}")
+    
+    elif args.action == 'validate':
+        logger.section("Configuration Validation")
+        tokens = config.validate_tokens()
+        
+        if tokens['notion']:
+            logger.success("✅ Notion configuration valid")
+        else:
+            logger.error("❌ Notion configuration invalid")
+        
+        if tokens['github']:
+            logger.success("✅ GitHub configuration valid")
+        else:
+            logger.warning("⚠️  GitHub token not configured (optional)")
+    
+    elif args.action == 'test':
+        logger.section("Connection Testing")
+        
+        # Test Notion connection
+        try:
+            from core import NotionClient
+            notion = NotionClient(config)
+            page = notion.get_page(config.dashboard_id)
+            if page:
+                logger.success("✅ Notion API connection successful")
+            else:
+                logger.error("❌ Notion API connection failed")
+        except Exception as e:
+            logger.error(f"❌ Notion API error: {e}")
+        
+        # Test GitHub connection
+        try:
+            from core import GitHubClient
+            github = GitHubClient(config)
+            repo = github.get_repository_info()
+            if repo:
+                logger.success("✅ GitHub API connection successful")
+            else:
+                logger.warning("⚠️  GitHub API connection failed (check token)")
+        except Exception as e:
+            logger.error(f"❌ GitHub API error: {e}")
+
+def main():
+    """Main CLI entry point"""
+    parser = create_parser()
+    args = parser.parse_args()
+    
+    if not args.command:
+        parser.print_help()
+        return
+    
+    # Initialize configuration
+    try:
+        config = Config(args.config)
+    except Exception as e:
+        logger.error(f"Configuration error: {e}", exit_code=1)
+    
+    # Handle commands
+    try:
+        if args.command == 'sync':
+            handle_sync_command(args, config)
+        elif args.command == 'dashboard':
+            handle_dashboard_command(args, config)
+        elif args.command == 'workspace':
+            handle_workspace_command(args, config)
+        elif args.command == 'github':
+            handle_github_command(args, config)
+        elif args.command == 'status':
+            handle_status_command(args, config)
+        elif args.command == 'config':
+            handle_config_command(args, config)
+    
+    except KeyboardInterrupt:
+        logger.warning("\\n⚠️  Operation cancelled by user")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        if args.verbose:
+            raise
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
