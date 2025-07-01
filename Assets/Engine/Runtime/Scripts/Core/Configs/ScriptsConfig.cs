@@ -7,11 +7,11 @@ namespace Sinkii09.Engine.Configs
     [CreateAssetMenu(fileName = "ScriptsConfig", menuName = "Engine/Configs/ScriptsConfig", order = 1)]
     public class ScriptsConfig : Configuration
     {
-        public const string DefaultScriptsPathPrefix = "Scripts";
+        //public const string DefaultScriptsPathPrefix = "Scripts";
 
-        public ResouceLoaderConfig ResouceLoaderConfig = new ResouceLoaderConfig()
-        {
-            PathPrefix = DefaultScriptsPathPrefix
-        };
+        //public ResouceLoaderConfig ResouceLoaderConfig = new ResouceLoaderConfig()
+        //{
+        //    PathPrefix = DefaultScriptsPathPrefix
+        //};
     }
 }

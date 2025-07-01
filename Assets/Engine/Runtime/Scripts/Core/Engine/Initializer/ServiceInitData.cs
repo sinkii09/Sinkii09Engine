@@ -11,8 +11,10 @@ namespace Sinkii09.Engine.Initializer
         public readonly Type Type;
         public readonly Type[] CtorArgs;
         public readonly int Priority;
+
         // TODO: Add priority and other fields as needed
 
+        [Obsolete]
         public ServiceInitData(Type type, InitializeAtRuntimeAttribute initAttribute)
         {
             Type = type;
