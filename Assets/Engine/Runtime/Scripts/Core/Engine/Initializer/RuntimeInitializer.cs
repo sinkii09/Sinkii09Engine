@@ -1,119 +1,54 @@
 using Cysharp.Threading.Tasks;
 using Sinkii09.Engine.Configs;
-using Sinkii09.Engine.Extensions;
 using Sinkii09.Engine.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Sinkii09.Engine.Initializer
 {
+    /// <summary>
+    /// Simplified runtime initializer that only bootstraps core components
+    /// All service discovery and management is handled by Engine class
+    /// </summary>
     public class RuntimeInitializer
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void OnApplicationLoaded()
         {
-            ConfigProvider configProvider = new ConfigProvider();
-
-            InitializeAsync(configProvider).Forget();
+            Debug.Log("Starting Engine bootstrap...");
+            InitializeAsync().Forget();
         }
 
-        private static async UniTask InitializeAsync(ConfigProvider configProvider)
+        private static async UniTask InitializeAsync()
         {
-            var initData = new List<ServiceInitData>();
-
-            foreach (var type in ReflectionUtils.ExportedDomainTypes)
+            try
             {
-                var attribute = type.GetCustomAttribute<InitializeAtRuntimeAttribute>();
-                if (attribute == null)
-                    continue;
+                // Create core components
+                var configProvider = new ConfigProvider();
+                var behaviour = EngineBehaviour.Create();
 
-                initData.Add(new ServiceInitData(type, attribute));
-            }
-
-            initData = initData.OrderBy(d => d.Priority)
-                               .TopologicalOrder(d => GetDependencies(d, initData))
-                               .ToList();
-
-            IEgineBehaviour behaviour = EngineBehaviour.Create();
-            List<IService> services = new List<IService>();
-            List<object> ctorParams = new List<object>();
-
-            foreach (var data in initData)
-            {
-                foreach (var argType in data.CtorArgs)
+                // Initialize engine with automatic service discovery
+                await Engine.InitializeAsync(configProvider, behaviour);
+                
+                if (!Application.isPlaying) 
                 {
-                    if (IsBehaviour(argType))
-                    {
-                        ctorParams.Add(behaviour);
-                    }
-                    else if (IsConfig(argType))
-                    {
-                        var config = configProvider.GetConfiguration(argType);
-                        ctorParams.Add(config ?? throw new InvalidOperationException($"Configuration for {argType.Name} not found."));
-                    }
-                    else if (IsService(argType))
-                    {
-                        var dependencyService = services.FirstOrDefault(s => argType.IsAssignableFrom(s.GetType()));
-                        ctorParams.Add(dependencyService ?? throw new InvalidOperationException($"Service of type {argType.Name} not found."));
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException($"Unsupported constructor argument type: {argType.Name}");
-                    }
+                    Debug.LogWarning("Application stopped playing during initialization");
+                    return;
                 }
-                var service = Activator.CreateInstance(data.Type, ctorParams.ToArray()) as IService;
-                if (service == null)
-                {
-                    throw new InvalidOperationException($"Failed to create instance of service {data.Type.Name}. Ensure it implements IService and has a valid constructor.");
-                }
-                services.Add(service);
-                ctorParams.Clear();
+
+                Debug.Log("Engine bootstrap completed successfully");
             }
-
-            await Engine.InitializeAsync(configProvider, behaviour, services);
-            if (!Application.isPlaying) return;
-
-            // TODO: Add any additional initialization logic here if needed
-        }
-
-        private static bool IsBehaviour(Type type)
-        {
-            return typeof(IEgineBehaviour).IsAssignableFrom(type);
-        }
-        private static bool IsConfig(Type type)
-        {
-            return typeof(Configuration).IsAssignableFrom(type);
-        }
-        private static bool IsService(Type type)
-        {
-            return typeof(IService).IsAssignableFrom(type);
-        }
-
-        /// <summary>
-        /// Finds all ServiceInitData dependencies for the given service initialization data.
-        /// A dependency is any ServiceInitData in initData whose type matches a service-type constructor argument of d.
-        /// </summary>
-        private static IEnumerable<ServiceInitData> GetDependencies(ServiceInitData serviceData, List<ServiceInitData> allInitData)
-        {
-            // Iterate over each constructor argument type of the service
-            foreach (var ctorArgType in serviceData.CtorArgs)
+            catch (System.Exception ex)
             {
-                // Only consider arguments that are services
-                if (!IsService(ctorArgType))
-                    continue;
-
-                // Find all ServiceInitData in the list that are not the current one and whose type is assignable from the argument type
-                foreach (var candidate in allInitData)
+                Debug.LogError($"Engine bootstrap failed: {ex.Message}\n{ex.StackTrace}");
+                
+                // Attempt graceful shutdown on failure
+                try
                 {
-                    if (serviceData.Equals(candidate))
-                        continue;
-
-                    if (ctorArgType.IsAssignableFrom(candidate.Type))
-                        yield return candidate;
+                    await Engine.TerminateAsync();
+                }
+                catch (System.Exception terminateEx)
+                {
+                    Debug.LogError($"Failed to terminate engine after bootstrap failure: {terminateEx.Message}");
                 }
             }
         }
