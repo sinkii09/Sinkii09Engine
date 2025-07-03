@@ -89,8 +89,8 @@ namespace Sinkii09.Engine.Services
                     return report;
                 }
                 
-                // Get initialization order
-                var initOrder = dependencyGraph.GetInitializationOrder();
+                // Get initialization order (use async version for better performance with large graphs)
+                var initOrder = await dependencyGraph.GetInitializationOrderAsync();
                 report.TotalServices = initOrder.Count;
                 
                 // Use parallel initialization if enabled and beneficial
@@ -238,7 +238,7 @@ namespace Sinkii09.Engine.Services
                 
                 // Get shutdown order (reverse of initialization)
                 var dependencyGraph = _container.BuildDependencyGraph();
-                var shutdownOrder = dependencyGraph.GetInitializationOrder();
+                var shutdownOrder = await dependencyGraph.GetInitializationOrderAsync();
                 shutdownOrder.Reverse();
                 
                 report.TotalServices = shutdownOrder.Count;

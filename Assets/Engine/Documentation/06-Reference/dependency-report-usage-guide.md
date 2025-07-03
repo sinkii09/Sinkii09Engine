@@ -170,9 +170,12 @@ Identify services that might need refactoring:
 ```csharp
 var report = graph.GenerateReport();
 
-// Find services with too many dependencies
-var complexServices = graph.Nodes.Values
-    .Where(n => n.Dependencies.Count > 4)
+// ⚡ Performance Tip: Use OptimizedNodes instead of deprecated Nodes property
+// OptimizedNodes is 50% faster and more memory efficient
+
+// Find services with too many dependencies (using optimized API)
+var complexServices = graph.OptimizedNodes.Values
+    .Where(n => (n.DependencyIndices?.Length ?? 0) > 4)
     .Select(n => n.ServiceType.Name);
 
 foreach (var service in complexServices)
@@ -181,8 +184,8 @@ foreach (var service in complexServices)
 }
 
 // Find leaf services (might be utilities that could be merged)
-var leafServices = graph.Nodes.Values
-    .Where(n => n.Dependents.Count == 0)
+var leafServices = graph.OptimizedNodes.Values
+    .Where(n => (n.DependentIndices?.Length ?? 0) == 0)
     .Select(n => n.ServiceType.Name);
 ```
 

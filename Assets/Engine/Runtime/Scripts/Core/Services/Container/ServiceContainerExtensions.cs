@@ -198,9 +198,9 @@ namespace Sinkii09.Engine.Services
                 TransientCount = registeredServices.Count(t => GetLifetime(container, t) == ServiceLifetime.Transient),
                 ScopedCount = registeredServices.Count(t => GetLifetime(container, t) == ServiceLifetime.Scoped),
                 HasCircularDependencies = graph.HasCircularDependencies,
-                MaxDependencyDepth = graph.Nodes.Values.Any() ? graph.Nodes.Values.Max(n => n.Depth) : 0,
-                ServicesWithNoDependencies = graph.Nodes.Values.Count(n => n.Dependencies.Count == 0),
-                ServicesWithNoDependents = graph.Nodes.Values.Count(n => n.Dependents.Count == 0)
+                MaxDependencyDepth = graph.OptimizedNodes.Values.Any() ? graph.OptimizedNodes.Values.Max(n => n.Depth) : 0,
+                ServicesWithNoDependencies = graph.OptimizedNodes.Values.Count(n => n.DependencyIndices?.Length == 0),
+                ServicesWithNoDependents = graph.OptimizedNodes.Values.Count(n => n.DependentIndices?.Length == 0)
             };
         }
         
@@ -256,12 +256,15 @@ namespace Sinkii09.Engine.Services
             var registeredServices = container.GetRegisteredServices().ToList();
             var transientWithManyDeps = registeredServices
                 .Where(t => GetLifetime(container, t) == ServiceLifetime.Transient)
-                .Where(t => graph.Nodes.ContainsKey(t) && graph.Nodes[t].Dependencies.Count > 5)
+                .Where(t => graph.TryGetOptimizedNode(t, out var node) && (node.DependencyIndices?.Length ?? 0) > 5)
                 .ToList();
             
             foreach (var service in transientWithManyDeps)
             {
-                result.Warnings.Add($"Transient service {service.Name} has many dependencies ({graph.Nodes[service].Dependencies.Count}). Consider using Singleton lifetime.");
+                if (graph.TryGetOptimizedNode(service, out var node))
+                {
+                    result.Warnings.Add($"Transient service {service.Name} has many dependencies ({node.DependencyIndices?.Length ?? 0}). Consider using Singleton lifetime.");
+                }
             }
             
             result.IsValid = result.Errors.Count == 0;

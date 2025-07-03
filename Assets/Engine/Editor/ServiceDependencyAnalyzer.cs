@@ -182,7 +182,8 @@ namespace Sinkii09.Engine.Editor
                 EditorGUILayout.LabelField("Detailed Analysis", EditorStyles.boldLabel);
                 EditorGUILayout.BeginVertical("box");
                 
-                var depthGroups = lastGraph.Nodes.Values
+                // Use optimized nodes for better performance
+                var depthGroups = lastGraph.OptimizedNodes.Values
                     .GroupBy(n => n.Depth)
                     .OrderBy(g => g.Key);
                 
@@ -192,11 +193,6 @@ namespace Sinkii09.Engine.Editor
                     foreach (var node in group.OrderBy(n => n.ServiceType.Name))
                     {
                         EditorGUILayout.LabelField($"  {node.ServiceType.Name}");
-                        if (node.Dependencies.Count > 0)
-                        {
-                            var deps = string.Join(", ", node.Dependencies.Select(d => d.ServiceType.Name));
-                            EditorGUILayout.LabelField($"    Dependencies: {deps}", EditorStyles.miniLabel);
-                        }
                     }
                     EditorGUILayout.Space();
                 }
