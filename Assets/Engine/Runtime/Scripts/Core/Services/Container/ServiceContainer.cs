@@ -28,6 +28,9 @@ namespace Sinkii09.Engine.Services
         // Performance optimization components
         private readonly ServiceResolutionCache _resolutionCache;
         private readonly FastServiceResolver _fastResolver;
+        private readonly ServiceObjectPool<List<object>> _listPool;
+        private readonly ServiceObjectPool<HashSet<Type>> _hashSetPool;
+        private readonly ServiceObjectPool<List<Type>> _typeListPool;
         private readonly ServiceMetadataCache _metadataCache;
         private readonly ResolutionPathOptimizer _pathOptimizer;
         private readonly WeakReferenceManager _weakReferenceManager;
@@ -52,6 +55,26 @@ namespace Sinkii09.Engine.Services
                 _pathOptimizer = new ResolutionPathOptimizer(_metadataCache);
                 _fastResolver = new FastServiceResolver(this, _resolutionCache);
                 _weakReferenceManager = new WeakReferenceManager();
+                
+                // Initialize object pools for frequently created objects
+                _listPool = new ServiceObjectPool<List<object>>(
+                    factory: () => new List<object>(),
+                    resetAction: list => list.Clear(),
+                    maxPoolSize: 50,
+                    autoScale: true
+                );
+                _hashSetPool = new ServiceObjectPool<HashSet<Type>>(
+                    factory: () => new HashSet<Type>(),
+                    resetAction: set => set.Clear(),
+                    maxPoolSize: 30,
+                    autoScale: true
+                );
+                _typeListPool = new ServiceObjectPool<List<Type>>(
+                    factory: () => new List<Type>(),
+                    resetAction: list => list.Clear(),
+                    maxPoolSize: 25,
+                    autoScale: true
+                );
                 
                 // Initialize memory monitor with GC optimization settings
                 var gcSettings = GCOptimizationSettings.GetDefaultSettings();
@@ -288,6 +311,22 @@ namespace Sinkii09.Engine.Services
         
         public IEnumerable<Type> GetRegisteredServices()
         {
+            // Use pooled type list if available for better performance
+            if (_typeListPool != null)
+            {
+                var pooledList = _typeListPool.Get();
+                try
+                {
+                    pooledList.AddRange(_registrations.Keys);
+                    // Return a copy since we need to return the pooled list
+                    return new List<Type>(pooledList);
+                }
+                finally
+                {
+                    _typeListPool.Return(pooledList);
+                }
+            }
+            
             return _registrations.Keys.ToList();
         }
         
@@ -612,6 +651,11 @@ namespace Sinkii09.Engine.Services
             _fastResolver?.Reset();
             _metadataCache?.Clear();
             
+            // Clear object pools
+            _listPool?.Clear();
+            _hashSetPool?.Clear();
+            _typeListPool?.Clear();
+            
             // Dispose all singleton instances that implement IDisposable
             foreach (var registration in _registrations.Values)
             {
@@ -641,6 +685,22 @@ namespace Sinkii09.Engine.Services
         #endregion
         
         #region Performance Optimization Methods
+        
+        /// <summary>
+        /// Get object pool statistics for monitoring
+        /// </summary>
+        public string GetObjectPoolStatistics()
+        {
+            if (_listPool == null || _hashSetPool == null || _typeListPool == null)
+                return "Object pooling not enabled";
+                
+            return $"Object Pool Stats - Lists: {_listPool.Count}/{_listPool.MaxPoolSize} " +
+                   $"(Efficiency: {_listPool.EfficiencyRatio:P1}), " +
+                   $"HashSets: {_hashSetPool.Count}/{_hashSetPool.MaxPoolSize} " +
+                   $"(Efficiency: {_hashSetPool.EfficiencyRatio:P1}), " +
+                   $"TypeLists: {_typeListPool.Count}/{_typeListPool.MaxPoolSize} " +
+                   $"(Efficiency: {_typeListPool.EfficiencyRatio:P1})";
+        }
         
         /// <summary>
         /// Precompile resolvers for critical services to improve performance
@@ -742,8 +802,11 @@ namespace Sinkii09.Engine.Services
                 switch (strategy)
                 {
                     case MemoryPressureMonitor.CleanupStrategy.Conservative:
-                        // Light cleanup - clear metadata cache only
+                        // Light cleanup - clear metadata cache and trim object pools
                         _metadataCache?.Clear();
+                        _listPool?.Trim(25); // Reduce to 50% of max size
+                        _hashSetPool?.Trim(15);
+                        _typeListPool?.Trim(12);
                         break;
                         
                     case MemoryPressureMonitor.CleanupStrategy.Moderate:
@@ -751,6 +814,9 @@ namespace Sinkii09.Engine.Services
                         _metadataCache?.Clear();
                         _resolutionCache?.Clear();
                         _weakReferenceManager?.PerformManualCleanup();
+                        _listPool?.Trim(10); // Reduce to 20% of max size
+                        _hashSetPool?.Trim(6);
+                        _typeListPool?.Trim(5);
                         break;
                         
                     case MemoryPressureMonitor.CleanupStrategy.Aggressive:
@@ -759,6 +825,9 @@ namespace Sinkii09.Engine.Services
                         _resolutionCache?.Clear();
                         _fastResolver?.Reset();
                         _weakReferenceManager?.PerformManualCleanup();
+                        _listPool?.Clear(); // Clear all pooled objects
+                        _hashSetPool?.Clear();
+                        _typeListPool?.Clear();
                         
                         // Skip GC operations - they require main thread access
                         // Memory cleanup will be handled by regular .NET GC cycles

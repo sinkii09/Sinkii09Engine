@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using Sinkii09.Engine.Services.Performance;
 
 namespace Sinkii09.Engine.Services
 {
@@ -13,11 +14,17 @@ namespace Sinkii09.Engine.Services
     {
         private readonly IServiceContainer _container;
         private readonly Dictionary<Type, ResolutionStrategy> _strategies;
+        private readonly ServiceObjectPool<List<object>> _listPool;
+        private readonly ServiceObjectPool<HashSet<Type>> _hashSetPool;
         
-        public DependencyResolver(IServiceContainer container)
+        public DependencyResolver(IServiceContainer container, 
+            ServiceObjectPool<List<object>> listPool = null,
+            ServiceObjectPool<HashSet<Type>> hashSetPool = null)
         {
             _container = container ?? throw new ArgumentNullException(nameof(container));
             _strategies = new Dictionary<Type, ResolutionStrategy>();
+            _listPool = listPool;
+            _hashSetPool = hashSetPool;
             InitializeDefaultStrategies();
         }
         
@@ -81,29 +88,40 @@ namespace Sinkii09.Engine.Services
         /// </summary>
         public IEnumerable<object> ResolveAll(Type serviceType)
         {
-            var results = new List<object>();
+            // Use pooled list if available, otherwise create new
+            var results = _listPool?.Get() ?? new List<object>();
             
-            // Find all registered types that implement the service type
-            foreach (var registeredType in _container.GetRegisteredServices())
+            try
             {
-                if (serviceType.IsAssignableFrom(registeredType))
+                // Find all registered types that implement the service type
+                foreach (var registeredType in _container.GetRegisteredServices())
                 {
-                    try
+                    if (serviceType.IsAssignableFrom(registeredType))
                     {
-                        var instance = _container.Resolve(registeredType);
-                        if (instance != null)
+                        try
                         {
-                            results.Add(instance);
+                            var instance = _container.Resolve(registeredType);
+                            if (instance != null)
+                            {
+                                results.Add(instance);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogWarning($"Failed to resolve {registeredType.Name}: {ex.Message}");
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Debug.LogWarning($"Failed to resolve {registeredType.Name}: {ex.Message}");
-                    }
                 }
+                
+                // Create a copy of the results to return (since we need to return the list to pool)
+                var resultsCopy = new List<object>(results);
+                return resultsCopy;
             }
-            
-            return results;
+            finally
+            {
+                // Return pooled list for reuse
+                _listPool?.Return(results);
+            }
         }
         
         /// <summary>
