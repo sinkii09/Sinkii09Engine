@@ -27,6 +27,8 @@ namespace Sinkii09.Engine.Services
         private readonly ParallelServiceInitializer _parallelInitializer;
         private readonly ServiceMetadataCache _metadataCache;
         private readonly MemoryPressureMonitor _memoryMonitor;
+        private readonly ServiceObjectPool<List<string>> _stringListPool;
+        private readonly ServiceObjectPool<List<Type>> _typeListPool;
         
         // Performance settings
         private readonly bool _enableParallelInitialization;
@@ -54,7 +56,21 @@ namespace Sinkii09.Engine.Services
                 var gcSettings = GCOptimizationSettings.GetDefaultSettings();
                 _memoryMonitor = new MemoryPressureMonitor(null, gcSettings);
                 
-                Debug.Log("ServiceLifecycleManager: Performance optimizations enabled with frame-aware GC");
+                // Initialize object pools for frequently created objects
+                _stringListPool = new ServiceObjectPool<List<string>>(
+                    factory: () => new List<string>(),
+                    resetAction: list => list.Clear(),
+                    maxPoolSize: 20,
+                    autoScale: true
+                );
+                _typeListPool = new ServiceObjectPool<List<Type>>(
+                    factory: () => new List<Type>(),
+                    resetAction: list => list.Clear(),
+                    maxPoolSize: 15,
+                    autoScale: true
+                );
+                
+                Debug.Log("ServiceLifecycleManager: Performance optimizations enabled with frame-aware GC and object pooling");
             }
         }
         
