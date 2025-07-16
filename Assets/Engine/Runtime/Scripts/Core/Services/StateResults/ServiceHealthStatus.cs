@@ -49,6 +49,20 @@ namespace Sinkii09.Engine.Services
         }
         
         /// <summary>
+        /// Create a degraded status (partially functional)
+        /// </summary>
+        public static ServiceHealthStatus Degraded(string message = "Service is degraded", TimeSpan? responseTime = null)
+        {
+            return new ServiceHealthStatus
+            {
+                IsHealthy = false, // Degraded is considered unhealthy but functional
+                StatusMessage = message,
+                ResponseTime = responseTime ?? TimeSpan.Zero,
+                LastCheckTime = DateTime.UtcNow
+            };
+        }
+        
+        /// <summary>
         /// Create an unknown status
         /// </summary>
         public static ServiceHealthStatus Unknown(string message = "Service health is unknown")
@@ -72,7 +86,20 @@ namespace Sinkii09.Engine.Services
         
         public override string ToString()
         {
-            var status = IsHealthy ? "Healthy" : "Unhealthy";
+            string status;
+            if (IsHealthy)
+            {
+                status = "Healthy";
+            }
+            else if (StatusMessage.Contains("degraded", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Degraded";
+            }
+            else
+            {
+                status = "Unhealthy";
+            }
+            
             var time = ResponseTime.TotalMilliseconds > 0 ? $" ({ResponseTime.TotalMilliseconds:F2}ms)" : "";
             return $"{status}: {StatusMessage}{time}";
         }
