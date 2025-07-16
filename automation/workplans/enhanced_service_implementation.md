@@ -10,7 +10,7 @@ priority: "high"
 
 **Priority**: Critical
 **Estimated Effort**: 18-20 story points (18 development days)
-**Current Progress**: ~75% Complete (Phases 3.1-3.2 + Testing Infrastructure + 70% of Phase 3.4 + TopologicalSortOptimizer)
+**Current Progress**: ~85% Complete (Phases 3.1-3.2 + Complete ResourceService Enhancement + Testing Infrastructure + 70% of Phase 3.4 + TopologicalSortOptimizer)
 **Milestone**: Enhanced Service Architecture
 **Team Size**: 2-3 developers
 **Timeline**: 3-4 weeks with parallel development
@@ -1042,45 +1042,221 @@ public interface IServiceContainer
 - [ ] **Initialization Order**: Update service initialization order based on new dependency graph
 - [ ] **Legacy Bridge**: Create compatibility layer for code still using ServiceLocator.Get<T>()
 
-#### Backward Compatibility Strategy
+#### Complete Service Migration Strategy (No Legacy API)
 
-**API Preservation:**
-- [ ] Maintain all existing public methods and properties
-- [ ] Add obsolete warnings for deprecated patterns with migration guidance
-- [ ] Create extension methods for common legacy usage patterns
-- [ ] Implement automatic API translation layer for simple cases
+**Objective**: Replace all legacy service code with new enhanced architecture - zero legacy APIs remaining.
 
-**Configuration Migration:**
-- [ ] Create configuration migration tool for ScriptableObject configs
-- [ ] Add validation for old configuration formats with helpful error messages
-- [ ] Implement automatic configuration format updates where possible
-- [ ] Provide manual migration guides for complex configuration scenarios
+### Phase 4.Enhanced: Complete Service Migration with Legacy API Replacement
 
-**Performance Compatibility:**
-- [ ] Ensure migrated services perform at least as well as legacy versions
-- [ ] Add performance regression testing with automatic rollback triggers
-- [ ] Create performance comparison reports for each migrated service
-- [ ] Implement performance monitoring dashboards for production deployment
+**Description**: Complete migration of all services to new enhanced architecture with total removal of legacy APIs. This replaces the backward compatibility approach with direct API replacement.
 
-#### Risk Mitigation and Rollback Strategy
+**Labels**: task, migration, breaking-change, phase-4-enhanced
+**Estimated Effort**: 4 days
+**Priority**: Critical
 
-**Deployment Phases:**
-1. **Phase A**: Deploy enhanced services alongside legacy (dual-mode)
-2. **Phase B**: Gradually switch consumers to enhanced services
-3. **Phase C**: Monitor performance and error rates
-4. **Phase D**: Remove legacy services if migration successful
+**Phase 4.Enhanced.1: ResourceService Complete Replacement (Day 1)**
 
-**Rollback Triggers:**
-- [ ] Performance degradation >10% compared to baseline
-- [ ] Error rate increase >5% in production
-- [ ] Memory usage increase >20% sustained for >1 hour
-- [ ] Any critical functionality failure
+### Detailed Implementation: ResourceService Migration
 
-**Rollback Procedures:**
-- [ ] Instant rollback capability using feature flags
-- [ ] Configuration rollback to previous known-good state
-- [ ] Service registration rollback to legacy implementations
-- [ ] Data migration rollback for any persisted changes
+**Description**: Complete ResourceService migration with detailed implementation plan, configuration system, provider management, and error handling integration.
+
+**Current State Analysis:**
+- Legacy ResourceService entirely commented out (lines 9-97)
+- Existing infrastructure preserved: IResourceProvider, ResourceProvider, ProviderType, ProjectResourceProvider
+- Resource loading/runner system fully functional (keep as-is)
+- No ServiceLocator dependencies found
+
+**Implementation Tasks:**
+
+**Task 1.1: Legacy Code Removal (30 minutes) - ✅ COMPLETED**
+- [x] Delete all commented legacy code from ResourceService.cs (lines 9-97)
+- [x] Keep file structure and namespace
+- [x] Verify no external dependencies on commented code
+
+**Task 1.2: ResourceServiceConfiguration Creation (45 minutes) - ✅ COMPLETED**
+*New File:* `Assets/Engine/Runtime/Scripts/Core/Services/Configuration/Concretes/ResourceServiceConfiguration.cs`
+- [x] Create ScriptableObject configuration class implementing IServiceConfiguration
+- [x] Add provider settings: EnabledProviders, MaxConcurrentLoads, MemoryPressureThreshold
+- [x] Add performance settings: EnableResourceCaching, MaxCacheSize, UnloadUnusedResourcesInterval
+- [x] Add error handling settings: MaxRetryAttempts, RetryDelaySeconds, EnableCircuitBreaker
+- [x] Implement Validate() method with comprehensive validation rules
+- [x] Add [CreateAssetMenu] for Unity Inspector creation
+
+**Task 1.3: Enhanced IResourceService Interface (30 minutes) - ✅ COMPLETED**
+- [x] Define new interface extending IEngineService
+- [x] Add async resource operations with CancellationToken support
+- [x] Add provider management methods with health monitoring
+- [x] Add memory management methods with pressure callbacks
+- [x] Add error handling and retry capabilities
+
+**Task 1.4: ResourceService Implementation - Core Structure (1 hour) - ✅ COMPLETED**
+- [x] Add [EngineService(ServiceCategory.Core, ServicePriority.Critical)] attribute
+- [x] Add [ServiceConfiguration(typeof(ResourceServiceConfiguration))] attribute
+- [x] Implement constructor with dependency injection (config, IServiceProvider)
+- [x] Initialize provider dictionary and circuit breaker manager
+- [x] Set up memory pressure monitoring integration
+
+**Task 1.5: Async Lifecycle Implementation (1 hour) - ✅ COMPLETED**
+- [x] Implement InitializeAsync(IServiceProvider, CancellationToken):
+  - Initialize enabled providers based on configuration
+  - Set up circuit breakers for each provider
+  - Register memory pressure callbacks
+  - Validate provider initialization
+- [x] Implement HealthCheckAsync():
+  - Check all provider health status
+  - Validate circuit breaker states
+  - Monitor memory usage patterns
+- [x] Implement ShutdownAsync(CancellationToken):
+  - Graceful provider shutdown
+  - Resource cleanup and unloading
+  - Circuit breaker disposal
+
+**Task 1.6: Provider Management with DI (1.5 hours) - ✅ COMPLETED**
+- [x] Implement provider factory with ServiceContainer integration
+- [x] Create async provider initialization with proper error handling
+- [x] Add provider health monitoring and status tracking
+- [x] Implement provider-specific circuit breaker integration
+- [x] Add provider registration in ServiceContainer
+
+**Task 1.7: Enhanced Resource Loading (1 hour) - ✅ COMPLETED**
+- [x] Implement LoadResourceAsync<T> with cancellation support
+- [x] Add retry policy for failed resource loads
+- [x] Integrate circuit breaker pattern for provider failures
+- [x] Add comprehensive error logging and metrics
+- [x] Implement resource loading queue management
+
+**Task 1.8: Memory Management Integration (45 minutes) - ✅ COMPLETED**
+- [x] Implement IMemoryPressureResponder interface
+- [x] Add automatic resource cleanup on memory pressure
+- [x] Integrate with ServiceContainer's memory monitoring
+- [x] Implement provider-aware resource unloading strategies
+- [x] Add memory usage reporting and thresholds
+
+**Task 1.9: Error Handling & Circuit Breaker (1 hour) - ✅ COMPLETED**
+*New File:* `Assets/Engine/Runtime/Scripts/Core/Services/Implemented/ResourceService/CircuitBreakerManager.cs`
+- [x] Create circuit breaker manager for provider failure handling
+- [x] Implement provider isolation on repeated failures
+- [x] Add automatic provider recovery mechanisms
+- [x] Create error classification system (Transient, Permanent, Timeout)
+- [x] Add comprehensive error logging and metrics
+
+**Task 1.10: Service Registration Integration (30 minutes) - ✅ COMPLETED**
+- [x] Auto-registration via [EngineService] attribute with InitializeAtRuntime=true
+- [x] ResourceService included in ServiceLifecycleManager initialization
+- [x] Dependency injection chain verified through constructor injection
+- [x] Service properly registered in ServiceContainer registration system
+
+**Task 1.11: Testing & Validation (1 hour) - ✅ COMPLETED**
+*New File:* `Assets/Engine/Tests/Services/ResourceServiceTests.cs`
+- [x] Create comprehensive unit tests for new ResourceService implementation
+- [x] Test provider initialization and failure scenarios
+- [x] Validate memory pressure response behavior
+- [x] Test circuit breaker functionality
+- [x] Verify configuration loading and validation
+- [x] Test service registration and lifecycle management integration
+- [x] Test concurrent operations and thread safety
+
+#### Implementation Specifications
+
+**ResourceServiceConfiguration Structure:**
+```csharp
+[CreateAssetMenu(menuName = "Engine/Configuration/ResourceService")]
+public class ResourceServiceConfiguration : ScriptableObject, IServiceConfiguration
+{
+    [Header("Provider Settings")]
+    public ProviderType EnabledProviders = ProviderType.Resources | ProviderType.AssetBundle;
+    public int MaxConcurrentLoads = 10;
+    public float MemoryPressureThreshold = 0.8f;
+    
+    [Header("Performance")]
+    public bool EnableResourceCaching = true;
+    public int MaxCacheSize = 1000;
+    public float UnloadUnusedResourcesInterval = 30f;
+    
+    [Header("Error Handling")]
+    public int MaxRetryAttempts = 3;
+    public float RetryDelaySeconds = 1f;
+    public bool EnableCircuitBreaker = true;
+}
+```
+
+**Service Implementation Pattern:**
+```csharp
+[EngineService(ServiceCategory.Core, ServicePriority.High, 
+    Description = "Manages resource loading through multiple providers")]
+[ServiceConfiguration(typeof(ResourceServiceConfiguration))]
+public class ResourceService : IResourceService, IMemoryPressureResponder
+{
+    private readonly ResourceServiceConfiguration _config;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly Dictionary<ProviderType, IResourceProvider> _providers;
+    private readonly CircuitBreakerManager _circuitBreakers;
+}
+```
+
+**Phase 4.Enhanced.2: ScriptService Complete Replacement (Day 1-2)**
+
+*Target Files:*
+- `Assets/Engine/Runtime/Scripts/Core/Services/Implemented/ScriptService/ScriptService.cs` (replace entirely) 
+- `Assets/Engine/Runtime/Scripts/Core/Services/Configuration/ScriptServiceConfiguration.cs` (new)
+
+*Migration Tasks:*
+- [ ] **Delete Legacy Code**: Remove all commented legacy ScriptService code (lines 9-78)
+- [ ] **Implement New ScriptService**: Create from scratch with enhanced architecture:
+  - Proper dependency injection for ResourceService
+  - Async script loading with UniTask
+  - Event-driven notifications with proper async patterns
+  - Configuration-based script management
+- [ ] **Create Configuration**: ScriptServiceConfiguration with script validation rules
+- [ ] **Error Handling**: Implement script compilation error recovery
+- [ ] **Health Monitoring**: Add script execution performance monitoring
+
+**Phase 4.Enhanced.3: Legacy Infrastructure Removal (Day 2-3)**
+
+*Target Files:*
+- `Assets/Engine/Runtime/Scripts/Core/Services/Legacy/ServiceLocator.cs` (DELETE)
+- `Assets/Engine/Runtime/Scripts/Core/Engine/Engine.cs` (update)
+- All service consumer files (update)
+
+*Migration Tasks:*
+- [ ] **Delete ServiceLocator**: Remove ServiceLocator.cs entirely
+- [ ] **Update Engine.cs**: Replace ServiceLocator with ServiceContainer + ServiceLifecycleManager
+- [ ] **Update Service Registration**: Replace all `ServiceLocator.Register()` with `ServiceContainer.RegisterService()`
+- [ ] **Update Service Resolution**: Replace all `ServiceLocator.GetService()` with constructor injection
+- [ ] **Update Initialization**: Replace manual service initialization with ServiceLifecycleManager
+
+**Phase 4.Enhanced.4: Service Consumer Migration (Day 3-4)**
+
+*Migration Tasks:*
+- [ ] **Constructor Injection**: Update all service consumers to receive dependencies via constructor
+- [ ] **Remove Static Calls**: Replace all static service access with injected dependencies
+- [ ] **Update Registration**: Ensure all service consumers are registered with ServiceContainer
+- [ ] **Validate Dependencies**: Ensure all dependency chains are properly registered
+- [ ] **Update Tests**: Modify all tests to use new service architecture
+
+**Phase 4.Enhanced.5: Configuration System Integration (Day 4)**
+
+*Migration Tasks:*
+- [ ] **Create Configuration Assets**: Generate ResourceServiceConfiguration and ScriptServiceConfiguration assets
+- [ ] **Implement Validation**: Add configuration validation with clear error messages
+- [ ] **Add Hot-Reload**: Implement configuration hot-reload support
+- [ ] **Environment Overrides**: Support development/production configuration variants
+- [ ] **Migration Guide**: Create documentation for configuration migration
+
+#### Breaking Changes Documentation
+- [ ] Document all breaking API changes
+- [ ] Provide migration examples for common patterns
+- [ ] List all removed methods and their replacements
+- [ ] Update all documentation to reflect new architecture
+
+#### Success Criteria (No Legacy Compatibility)
+- [ ] Zero legacy service code remaining
+- [ ] All services use enhanced architecture (EngineService attributes, async lifecycle, DI)
+- [ ] ServiceLocator completely removed
+- [ ] All service consumers use dependency injection
+- [ ] Configuration system fully integrated
+- [ ] All tests pass with new architecture
+- [ ] Performance targets met (as defined in Phase 3.4)
 
 #### Acceptance Criteria
 - [ ] All 3 core services (Resource, Script, Actor) migrated to enhanced interface
@@ -1100,24 +1276,36 @@ public interface IServiceContainer
 - Requires stakeholder approval for any breaking changes
 
 #### Deliverables
-- [ ] **Migrated Service Implementations** (3 enhanced services):
-  - EnhancedResourceService with async loading and dependency injection
-  - EnhancedScriptService with configuration integration and hot-reload
-  - EnhancedActorService with lifecycle management and health monitoring
-- [ ] **Backward Compatibility Layer** ensuring zero breaking changes
-- [ ] **Configuration Migration Tools** for automatic config updates
+- [ ] **Enhanced ResourceService Implementation** with complete legacy replacement:
+  - New ResourceService with enhanced architecture (EngineService attributes, async lifecycle, DI)
+  - ResourceServiceConfiguration ScriptableObject with comprehensive settings
+  - CircuitBreakerManager for provider failure handling and isolation
+  - Memory pressure integration with ServiceContainer monitoring
+  - Enhanced error handling with retry policies and recovery mechanisms
+  - Provider health monitoring and automatic recovery
+- [ ] **Enhanced ScriptService Implementation** with configuration integration and hot-reload
+- [ ] **Enhanced ActorService** (already completed) with lifecycle management and health monitoring
+- [ ] **Complete Legacy API Removal** with zero backward compatibility
+- [ ] **Configuration System Integration** for all services
 - [ ] **Performance Comparison Report** validating performance improvements
-- [ ] **Migration Documentation** with step-by-step guides and best practices
-- [ ] **Rollback Procedures Documentation** with emergency response plans
-- [ ] **Service Dependency Graph Visualization** showing new architecture
+- [ ] **Migration Documentation** with step-by-step guides and breaking changes
+- [ ] **Service Registration Updates** in ServiceContainer and ServiceLifecycleManager
 - [ ] **Integration Test Suite** validating all migration scenarios
+- [ ] **Updated Service Dependency Graph** showing new architecture without legacy components
 
 #### Service-Specific Success Criteria
 
 **ResourceService Migration:**
+- Zero legacy commented code remaining (lines 9-97 completely removed)
+- Full enhanced service architecture implemented with EngineService attributes
+- Configuration-driven provider management working with ResourceServiceConfiguration
+- Memory pressure integration functional with IMemoryPressureResponder
+- Circuit breaker protection operational for all providers
 - Resource loading time improved by 20% through async operations
 - Memory usage reduced by 15% through better resource management
-- Error recovery rate improved by 50% through retry policies
+- Error recovery rate improved by 50% through retry policies and circuit breakers
+- All existing resource loading functionality preserved (IResourceProvider system intact)
+- Health monitoring operational for all providers
 
 **ScriptService Migration:**
 - Script compilation time reduced by 25% through caching optimizations
@@ -1524,8 +1712,83 @@ public interface IServiceContainer
    - ✅ Production readiness framework validated
 
 ### Integration Order
-1. Update existing services to use new container
-2. Maintain backward compatibility with ServiceLocator
-3. Gradual migration of service consumers
-4. Performance validation at each step
-5. Documentation updates throughout
+1. ✅ Update existing services to use new container
+2. ✅ Enhanced service infrastructure complete
+3. 🎯 Complete error handling framework (Phase 3.3)
+4. 📋 Migrate remaining services (ScriptService - see script_service_migration.md)
+5. 📋 Performance validation and final optimization
+6. 📋 Documentation updates and production deployment
+
+## Related Workplans
+
+### ScriptService Migration Workplan
+**File**: `script_service_migration.md`
+**Status**: 📋 PLANNED
+**Priority**: High  
+**Timeline**: 5 days
+**Dependencies**: Enhanced service infrastructure (Phase 3.1-3.2 complete)
+
+**Summary**: Complete migration of ScriptService from legacy commented code to enhanced architecture with:
+- Modern async interface with dependency injection
+- ScriptServiceConfiguration with hot-reload support  
+- 25% performance improvement target
+- Hot-reload system with <100ms update time
+- Comprehensive caching and memory management
+- 95%+ test coverage with benchmarks
+
+**Implementation Phases**:
+1. Configuration System (0.5 days) - ScriptServiceConfiguration design
+2. Interface Design (0.5 days) - Enhanced IScriptService interface  
+3. Core Implementation (2 days) - Service implementation and lifecycle
+4. Advanced Features (1 day) - Hot-reload, performance, memory management
+5. Testing Infrastructure (1 day) - Comprehensive test suite
+6. Integration & Cleanup (1 day) - Legacy removal and documentation
+
+## Master Project Coordination
+
+### Current Sprint Status
+- **Enhanced Service Architecture**: 85% complete (this workplan)
+- **ScriptService Migration**: 0% complete (planned - script_service_migration.md)
+- **Overall Project**: 75% complete
+
+### Next Phase Priorities
+1. **Complete Error Handling Framework** (Phase 3.3) - 3-4 days
+2. **Begin ScriptService Migration** - 5 days  
+3. **Finalize Performance Optimization** - 2-3 days
+4. **Legacy Cleanup and Documentation** - 2-3 days
+
+### Cross-Workplan Dependencies
+- ScriptService migration requires completed error handling framework
+- Performance optimization benefits both workplans
+- Testing infrastructure shared across all service implementations
+- Configuration system patterns established here used in ScriptService
+
+## Integration with Automation System
+
+### Workplan Management Commands
+```bash
+# Check status of all workplans
+./automation/engine workplan list
+
+# Check specific workplan status  
+./automation/engine workplan status --file enhanced_service_implementation.md
+./automation/engine workplan status --file script_service_migration.md
+
+# Update workplan progress
+./automation/engine workplan update --file enhanced_service_implementation.md
+
+# Create new workplan from template
+./automation/engine workplan template --template service --output new_service.md
+```
+
+### Project Synchronization
+```bash
+# Full project sync (includes workplan updates)
+./automation/engine sync
+
+# GitHub integration for issue tracking
+./automation/engine github sync
+
+# Dashboard updates with workplan progress
+./automation/engine dashboard
+```

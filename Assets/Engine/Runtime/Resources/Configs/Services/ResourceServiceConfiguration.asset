@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ec8830dc05a5b242aad492d9683d396, type: 3}
+  m_Name: ResourceServiceConfiguration
+  m_EditorClassIdentifier: 
+  _version: 1
+  _description: Service configuration
+  _enabledProviders: 3
+  _maxConcurrentLoads: 10
+  _memoryPressureThreshold: 0.8
+  _enableResourceCaching: 1
+  _maxCacheSize: 1000
+  _unloadUnusedResourcesInterval: 30
+  _enableResourcePreloading: 0
+  _preloadResourcePaths: []
+  _maxRetryAttempts: 3
+  _retryDelaySeconds: 1
+  _enableCircuitBreaker: 1
+  _circuitBreakerFailureThreshold: 5
+  _circuitBreakerTimeoutSeconds: 30
+  _enableMemoryPressureResponse: 1
+  _moderateCleanupPercentage: 25
+  _aggressiveCleanupPercentage: 75
+  _enableDetailedLogging: 0
+  _gracefulShutdownTimeoutMs: 5000

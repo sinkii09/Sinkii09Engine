@@ -284,6 +284,10 @@ namespace Sinkii09.Engine
                 if (report.Success)
                 {
                     Debug.Log($"Engine initialized successfully. {report.InitializedServices.Count} services started.");
+                    foreach (var service in report.InitializedServices)
+                    {
+                        Debug.Log($"- {service.Name}");
+                    }
                     Debug.Log($"Initialize Time: {report.TotalTime.TotalMilliseconds} ms");
                     initializeTCS?.TrySetResult(null);
                 }
@@ -392,7 +396,7 @@ namespace Sinkii09.Engine
                         if (ServiceTestUtils.IsTestService(type) && !includeTestServices)
                         {
                             testServicesSkipped++;
-                            Debug.Log($"Skipping test service: {type.Name} (Category: {serviceAttribute.Category})");
+                            //Debug.Log($"Skipping test service: {type.Name} (Category: {serviceAttribute.Category})");
                             continue;
                         }
 

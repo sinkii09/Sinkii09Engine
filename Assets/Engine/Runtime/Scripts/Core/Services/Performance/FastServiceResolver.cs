@@ -201,6 +201,17 @@ namespace Sinkii09.Engine.Services.Performance
             
             await UniTask.WhenAll(compilationTasks);
             Debug.Log($"Precompiled {criticalServices.Length} service resolvers");
+            foreach (var serviceType in criticalServices)
+            {
+                if (_compiledResolvers.TryGetValue(serviceType, out var resolver))
+                {
+                    Debug.Log($"Compiled resolver for {serviceType.Name}");
+                }
+                else
+                {
+                    Debug.LogWarning($"Failed to compile resolver for {serviceType.Name}");
+                }
+            }
         }
         
         /// <summary>
