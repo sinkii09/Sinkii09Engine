@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinkii09 Engine - SaveSystem Implementation Guide</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #1f2937;
+            --light-bg: #f8fafc;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --code-bg: #f1f5f9;
+            --code-border: #cbd5e1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--light-bg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        .nav {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-list {
+            display: flex;
+            list-style: none;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            margin: 0 1rem;
+        }
+
+        .nav-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background-color: var(--accent-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Main Content */
+        .main {
+            padding: 2rem 0;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .section h3 {
+            color: var(--secondary-color);
+            margin: 1.5rem 0 1rem 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .section h4 {
+            color: var(--text-primary);
+            margin: 1rem 0 0.5rem 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .section p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .section ul, .section ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .section li {
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        /* Code Blocks */
+        .code-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .code-container {
+            position: relative;
+            margin: 1.5rem 0;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 0 0 8px 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .code-block.standalone {
+            border-radius: 8px;
+            border: 1px solid var(--code-border);
+        }
+
+        .copy-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Syntax Highlighting */
+        .keyword { color: #0066cc; font-weight: bold; }
+        .type { color: #2b91af; font-weight: bold; }
+        .string { color: #008000; }
+        .comment { color: #008000; font-style: italic; }
+        .number { color: #0066cc; }
+        .method { color: #795548; font-weight: bold; }
+        .property { color: #e91e63; }
+        .parameter { color: #ff5722; }
+        .attribute { color: #9c27b0; }
+
+        /* Mermaid Diagrams */
+        .mermaid {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        /* Performance Tables */
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .performance-table th {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .performance-table td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .performance-table tr:hover {
+            background: var(--light-bg);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-implemented {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-in-progress {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .feature-card h4 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Architecture Diagram */
+        .architecture-overview {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-list {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .nav-item {
+                margin: 0.5rem 0;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .section {
+                padding: 1rem;
+            }
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--primary-color);
+            transform: translateX(-50%);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin: 2rem 0;
+        }
+
+        .timeline-content {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 45%;
+        }
+
+        .timeline-item:nth-child(odd) .timeline-content {
+            margin-left: 55%;
+        }
+
+        .timeline-item:nth-child(even) .timeline-content {
+            margin-right: 55%;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 50%;
+            top: 1.5rem;
+            width: 16px;
+            height: 16px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            border: 4px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .timeline::before {
+                left: 20px;
+            }
+            
+            .timeline-content {
+                width: calc(100% - 60px);
+                margin-left: 60px !important;
+                margin-right: 0 !important;
+            }
+            
+            .timeline-marker {
+                left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🎮 SaveSystem Implementation Guide</h1>
+            <p>EzzyIdle-Style Save/Load System for Sinkii09 Engine</p>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="container">
+            <ul class="nav-list">
+                <li class="nav-item"><a href="#overview" class="nav-link">Overview</a></li>
+                <li class="nav-item"><a href="#architecture" class="nav-link">Architecture</a></li>
+                <li class="nav-item"><a href="#implementation" class="nav-link">Implementation</a></li>
+                <li class="nav-item"><a href="#subsystems" class="nav-link">Subsystems</a></li>
+                <li class="nav-item"><a href="#performance" class="nav-link">Performance</a></li>
+                <li class="nav-item"><a href="#timeline" class="nav-link">Timeline</a></li>
+                <li class="nav-item"><a href="#examples" class="nav-link">Examples</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container">
+            <section id="overview" class="section">
+                <h2>🎯 Project Overview</h2>
+                <p>
+                    The SaveSystem implementation brings EzzyIdle's proven save/load architecture to the Sinkii09 Engine, 
+                    featuring binary serialization, zlib compression, optional encryption, and seamless integration with 
+                    the service-oriented architecture. This comprehensive system provides enterprise-grade features for 
+                    maintainability, extensibility, and performance optimization.
+                </p>
+
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>🔧 Service-Oriented Design</h4>
+                        <p>Full integration with existing DI container and service lifecycle management</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📦 Binary Serialization</h4>
+                        <p>EzzyIdle-style binary serialization with zlib compression and Base64 encoding</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔒 Optional Encryption</h4>
+                        <p>AES-256-GCM encryption with multiple key derivation methods</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🚀 Performance Optimized</h4>
+                        <p>Memory pooling, async operations, and comprehensive monitoring</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔄 Version Management</h4>
+                        <p>Save format versioning with automatic migration and backward compatibility</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🛡️ Error Recovery</h4>
+                        <p>Circuit breaker pattern, retry mechanisms, and corruption detection</p>
+                    </div>
+                </div>
+
+                <h3>Key Statistics</h3>
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Target</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Save Performance</td>
+                            <td>&lt;100ms for 1MB files</td>
+                            <td>Including compression and encoding</td>
+                        </tr>
+                        <tr>
+                            <td>Compression Ratio</td>
+                            <td>60-80% size reduction</td>
+                            <td>zlib compression with configurable levels</td>
+                        </tr>
+                        <tr>
+                            <td>Memory Overhead</td>
+                            <td>&lt;20% of save size</td>
+                            <td>Peak memory usage during operations</td>
+                        </tr>
+                        <tr>
+                            <td>Error Recovery</td>
+                            <td>&gt;99.9% success rate</td>
+                            <td>Including automatic retry and recovery</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="architecture" class="section">
+                <h2>🏗️ System Architecture</h2>
+                
+                <div class="architecture-overview">
+                    <h3>Core Architecture Overview</h3>
+                    <div class="mermaid">
+graph TB
+    subgraph "SaveService Core"
+        SS[SaveService]
+        ISS[ISaveService Interface]
+        SSC[SaveServiceConfiguration]
+    end
+    
+    subgraph "Serialization Layer"
+        BS[Binary Serializer]
+        CM[Compression Manager]
+        SO[Serialization Optimizer]
+    end
+    
+    subgraph "Storage Layer"
+        SM[Storage Manager]
+        LFS[Local File Storage]
+        CS[Cloud Storage]
+    end
+    
+    subgraph "Security Layer"
+        EP[Encryption Provider]
+        KDM[Key Derivation Manager]
+        SV[Security Validator]
+    end
+    
+    subgraph "Version Management"
+        VM[Version Manager]
+        MS[Migration Strategy]
+        BC[Backward Compatibility]
+    end
+    
+    subgraph "Error Handling"
+        EM[Error Manager]
+        RPM[Retry Policy Manager]
+        CD[Corruption Detector]
+    end
+    
+    subgraph "Performance Monitoring"
+        PM[Performance Monitor]
+        MT[Memory Tracker]
+        IO[IO Benchmark]
+    end
+    
+    SS --> BS
+    SS --> SM
+    SS --> EP
+    SS --> VM
+    SS --> EM
+    SS --> PM
+    
+    BS --> CM
+    BS --> SO
+    
+    SM --> LFS
+    SM --> CS
+    
+    EP --> KDM
+    EP --> SV
+    
+    VM --> MS
+    VM --> BC
+    
+    EM --> RPM
+    EM --> CD
+    
+    PM --> MT
+    PM --> IO
+                    </div>
+                </div>
+
+                <h3>Data Flow Architecture</h3>
+                <div class="mermaid">
+sequenceDiagram
+    participant Game as Game Code
+    participant Engine as Engine Facade
+    participant SaveService as SaveService
+    participant Serializer as Binary Serializer
+    participant Compressor as Compression Manager
+    participant Storage as Storage Manager
+    participant Security as Encryption Provider
+    
+    Game->>Engine: SaveGameAsync("save_01")
+    Engine->>SaveService: SaveAsync("save_01", gameData)
+    SaveService->>Serializer: SerializeAsync(gameData)
+    Serializer->>Compressor: CompressAsync(binaryData)
+    Compressor->>Security: EncryptAsync(compressedData)
+    Security->>Storage: StoreAsync("save_01", encryptedData)
+    Storage-->>SaveService: SaveResult
+    SaveService-->>Engine: SaveResult
+    Engine-->>Game: SaveResult
+                </div>
+
+                <h3>Service Integration</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        💾 Service Registration Example
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="comment">// SaveService registration in ServiceContainer</span>
+[<span class="attribute">EngineService</span>(<span class="type">ServiceCategory</span>.Core, <span class="type">ServicePriority</span>.High,
+    Description = <span class="string">"Manages game save/load operations with EzzyIdle-style serialization"</span>)]
+[<span class="attribute">ServiceConfiguration</span>(<span class="keyword">typeof</span>(<span class="type">SaveServiceConfiguration</span>))]
+<span class="keyword">public class</span> <span class="type">SaveService</span> : <span class="type">IEngineService</span>, <span class="type">ISaveService</span>
+{
+    <span class="keyword">private readonly</span> <span class="type">SaveServiceConfiguration</span> _config;
+    <span class="keyword">private readonly</span> <span class="type">IBinarySerializer</span> _serializer;
+    <span class="keyword">private readonly</span> <span class="type">IStorageManager</span> _storageManager;
+    <span class="keyword">private readonly</span> <span class="type">IEncryptionProvider</span> _encryption;
+    
+    <span class="keyword">public</span> <span class="method">SaveService</span>(<span class="type">SaveServiceConfiguration</span> config,
+                       <span class="type">IBinarySerializer</span> serializer,
+                       <span class="type">IStorageManager</span> storageManager,
+                       <span class="type">IEncryptionProvider</span> encryption)
+    {
+        _config = config;
+        _serializer = serializer;
+        _storageManager = storageManager;
+        _encryption = encryption;
+    }
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="implementation" class="section">
+                <h2>⚙️ Implementation Details</h2>
+                
+                <h3>Binary Serialization (EzzyIdle-Style)</h3>
+                <p>
+                    The serialization system follows EzzyIdle's proven approach with binary data, magic bytes validation,
+                    and efficient compression. The implementation supports both JSON and binary formats for flexibility.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-header">
+                        🔧 Binary Serializer Implementation
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="keyword">public class</span> <span class="type">GameDataSerializer</span> : <span class="type">IBinarySerializer</span>
+{
+    <span class="keyword">private const string</span> <span class="property">MAGIC_BYTES</span> = <span class="string">"SINKII09"</span>;
+    <span class="keyword">private readonly</span> <span class="type">CompressionManager</span> _compression;
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span>&lt;<span class="type">byte</span>[]&gt; <span class="method">SerializeAsync</span>&lt;<span class="type">T</span>&gt;(<span class="type">T</span> data)
+    {
+        <span class="comment">// 1. Convert to JSON (Unity compatible)</span>
+        <span class="keyword">var</span> jsonData = <span class="type">JsonUtility</span>.<span class="method">ToJson</span>(data, <span class="keyword">false</span>);
+        <span class="keyword">var</span> jsonBytes = <span class="type">Encoding</span>.UTF8.<span class="method">GetBytes</span>(jsonData);
+        
+        <span class="comment">// 2. Add magic bytes header</span>
+        <span class="keyword">var</span> magicBytes = <span class="type">Encoding</span>.UTF8.<span class="method">GetBytes</span>(<span class="property">MAGIC_BYTES</span>);
+        <span class="keyword">var</span> headerBytes = <span class="keyword">new</span> <span class="type">byte</span>[magicBytes.Length + jsonBytes.Length];
+        <span class="type">Buffer</span>.<span class="method">BlockCopy</span>(magicBytes, <span class="number">0</span>, headerBytes, <span class="number">0</span>, magicBytes.Length);
+        <span class="type">Buffer</span>.<span class="method">BlockCopy</span>(jsonBytes, <span class="number">0</span>, headerBytes, magicBytes.Length, jsonBytes.Length);
+        
+        <span class="comment">// 3. Compress with zlib</span>
+        <span class="keyword">var</span> compressedData = <span class="keyword">await</span> _compression.<span class="method">CompressAsync</span>(headerBytes);
+        
+        <span class="comment">// 4. Encode to Base64 for storage</span>
+        <span class="keyword">var</span> base64Data = <span class="type">Convert</span>.<span class="method">ToBase64String</span>(compressedData);
+        <span class="keyword">return</span> <span class="type">Encoding</span>.UTF8.<span class="method">GetBytes</span>(base64Data);
+    }
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span>&lt;<span class="type">T</span>&gt; <span class="method">DeserializeAsync</span>&lt;<span class="type">T</span>&gt;(<span class="type">byte</span>[] data)
+    {
+        <span class="comment">// 1. Decode from Base64</span>
+        <span class="keyword">var</span> base64String = <span class="type">Encoding</span>.UTF8.<span class="method">GetString</span>(data);
+        <span class="keyword">var</span> compressedData = <span class="type">Convert</span>.<span class="method">FromBase64String</span>(base64String);
+        
+        <span class="comment">// 2. Decompress</span>
+        <span class="keyword">var</span> decompressedData = <span class="keyword">await</span> _compression.<span class="method">DecompressAsync</span>(compressedData);
+        
+        <span class="comment">// 3. Validate magic bytes</span>
+        <span class="keyword">var</span> magicBytes = <span class="type">Encoding</span>.UTF8.<span class="method">GetBytes</span>(<span class="property">MAGIC_BYTES</span>);
+        <span class="keyword">if</span> (!<span class="method">ValidateMagicBytes</span>(decompressedData, magicBytes))
+            <span class="keyword">throw new</span> <span class="type">InvalidDataException</span>(<span class="string">"Invalid save file format"</span>);
+        
+        <span class="comment">// 4. Extract JSON and deserialize</span>
+        <span class="keyword">var</span> jsonBytes = <span class="keyword">new</span> <span class="type">byte</span>[decompressedData.Length - magicBytes.Length];
+        <span class="type">Buffer</span>.<span class="method">BlockCopy</span>(decompressedData, magicBytes.Length, jsonBytes, <span class="number">0</span>, jsonBytes.Length);
+        <span class="keyword">var</span> jsonString = <span class="type">Encoding</span>.UTF8.<span class="method">GetString</span>(jsonBytes);
+        
+        <span class="keyword">return</span> <span class="type">JsonUtility</span>.<span class="method">FromJson</span>&lt;<span class="type">T</span>&gt;(jsonString);
+    }
+}</pre>
+                    </div>
+                </div>
+
+                <h3>Compression System</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        🗜️ Compression Manager with zlib
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="keyword">public class</span> <span class="type">CompressionManager</span>
+{
+    <span class="keyword">private readonly</span> <span class="type">CompressionLevel</span> _compressionLevel;
+    <span class="keyword">private readonly</span> <span class="type">ObjectPool</span>&lt;<span class="type">MemoryStream</span>&gt; _streamPool;
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span>&lt;<span class="type">byte</span>[]&gt; <span class="method">CompressAsync</span>(<span class="type">byte</span>[] data)
+    {
+        <span class="keyword">using</span> <span class="keyword">var</span> outputStream = _streamPool.<span class="method">Get</span>();
+        <span class="keyword">using</span> <span class="keyword">var</span> compressionStream = <span class="keyword">new</span> <span class="type">DeflateStream</span>(outputStream, _compressionLevel);
+        
+        <span class="keyword">await</span> compressionStream.<span class="method">WriteAsync</span>(data, <span class="number">0</span>, data.Length);
+        <span class="keyword">await</span> compressionStream.<span class="method">FlushAsync</span>();
+        
+        <span class="keyword">return</span> outputStream.<span class="method">ToArray</span>();
+    }
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span>&lt;<span class="type">byte</span>[]&gt; <span class="method">DecompressAsync</span>(<span class="type">byte</span>[] compressedData)
+    {
+        <span class="keyword">using</span> <span class="keyword">var</span> inputStream = <span class="keyword">new</span> <span class="type">MemoryStream</span>(compressedData);
+        <span class="keyword">using</span> <span class="keyword">var</span> decompressionStream = <span class="keyword">new</span> <span class="type">DeflateStream</span>(inputStream, <span class="type">CompressionMode</span>.Decompress);
+        <span class="keyword">using</span> <span class="keyword">var</span> outputStream = _streamPool.<span class="method">Get</span>();
+        
+        <span class="keyword">await</span> decompressionStream.<span class="method">CopyToAsync</span>(outputStream);
+        <span class="keyword">return</span> outputStream.<span class="method">ToArray</span>();
+    }
+}</pre>
+                    </div>
+                </div>
+
+                <h3>Storage Provider System</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        💾 Multi-Platform Storage Manager
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="keyword">public class</span> <span class="type">StorageManager</span> : <span class="type">IStorageManager</span>
+{
+    <span class="keyword">private readonly</span> <span class="type">Dictionary</span>&lt;<span class="type">StorageType</span>, <span class="type">IStorageProvider</span>&gt; _providers;
+    <span class="keyword">private readonly</span> <span class="type">CircuitBreakerManager</span> _circuitBreaker;
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span>&lt;<span class="type">SaveResult</span>&gt; <span class="method">SaveAsync</span>(<span class="type">string</span> saveId, <span class="type">byte</span>[] data)
+    {
+        <span class="comment">// Try primary storage provider first</span>
+        <span class="keyword">var</span> primaryProvider = _providers[<span class="type">StorageType</span>.Local];
+        
+        <span class="keyword">if</span> (_circuitBreaker.<span class="method">ShouldAllowRequest</span>(<span class="type">StorageType</span>.Local))
+        {
+            <span class="keyword">try</span>
+            {
+                <span class="keyword">var</span> result = <span class="keyword">await</span> primaryProvider.<span class="method">SaveAsync</span>(saveId, data);
+                _circuitBreaker.<span class="method">RecordSuccess</span>(<span class="type">StorageType</span>.Local);
+                
+                <span class="comment">// Also backup to cloud if available</span>
+                <span class="keyword">await</span> <span class="method">BackupToCloudAsync</span>(saveId, data);
+                
+                <span class="keyword">return</span> result;
+            }
+            <span class="keyword">catch</span> (<span class="type">Exception</span> ex)
+            {
+                _circuitBreaker.<span class="method">RecordFailure</span>(<span class="type">StorageType</span>.Local, ex);
+                <span class="comment">// Fallback to alternative storage</span>
+                <span class="keyword">return</span> <span class="keyword">await</span> <span class="method">TryFallbackSaveAsync</span>(saveId, data);
+            }
+        }
+        
+        <span class="keyword">return</span> <span class="keyword">await</span> <span class="method">TryFallbackSaveAsync</span>(saveId, data);
+    }
+}</pre>
+                    </div>
+                </div>
+
+                <h3>Encryption System</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        🔒 AES-256-GCM Encryption Provider
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="keyword">public class</span> <span class="type">AESEncryptionProvider</span> : <span class="type">IEncryptionProvider</span>
+{
+    <span class="keyword">private readonly</span> <span class="type">KeyDerivationManager</span> _keyManager;
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span>&lt;<span class="type">byte</span>[]&gt; <span class="method">EncryptAsync</span>(<span class="type">byte</span>[] data, <span class="type">string</span> password = <span class="keyword">null</span>)
+    {
+        <span class="keyword">var</span> key = <span class="keyword">await</span> _keyManager.<span class="method">DeriveKeyAsync</span>(password);
+        
+        <span class="keyword">using</span> <span class="keyword">var</span> aes = <span class="type">Aes</span>.<span class="method">Create</span>();
+        aes.Key = key;
+        aes.Mode = <span class="type">CipherMode</span>.GCM;
+        aes.<span class="method">GenerateIV</span>();
+        
+        <span class="keyword">var</span> iv = aes.IV;
+        <span class="keyword">var</span> tag = <span class="keyword">new</span> <span class="type">byte</span>[<span class="number">16</span>]; <span class="comment">// GCM authentication tag</span>
+        
+        <span class="keyword">using</span> <span class="keyword">var</span> encryptor = aes.<span class="method">CreateEncryptor</span>();
+        <span class="keyword">var</span> encryptedData = encryptor.<span class="method">TransformFinalBlock</span>(data, <span class="number">0</span>, data.Length);
+        
+        <span class="comment">// Combine IV + encrypted data + authentication tag</span>
+        <span class="keyword">var</span> result = <span class="keyword">new</span> <span class="type">byte</span>[iv.Length + encryptedData.Length + tag.Length];
+        <span class="type">Buffer</span>.<span class="method">BlockCopy</span>(iv, <span class="number">0</span>, result, <span class="number">0</span>, iv.Length);
+        <span class="type">Buffer</span>.<span class="method">BlockCopy</span>(encryptedData, <span class="number">0</span>, result, iv.Length, encryptedData.Length);
+        <span class="type">Buffer</span>.<span class="method">BlockCopy</span>(tag, <span class="number">0</span>, result, iv.Length + encryptedData.Length, tag.Length);
+        
+        <span class="keyword">return</span> result;
+    }
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="subsystems" class="section">
+                <h2>🔧 Subsystem Implementation</h2>
+                
+                <h3>Subsystem Status Overview</h3>
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th>Subsystem</th>
+                            <th>Status</th>
+                            <th>Key Features</th>
+                            <th>Implementation Files</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Core SaveService</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>Service interface, DI integration, lifecycle management</td>
+                            <td>SaveService.cs, ISaveService.cs</td>
+                        </tr>
+                        <tr>
+                            <td>Serialization System</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>Binary serialization, compression, optimization</td>
+                            <td>GameDataSerializer.cs, CompressionManager.cs</td>
+                        </tr>
+                        <tr>
+                            <td>Storage Backends</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>Local file storage, cloud interface, multi-provider</td>
+                            <td>StorageManager.cs, LocalFileStorage.cs</td>
+                        </tr>
+                        <tr>
+                            <td>Security & Encryption</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>AES-256-GCM, key derivation, integrity validation</td>
+                            <td>AESEncryption.cs, KeyDerivationManager.cs</td>
+                        </tr>
+                        <tr>
+                            <td>Version Management</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>Format versioning, migration, backward compatibility</td>
+                            <td>SaveVersionManager.cs, MigrationStrategy.cs</td>
+                        </tr>
+                        <tr>
+                            <td>Error Handling</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>Circuit breaker, retry policies, corruption detection</td>
+                            <td>SaveErrorManager.cs, RetryPolicyManager.cs</td>
+                        </tr>
+                        <tr>
+                            <td>Performance Monitoring</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>Real-time metrics, memory tracking, I/O benchmarks</td>
+                            <td>SavePerformanceMonitor.cs, MemoryTracker.cs</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Subsystem Dependencies</h3>
+                <div class="mermaid">
+graph TD
+    A[SaveService Core] --> B[Serialization System]
+    A --> C[Storage Backends]
+    A --> D[Security & Encryption]
+    A --> E[Version Management]
+    A --> F[Error Handling]
+    A --> G[Performance Monitoring]
+    
+    B --> H[Unity JsonUtility]
+    B --> I[System.IO.Compression]
+    
+    C --> J[Local File System]
+    C --> K[Unity PlayerPrefs]
+    C --> L[Cloud Storage APIs]
+    
+    D --> M[System.Security.Cryptography]
+    D --> N[Platform Key Storage]
+    
+    E --> B
+    E --> O[Migration Scripts]
+    
+    F --> P[Circuit Breaker Pattern]
+    F --> Q[Retry Logic]
+    
+    G --> R[Performance Counters]
+    G --> S[Memory Profiler]
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+    style E fill:#fce4ec
+    style F fill:#ffebee
+    style G fill:#f1f8e9
+                </div>
+
+                <h3>Integration Architecture</h3>
+                <p>
+                    The SaveSystem integrates seamlessly with the existing Sinkii09 Engine service architecture,
+                    leveraging dependency injection, configuration management, and service lifecycle patterns.
+                </p>
+
+                <div class="code-container">
+                    <div class="code-header">
+                        🔄 Engine Integration Example
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="comment">// Engine.cs - Facade methods for save operations</span>
+<span class="keyword">public static class</span> <span class="type">Engine</span>
+{
+    <span class="comment">// Save system facade methods</span>
+    <span class="keyword">public static async</span> <span class="type">UniTask</span>&lt;<span class="type">SaveResult</span>&gt; <span class="method">SaveGameAsync</span>(<span class="type">string</span> saveId)
+    {
+        <span class="keyword">var</span> saveService = <span class="method">GetService</span>&lt;<span class="type">ISaveService</span>&gt;();
+        <span class="keyword">var</span> gameData = <span class="keyword">await</span> <span class="method">CollectGameDataAsync</span>();
+        <span class="keyword">return</span> <span class="keyword">await</span> saveService.<span class="method">SaveAsync</span>(saveId, gameData);
+    }
+    
+    <span class="keyword">public static async</span> <span class="type">UniTask</span>&lt;<span class="type">LoadResult</span>&gt; <span class="method">LoadGameAsync</span>(<span class="type">string</span> saveId)
+    {
+        <span class="keyword">var</span> saveService = <span class="method">GetService</span>&lt;<span class="type">ISaveService</span>&gt;();
+        <span class="keyword">var</span> result = <span class="keyword">await</span> saveService.<span class="method">LoadAsync</span>&lt;<span class="type">GameSaveData</span>&gt;(saveId);
+        
+        <span class="keyword">if</span> (result.<span class="property">Success</span>)
+            <span class="keyword">await</span> <span class="method">ApplyGameDataAsync</span>(result.<span class="property">Data</span>);
+        
+        <span class="keyword">return</span> result;
+    }
+    
+    <span class="keyword">public static async</span> <span class="type">UniTask</span>&lt;<span class="type">SaveMetadata</span>[]&gt; <span class="method">GetSaveListAsync</span>()
+    {
+        <span class="keyword">var</span> saveService = <span class="method">GetService</span>&lt;<span class="type">ISaveService</span>&gt;();
+        <span class="keyword">return</span> <span class="keyword">await</span> saveService.<span class="method">GetSaveListAsync</span>();
+    }
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="performance" class="section">
+                <h2>🚀 Performance Optimization</h2>
+                
+                <h3>Performance Targets & Achievements</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>⚡ Save Performance</h4>
+                        <p><strong>Target:</strong> &lt;100ms for 1MB files</p>
+                        <p>Including binary serialization, compression, and storage</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🗜️ Compression Efficiency</h4>
+                        <p><strong>Target:</strong> 60-80% size reduction</p>
+                        <p>zlib compression with configurable levels</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🧠 Memory Optimization</h4>
+                        <p><strong>Target:</strong> &lt;20% overhead</p>
+                        <p>Peak memory usage during save operations</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔄 Concurrent Operations</h4>
+                        <p><strong>Target:</strong> 4+ simultaneous saves</p>
+                        <p>Thread-safe concurrent save/load operations</p>
+                    </div>
+                </div>
+
+                <h3>Memory Management Strategy</h3>
+                <div class="mermaid">
+graph TB
+    subgraph "Memory Optimization"
+        A[Object Pooling] --> B[Reuse Serialization Buffers]
+        C[Streaming] --> D[Chunk Processing]
+        E[Weak References] --> F[Cached Metadata]
+        G[GC Optimization] --> H[Minimal Allocations]
+    end
+    
+    subgraph "Performance Monitoring"
+        I[Memory Tracker] --> J[Real-time Usage]
+        K[Pressure Monitor] --> L[Automatic Cleanup]
+        M[Performance Profiler] --> N[Bottleneck Detection]
+    end
+    
+    A --> I
+    C --> K
+    E --> M
+    G --> N
+    
+    style A fill:#e8f5e8
+    style C fill:#e8f5e8
+    style E fill:#e8f5e8
+    style G fill:#e8f5e8
+    style I fill:#fff3e0
+    style K fill:#fff3e0
+    style M fill:#fff3e0
+                </div>
+
+                <h3>I/O Optimization Techniques</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        📊 Performance Monitoring System
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="keyword">public class</span> <span class="type">SavePerformanceMonitor</span> : <span class="type">IPerformanceMonitor</span>
+{
+    <span class="keyword">private readonly</span> <span class="type">PerformanceCounter</span> _saveTimeCounter;
+    <span class="keyword">private readonly</span> <span class="type">MemoryTracker</span> _memoryTracker;
+    <span class="keyword">private readonly</span> <span class="type">Dictionary</span>&lt;<span class="type">string</span>, <span class="type">PerformanceMetrics</span>&gt; _metrics;
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span>&lt;<span class="type">T</span>&gt; <span class="method">MeasureAsync</span>&lt;<span class="type">T</span>&gt;(<span class="type">string</span> operationName, <span class="type">Func</span>&lt;<span class="type">UniTask</span>&lt;<span class="type">T</span>&gt;&gt; operation)
+    {
+        <span class="keyword">var</span> stopwatch = <span class="type">Stopwatch</span>.<span class="method">StartNew</span>();
+        <span class="keyword">var</span> initialMemory = _memoryTracker.<span class="method">GetCurrentUsage</span>();
+        
+        <span class="keyword">try</span>
+        {
+            <span class="keyword">var</span> result = <span class="keyword">await</span> <span class="method">operation</span>();
+            
+            stopwatch.<span class="method">Stop</span>();
+            <span class="keyword">var</span> finalMemory = _memoryTracker.<span class="method">GetCurrentUsage</span>();
+            
+            <span class="method">RecordMetrics</span>(operationName, <span class="keyword">new</span> <span class="type">PerformanceMetrics</span>
+            {
+                Duration = stopwatch.Elapsed,
+                MemoryUsed = finalMemory - initialMemory,
+                Success = <span class="keyword">true</span>
+            });
+            
+            <span class="keyword">return</span> result;
+        }
+        <span class="keyword">catch</span> (<span class="type">Exception</span> ex)
+        {
+            <span class="method">RecordMetrics</span>(operationName, <span class="keyword">new</span> <span class="type">PerformanceMetrics</span>
+            {
+                Duration = stopwatch.Elapsed,
+                Success = <span class="keyword">false</span>,
+                ErrorType = ex.<span class="method">GetType</span>().<span class="property">Name</span>
+            });
+            <span class="keyword">throw</span>;
+        }
+    }
+}</pre>
+                    </div>
+                </div>
+
+                <h3>Optimization Strategies</h3>
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th>Strategy</th>
+                            <th>Implementation</th>
+                            <th>Performance Impact</th>
+                            <th>Memory Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Object Pooling</td>
+                            <td>Reuse serialization buffers</td>
+                            <td>15-30% faster</td>
+                            <td>50-80% reduction in GC pressure</td>
+                        </tr>
+                        <tr>
+                            <td>Streaming Serialization</td>
+                            <td>Process data in chunks</td>
+                            <td>Consistent performance</td>
+                            <td>90% reduction in peak memory</td>
+                        </tr>
+                        <tr>
+                            <td>Async I/O Operations</td>
+                            <td>Non-blocking file operations</td>
+                            <td>Zero frame drops</td>
+                            <td>Minimal thread overhead</td>
+                        </tr>
+                        <tr>
+                            <td>Compression Optimization</td>
+                            <td>Adaptive compression levels</td>
+                            <td>20-40% faster saves</td>
+                            <td>60-80% smaller files</td>
+                        </tr>
+                        <tr>
+                            <td>Memory-Mapped Files</td>
+                            <td>For large saves (>100MB)</td>
+                            <td>5-10x faster access</td>
+                            <td>Minimal memory footprint</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section id="timeline" class="section">
+                <h2>📅 Implementation Timeline</h2>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Days 1-3: Core Implementation</h4>
+                            <p><strong>Focus:</strong> SaveService foundation, data structures, binary serialization</p>
+                            <ul>
+                                <li>ISaveService interface and SaveService implementation</li>
+                                <li>SaveData hierarchy and metadata system</li>
+                                <li>Binary serialization with compression</li>
+                                <li>Service registration and DI integration</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Days 4-5: Storage & Security</h4>
+                            <p><strong>Focus:</strong> Multi-platform storage, encryption system</p>
+                            <ul>
+                                <li>Storage provider abstraction and implementations</li>
+                                <li>Local file storage with atomic operations</li>
+                                <li>AES-256-GCM encryption with key derivation</li>
+                                <li>Security validation and integrity checks</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Days 6-7: Advanced Features</h4>
+                            <p><strong>Focus:</strong> Version management, error handling</p>
+                            <ul>
+                                <li>Save format versioning and migration</li>
+                                <li>Backward compatibility support</li>
+                                <li>Circuit breaker pattern for error recovery</li>
+                                <li>Retry mechanisms and corruption detection</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Days 8-9: Performance & Integration</h4>
+                            <p><strong>Focus:</strong> Performance monitoring, service integration</p>
+                            <ul>
+                                <li>Real-time performance monitoring</li>
+                                <li>Memory tracking and optimization</li>
+                                <li>Engine facade integration</li>
+                                <li>Service lifecycle management</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Days 10-12: Testing & Finalization</h4>
+                            <p><strong>Focus:</strong> Comprehensive testing, documentation</p>
+                            <ul>
+                                <li>Complete test suite implementation</li>
+                                <li>Performance benchmarking and optimization</li>
+                                <li>API documentation and examples</li>
+                                <li>Final integration and validation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="examples" class="section">
+                <h2>💡 Usage Examples</h2>
+                
+                <h3>Basic Save/Load Operations</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        🎮 Game Integration Example
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="comment">// Game code example</span>
+<span class="keyword">public class</span> <span class="type">GameManager</span> : <span class="type">MonoBehaviour</span>
+{
+    <span class="keyword">public async</span> <span class="type">UniTask</span> <span class="method">SaveGameAsync</span>()
+    {
+        <span class="comment">// Simple save operation</span>
+        <span class="keyword">var</span> result = <span class="keyword">await</span> <span class="type">Engine</span>.<span class="method">SaveGameAsync</span>(<span class="string">"autosave"</span>);
+        
+        <span class="keyword">if</span> (result.<span class="property">Success</span>)
+        {
+            <span class="method">ShowMessage</span>(<span class="string">"Game saved successfully!"</span>);
+        }
+        <span class="keyword">else</span>
+        {
+            <span class="method">ShowError</span>($<span class="string">"Save failed: {result.ErrorMessage}"</span>);
+        }
+    }
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span> <span class="method">LoadGameAsync</span>(<span class="type">string</span> saveId)
+    {
+        <span class="comment">// Load with progress tracking</span>
+        <span class="keyword">var</span> progress = <span class="keyword">new</span> <span class="type">Progress</span>&lt;<span class="type">float</span>&gt;(p => <span class="method">UpdateLoadingBar</span>(p));
+        <span class="keyword">var</span> result = <span class="keyword">await</span> <span class="type">Engine</span>.<span class="method">LoadGameAsync</span>(saveId, progress);
+        
+        <span class="keyword">if</span> (result.<span class="property">Success</span>)
+        {
+            <span class="method">ShowMessage</span>(<span class="string">"Game loaded successfully!"</span>);
+            <span class="keyword">await</span> <span class="method">TransitionToGameplay</span>();
+        }
+    }
+}</pre>
+                    </div>
+                </div>
+
+                <h3>Advanced Configuration</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        ⚙️ SaveService Configuration
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="comment">// SaveServiceConfiguration.cs</span>
+[<span class="attribute">CreateAssetMenu</span>(menuName = <span class="string">"Sinkii09/Services/SaveService Configuration"</span>)]
+<span class="keyword">public class</span> <span class="type">SaveServiceConfiguration</span> : <span class="type">ServiceConfigurationBase</span>
+{
+    [<span class="attribute">Header</span>(<span class="string">"Storage Settings"</span>)]
+    <span class="keyword">public</span> <span class="type">StorageType</span> primaryStorage = <span class="type">StorageType</span>.Local;
+    <span class="keyword">public</span> <span class="type">bool</span> enableCloudBackup = <span class="keyword">true</span>;
+    <span class="keyword">public</span> <span class="type">int</span> maxConcurrentSaves = <span class="number">4</span>;
+    
+    [<span class="attribute">Header</span>(<span class="string">"Compression Settings"</span>)]
+    <span class="keyword">public</span> <span class="type">CompressionLevel</span> compressionLevel = <span class="type">CompressionLevel</span>.Optimal;
+    <span class="keyword">public</span> <span class="type">bool</span> enableCompression = <span class="keyword">true</span>;
+    
+    [<span class="attribute">Header</span>(<span class="string">"Security Settings"</span>)]
+    <span class="keyword">public</span> <span class="type">bool</span> enableEncryption = <span class="keyword">false</span>;
+    <span class="keyword">public</span> <span class="type">KeyDerivationMethod</span> keyDerivation = <span class="type">KeyDerivationMethod</span>.DeviceSpecific;
+    <span class="keyword">public</span> <span class="type">int</span> encryptionKeySize = <span class="number">256</span>;
+    
+    [<span class="attribute">Header</span>(<span class="string">"Performance Settings"</span>)]
+    <span class="keyword">public</span> <span class="type">bool</span> enablePerformanceMonitoring = <span class="keyword">true</span>;
+    <span class="keyword">public</span> <span class="type">float</span> memoryPressureThreshold = <span class="number">0.8f</span>;
+    <span class="keyword">public</span> <span class="type">int</span> maxMemoryUsageMB = <span class="number">100</span>;
+    
+    [<span class="attribute">Header</span>(<span class="string">"Error Handling"</span>)]
+    <span class="keyword">public</span> <span class="type">int</span> maxRetryAttempts = <span class="number">3</span>;
+    <span class="keyword">public</span> <span class="type">float</span> retryDelaySeconds = <span class="number">1.0f</span>;
+    <span class="keyword">public</span> <span class="type">bool</span> enableCircuitBreaker = <span class="keyword">true</span>;
+}</pre>
+                    </div>
+                </div>
+
+                <h3>Custom Data Structures</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        📝 Custom Save Data Example
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="comment">// Custom save data structure</span>
+[<span class="attribute">Serializable</span>]
+<span class="keyword">public class</span> <span class="type">PlayerSaveData</span> : <span class="type">SaveData</span>
+{
+    [<span class="attribute">Header</span>(<span class="string">"Player Information"</span>)]
+    <span class="keyword">public</span> <span class="type">string</span> playerName;
+    <span class="keyword">public</span> <span class="type">int</span> playerLevel;
+    <span class="keyword">public</span> <span class="type">float</span> experience;
+    <span class="keyword">public</span> <span class="type">Vector3</span> position;
+    
+    [<span class="attribute">Header</span>(<span class="string">"Game Progress"</span>)]
+    <span class="keyword">public</span> <span class="type">int</span> currentLevel;
+    <span class="keyword">public</span> <span class="type">bool</span>[] unlockedLevels;
+    <span class="keyword">public</span> <span class="type">Dictionary</span>&lt;<span class="type">string</span>, <span class="type">int</span>&gt; inventory;
+    
+    [<span class="attribute">Header</span>(<span class="string">"Statistics"</span>)]
+    <span class="keyword">public</span> <span class="type">float</span> totalPlayTime;
+    <span class="keyword">public</span> <span class="type">int</span> totalDeaths;
+    <span class="keyword">public</span> <span class="type">int</span> totalKills;
+    
+    <span class="keyword">public</span> <span class="method">PlayerSaveData</span>() : <span class="keyword">base</span>()
+    {
+        <span class="comment">// Initialize with current save format version</span>
+        version = <span class="number">1</span>;
+        saveType = <span class="string">"PlayerData"</span>;
+        
+        <span class="comment">// Initialize default values</span>
+        inventory = <span class="keyword">new</span> <span class="type">Dictionary</span>&lt;<span class="type">string</span>, <span class="type">int</span>&gt;();
+        unlockedLevels = <span class="keyword">new</span> <span class="type">bool</span>[<span class="number">10</span>];
+    }
+    
+    <span class="keyword">public override</span> <span class="type">bool</span> <span class="method">ValidateData</span>()
+    {
+        <span class="comment">// Custom validation logic</span>
+        <span class="keyword">return</span> !<span class="type">string</span>.<span class="method">IsNullOrEmpty</span>(playerName) && 
+               playerLevel >= <span class="number">0</span> && 
+               experience >= <span class="number">0</span> &&
+               inventory != <span class="keyword">null</span>;
+    }
+}</pre>
+                    </div>
+                </div>
+
+                <h3>Performance Monitoring</h3>
+                <div class="code-container">
+                    <div class="code-header">
+                        📊 Performance Tracking Example
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <div class="code-block csharp">
+<pre><span class="comment">// Performance monitoring in action</span>
+<span class="keyword">public class</span> <span class="type">SavePerformanceTracker</span> : <span class="type">MonoBehaviour</span>
+{
+    <span class="keyword">private</span> <span class="type">ISaveService</span> _saveService;
+    <span class="keyword">private</span> <span class="type">IPerformanceMonitor</span> _performanceMonitor;
+    
+    <span class="keyword">private async</span> <span class="type">UniTask</span> <span class="method">Start</span>()
+    {
+        _saveService = <span class="type">Engine</span>.<span class="method">GetService</span>&lt;<span class="type">ISaveService</span>&gt;();
+        _performanceMonitor = <span class="type">Engine</span>.<span class="method">GetService</span>&lt;<span class="type">IPerformanceMonitor</span>&gt;();
+        
+        <span class="comment">// Monitor save performance</span>
+        _performanceMonitor.<span class="property">OnPerformanceAlert</span> += <span class="method">HandlePerformanceAlert</span>;
+        
+        <span class="comment">// Run periodic performance checks</span>
+        <span class="keyword">await</span> <span class="method">RunPerformanceTests</span>();
+    }
+    
+    <span class="keyword">private async</span> <span class="type">UniTask</span> <span class="method">RunPerformanceTests</span>()
+    {
+        <span class="comment">// Test save performance with different data sizes</span>
+        <span class="keyword">var</span> testSizes = <span class="keyword">new</span> <span class="type">int</span>[] { <span class="number">1024</span>, <span class="number">10240</span>, <span class="number">102400</span>, <span class="number">1024000</span> };
+        
+        <span class="keyword">foreach</span> (<span class="keyword">var</span> size <span class="keyword">in</span> testSizes)
+        {
+            <span class="keyword">var</span> testData = <span class="method">GenerateTestData</span>(size);
+            <span class="keyword">var</span> metrics = <span class="keyword">await</span> _performanceMonitor.<span class="method">MeasureAsync</span>(
+                $<span class="string">"Save_Test_{size}"</span>, 
+                () => _saveService.<span class="method">SaveAsync</span>($<span class="string">"test_{size}"</span>, testData)
+            );
+            
+            <span class="type">Debug</span>.<span class="method">Log</span>($<span class="string">"Save {size} bytes: {metrics.Duration.TotalMilliseconds:F2}ms, Memory: {metrics.MemoryUsed:F2}MB"</span>);
+        }
+    }
+    
+    <span class="keyword">private</span> <span class="type">void</span> <span class="method">HandlePerformanceAlert</span>(<span class="type">PerformanceAlert</span> alert)
+    {
+        <span class="keyword">if</span> (alert.<span class="property">Severity</span> == <span class="type">AlertSeverity</span>.High)
+        {
+            <span class="type">Debug</span>.<span class="method">LogWarning</span>($<span class="string">"Performance alert: {alert.Message}"</span>);
+            
+            <span class="comment">// Trigger optimization or reduce save frequency</span>
+            <span class="keyword">await</span> <span class="method">OptimizePerformance</span>(alert);
+        }
+    }
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section">
+                <h2>🎯 Success Criteria</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>✅ Technical Implementation</h4>
+                        <ul>
+                            <li>Service-oriented architecture with full DI support</li>
+                            <li>EzzyIdle-style binary serialization with compression</li>
+                            <li>Multi-platform storage support</li>
+                            <li>Optional encryption with secure key management</li>
+                        </ul>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Performance Targets</h4>
+                        <ul>
+                            <li>&lt;100ms save time for 1MB files</li>
+                            <li>60-80% compression ratio</li>
+                            <li>&lt;20% memory overhead</li>
+                            <li>&gt;99.9% success rate</li>
+                        </ul>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔧 Quality Assurance</h4>
+                        <ul>
+                            <li>95%+ test coverage</li>
+                            <li>Comprehensive error handling</li>
+                            <li>Performance benchmarks</li>
+                            <li>Security vulnerability assessment</li>
+                        </ul>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📚 Documentation</h4>
+                        <ul>
+                            <li>Complete API documentation</li>
+                            <li>Usage examples and tutorials</li>
+                            <li>Performance optimization guide</li>
+                            <li>Migration and troubleshooting guides</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#2563eb',
+                primaryTextColor: '#1f2937',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#6b7280',
+                secondaryColor: '#e5e7eb',
+                tertiaryColor: '#f8fafc'
+            }
+        });
+
+        // Copy code functionality
+        function copyCode(button) {
+            const codeBlock = button.parentElement.nextElementSibling;
+            const code = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = 'rgba(16, 185, 129, 0.8)';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = 'rgba(255,255,255,0.2)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy code: ', err);
+                button.textContent = 'Copy failed';
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                }, 2000);
+            });
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Highlight active navigation link
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            let currentSection = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                const sectionHeight = section.offsetHeight;
+                if (window.scrollY >= sectionTop && window.scrollY < sectionTop + sectionHeight) {
+                    currentSection = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${currentSection}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
