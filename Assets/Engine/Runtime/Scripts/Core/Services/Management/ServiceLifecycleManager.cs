@@ -732,8 +732,8 @@ namespace Sinkii09.Engine.Services
             {
                 if (_metadataCache != null)
                 {
-                    var attribute = _metadataCache.GetCachedServiceAttribute(serviceType);
-                    if (attribute?.Priority == ServicePriority.High || attribute?.Priority == ServicePriority.Critical)
+                    var attribute = _metadataCache.GetCachedServiceAttribute(serviceType, _container);
+                    if (attribute?.Priority == ServicePriority.Critical)
                     {
                         criticalServices.Add(serviceType);
                     }

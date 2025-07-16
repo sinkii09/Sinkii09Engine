@@ -87,7 +87,7 @@ namespace Sinkii09.Engine.Services.Performance
         /// Get cached dependencies for a type
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Type[] GetCachedDependencies(Type type)
+        public Type[] GetCachedDependencies(Type type, IServiceContainer container = null)
         {
             if (_dependencyCache.TryGetValue(type, out var cached))
             {
@@ -96,14 +96,14 @@ namespace Sinkii09.Engine.Services.Performance
             }
             
             System.Threading.Interlocked.Increment(ref _cacheMisses);
-            return CreateAndCacheDependencies(type);
+            return CreateAndCacheDependencies(type, container);
         }
         
         /// <summary>
         /// Get cached service attribute
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public EngineServiceAttribute GetCachedServiceAttribute(Type type)
+        public EngineServiceAttribute GetCachedServiceAttribute(Type type, IServiceContainer container = null)
         {
             if (_attributeCache.TryGetValue(type, out var cached))
             {
@@ -114,7 +114,18 @@ namespace Sinkii09.Engine.Services.Performance
             System.Threading.Interlocked.Increment(ref _cacheMisses);
             System.Threading.Interlocked.Increment(ref _reflectionCalls);
             
-            var attribute = type.GetEngineServiceAttribute();
+            // If type is interface or abstract, try to get implementation type from container
+            var targetType = type;
+            if ((type.IsInterface || type.IsAbstract) && container != null)
+            {
+                var implType = GetImplementationType(type, container);
+                if (implType != null)
+                {
+                    targetType = implType;
+                }
+            }
+            
+            var attribute = targetType.GetEngineServiceAttribute();
             _attributeCache.TryAdd(type, attribute);
             return attribute;
         }
@@ -160,8 +171,8 @@ namespace Sinkii09.Engine.Services.Performance
                 {
                     GetOrCreateMetadata(serviceType, container);
                     GetCachedConstructors(serviceType);
-                    GetCachedDependencies(serviceType);
-                    GetCachedServiceAttribute(serviceType);
+                    GetCachedDependencies(serviceType, container);
+                    GetCachedServiceAttribute(serviceType, container);
                 }
                 catch (Exception ex)
                 {
@@ -223,8 +234,8 @@ namespace Sinkii09.Engine.Services.Performance
                 ServiceType = serviceType,
                 ImplementationType = GetImplementationType(serviceType, container),
                 IsEngineService = typeof(IEngineService).IsAssignableFrom(serviceType),
-                Dependencies = GetCachedDependencies(serviceType),
-                ServiceAttribute = GetCachedServiceAttribute(serviceType),
+                Dependencies = GetCachedDependencies(serviceType, container),
+                ServiceAttribute = GetCachedServiceAttribute(serviceType, container),
                 BestConstructor = null, // Will be set below
                 HasDefaultConstructor = false, // Will be set below
                 SingletonInstance = GetSingletonInstance(serviceType, container),
@@ -249,14 +260,14 @@ namespace Sinkii09.Engine.Services.Performance
         /// <summary>
         /// Create and cache dependency information
         /// </summary>
-        private Type[] CreateAndCacheDependencies(Type type)
+        private Type[] CreateAndCacheDependencies(Type type, IServiceContainer container = null)
         {
             System.Threading.Interlocked.Increment(ref _reflectionCalls);
             
             var dependencies = new List<Type>();
             
             // Get dependencies from service attribute
-            var attribute = GetCachedServiceAttribute(type);
+            var attribute = GetCachedServiceAttribute(type, container);
             if (attribute != null)
             {
                 if (attribute.RequiredServices != null)

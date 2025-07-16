@@ -10,7 +10,7 @@ namespace Sinkii09.Engine.Services
         // Define methods and properties for the actor service
     }
 
-    [EngineService(ServiceCategory.Gameplay, ServicePriority.High, Description = "Manages game actors and entities")]
+    [EngineService(ServiceCategory.Gameplay, ServicePriority.Critical, Description = "Manages game actors and entities")]
     [ServiceConfiguration(typeof(ActorServiceConfiguration))]
     public class ActorService : IActorService
     {

@@ -22,7 +22,11 @@ namespace Sinkii09.Engine.Services
         bool ResourceLoaded(string path);
         bool ResourceLoading(string path);
         Resource<T> GetLoadedResourceOrNull<T>(string path) where T : UnityEngine.Object;
-
+        
+        /// <summary>
+        /// Check if this provider supports loading the specified resource type
+        /// </summary>
+        bool SupportsType<T>() where T : UnityEngine.Object;
     }
     public abstract class ResourceProvider : IResourceProvider
     {

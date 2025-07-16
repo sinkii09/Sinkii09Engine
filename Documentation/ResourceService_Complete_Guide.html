@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinkii09 Engine - ResourceService Complete Guide</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #1f2937;
+            --light-bg: #f8fafc;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--light-bg);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        .nav {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-list {
+            display: flex;
+            list-style: none;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            margin: 0 1rem;
+        }
+
+        .nav-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-link:hover {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 2rem 0;
+        }
+
+        .section {
+            background: white;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .section h3 {
+            color: var(--secondary-color);
+            margin: 1.5rem 0 1rem 0;
+            font-size: 1.3rem;
+        }
+
+        .section h4 {
+            color: var(--text-primary);
+            margin: 1rem 0 0.5rem 0;
+            font-size: 1.1rem;
+        }
+
+        /* Code Blocks */
+        .code-block {
+            background: #0d1117;
+            color: #e6edf3;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Fira Code', 'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+            line-height: 1.6;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .code-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f97316, #3b82f6, #10b981);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 0;
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .code-inline {
+            background: #f6f8fa;
+            color: #24292f;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-family: 'Fira Code', 'SF Mono', Consolas, monospace;
+            font-size: 0.875rem;
+            border: 1px solid #d1d9e0;
+            font-weight: 600;
+        }
+
+        /* Syntax Highlighting */
+        .keyword { color: #ff7b72; font-weight: 600; }
+        .string { color: #a5d6ff; }
+        .comment { color: #8b949e; font-style: italic; }
+        .type { color: #79c0ff; font-weight: 500; }
+        .method { color: #d2a8ff; }
+        .property { color: #7ee787; }
+        .number { color: #79c0ff; }
+        .operator { color: #ff7b72; }
+        .punctuation { color: #e6edf3; }
+
+        /* Code Block Headers */
+        .code-header {
+            background: #21262d;
+            color: #f0f6fc;
+            padding: 0.75rem 1rem;
+            border-radius: 8px 8px 0 0;
+            margin: 1rem 0 0 0;
+            font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid #30363d;
+            border-bottom: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .code-header + .code-block {
+            margin-top: 0;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .code-header::before {
+            content: '●●●';
+            color: #8b949e;
+            font-size: 0.75rem;
+            letter-spacing: 0.2rem;
+        }
+
+        /* Language-specific styling */
+        .code-block.csharp {
+            border-left: 4px solid #239120;
+        }
+
+        .code-block.json {
+            border-left: 4px solid #ffd700;
+        }
+
+        .code-block.bash {
+            border-left: 4px solid #4e9a06;
+        }
+
+        /* Copy button */
+        .code-container {
+            position: relative;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #21262d;
+            color: #f0f6fc;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            opacity: 0;
+            font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .code-container:hover .copy-button {
+            opacity: 1;
+        }
+
+        .copy-button:hover {
+            background: #30363d;
+            color: #58a6ff;
+        }
+
+        /* Line numbers */
+        .code-with-lines {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 1rem;
+        }
+
+        .line-numbers {
+            color: #6e7681;
+            text-align: right;
+            user-select: none;
+            padding-right: 0.5rem;
+            border-right: 1px solid #30363d;
+            font-size: 0.8rem;
+        }
+
+        .line-numbers span {
+            display: block;
+            line-height: 1.6;
+        }
+
+        /* Method signature styling */
+        .method-signature {
+            background: #1c2128;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+
+        .method-name {
+            color: #d2a8ff;
+            font-weight: 600;
+        }
+
+        .method-params {
+            color: #ffa657;
+        }
+
+        .method-return {
+            color: #79c0ff;
+        }
+
+        /* Mermaid Diagrams */
+        .mermaid-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .mermaid {
+            text-align: center;
+        }
+
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .diagram-title {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            background: #f9fafb;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+
+        .flow-step {
+            display: inline-block;
+            background: white;
+            padding: 1rem 1.5rem;
+            margin: 0.5rem;
+            border-radius: 6px;
+            border: 2px solid var(--accent-color);
+            min-width: 150px;
+            position: relative;
+        }
+
+        .flow-step::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent-color);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .flow-step:last-child::after {
+            display: none;
+        }
+
+        /* Tables */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table th {
+            background: var(--light-bg);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .table tr:hover {
+            background: #f9fafb;
+        }
+
+        /* Status Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .badge-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .badge-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .badge-info {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* Architecture Diagram */
+        .architecture-diagram {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid var(--accent-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .arch-layer {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .arch-layer h4 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .arch-components {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .arch-component {
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            min-width: 120px;
+            font-size: 0.9rem;
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            border-color: var(--accent-color);
+            color: #1e40af;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            border-color: var(--warning-color);
+            color: #92400e;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            border-color: var(--success-color);
+            color: #065f46;
+        }
+
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark-bg);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-list {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .nav-item {
+                margin: 0.25rem 0;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .flow-step {
+                display: block;
+                margin: 0.5rem auto;
+            }
+
+            .flow-step::after {
+                content: '↓';
+                right: 50%;
+                top: 100%;
+                transform: translateX(50%);
+            }
+
+            .arch-components {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>Sinkii09 Engine ResourceService</h1>
+            <p>Complete Enhanced Resource Management System</p>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <div class="container">
+            <ul class="nav-list">
+                <li class="nav-item"><a href="#overview" class="nav-link">Overview</a></li>
+                <li class="nav-item"><a href="#architecture" class="nav-link">Architecture</a></li>
+                <li class="nav-item"><a href="#features" class="nav-link">Features</a></li>
+                <li class="nav-item"><a href="#flow" class="nav-link">Flow Diagram</a></li>
+                <li class="nav-item"><a href="#api" class="nav-link">API Reference</a></li>
+                <li class="nav-item"><a href="#providers" class="nav-link">Providers</a></li>
+                <li class="nav-item"><a href="#configuration" class="nav-link">Configuration</a></li>
+                <li class="nav-item"><a href="#usage" class="nav-link">Usage Examples</a></li>
+                <li class="nav-item"><a href="#monitoring" class="nav-link">Monitoring</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="container">
+            <!-- Overview Section -->
+            <section id="overview" class="section">
+                <h2>System Overview</h2>
+                <p>The <strong>ResourceService</strong> is a critical component of the Sinkii09 Engine that provides a modern, async-first approach to resource loading and management. Built with enhanced service architecture, it offers comprehensive error handling, memory management, and performance optimization capabilities.</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-number">3</span>
+                        <div class="stat-label">Provider Types</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">50+</span>
+                        <div class="stat-label">Configuration Options</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">99.9%</span>
+                        <div class="stat-label">Target Reliability</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">10x</span>
+                        <div class="stat-label">Concurrent Loads</div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Enhanced Architecture:</strong> This ResourceService implementation follows the enhanced service architecture with full dependency injection, async lifecycle management, and comprehensive error handling.
+                </div>
+            </section>
+
+            <!-- Architecture Section -->
+            <section id="architecture" class="section">
+                <h2>System Architecture</h2>
+                
+                <div class="architecture-diagram">
+                    <div class="arch-layer">
+                        <h4>Service Layer</h4>
+                        <div class="arch-components">
+                            <div class="arch-component">IResourceService</div>
+                            <div class="arch-component">ResourceService</div>
+                            <div class="arch-component">IEngineService</div>
+                        </div>
+                    </div>
+                    
+                    <div class="arch-layer">
+                        <h4>Management Layer</h4>
+                        <div class="arch-components">
+                            <div class="arch-component">CircuitBreakerManager</div>
+                            <div class="arch-component">MemoryPressureMonitor</div>
+                            <div class="arch-component">ConfigurationSystem</div>
+                        </div>
+                    </div>
+                    
+                    <div class="arch-layer">
+                        <h4>Provider Layer</h4>
+                        <div class="arch-components">
+                            <div class="arch-component">IResourceProvider</div>
+                            <div class="arch-component">ProjectResourceProvider</div>
+                            <div class="arch-component">AssetBundleProvider</div>
+                            <div class="arch-component">LocalResourceProvider</div>
+                        </div>
+                    </div>
+                    
+                    <div class="arch-layer">
+                        <h4>Execution Layer</h4>
+                        <div class="arch-components">
+                            <div class="arch-component">ResourceRunner</div>
+                            <div class="arch-component">LoadResourceRunner</div>
+                            <div class="arch-component">LocateResourceRunner</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Key Components</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Responsibility</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>ResourceService</code></td>
+                            <td>Main service orchestrating resource operations</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>CircuitBreakerManager</code></td>
+                            <td>Provider failure isolation and recovery</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>ResourceServiceConfiguration</code></td>
+                            <td>Type-safe configuration management</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>IResourceProvider</code></td>
+                            <td>Abstract provider interface for different sources</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                        <tr>
+                            <td><code>MemoryPressureMonitor</code></td>
+                            <td>Automatic memory management and cleanup</td>
+                            <td><span class="badge badge-success">Active</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Features Section -->
+            <section id="features" class="section">
+                <h2>Core Features</h2>
+                
+                <h3>🚀 Enhanced Service Architecture</h3>
+                <ul>
+                    <li><strong>Dependency Injection:</strong> Constructor-based injection with ServiceContainer</li>
+                    <li><strong>Async Lifecycle:</strong> Full UniTask integration with proper cancellation</li>
+                    <li><strong>Service Attributes:</strong> EngineService and ServiceConfiguration attributes</li>
+                    <li><strong>Health Monitoring:</strong> Real-time service health checks and reporting</li>
+                </ul>
+
+                <h3>🔄 Resource Loading</h3>
+                <ul>
+                    <li><strong>Async Operations:</strong> All operations use UniTask for optimal performance</li>
+                    <li><strong>Concurrent Loading:</strong> Configurable concurrent load limits with semaphore</li>
+                    <li><strong>Resource Caching:</strong> Intelligent LRU caching with memory pressure response</li>
+                    <li><strong>Deduplication:</strong> Prevents loading same resource multiple times concurrently</li>
+                    <li><strong>Generic Support:</strong> Type-safe loading for any UnityEngine.Object type</li>
+                </ul>
+
+                <h3>🛡️ Error Handling & Resilience</h3>
+                <ul>
+                    <li><strong>Circuit Breaker Pattern:</strong> Provider failure isolation with automatic recovery</li>
+                    <li><strong>Retry Policies:</strong> Exponential backoff with configurable retry attempts</li>
+                    <li><strong>Error Classification:</strong> Transient, recoverable, and fatal error handling</li>
+                    <li><strong>Provider Health Monitoring:</strong> Real-time provider status tracking</li>
+                    <li><strong>Graceful Degradation:</strong> Fallback mechanisms for critical operations</li>
+                </ul>
+
+                <h3>💾 Memory Management</h3>
+                <ul>
+                    <li><strong>Memory Pressure Response:</strong> Automatic cleanup based on system memory</li>
+                    <li><strong>Resource Unloading:</strong> Intelligent resource cleanup and disposal</li>
+                    <li><strong>Cache Management:</strong> LRU eviction with configurable size limits</li>
+                    <li><strong>Memory Statistics:</strong> Detailed memory usage tracking and reporting</li>
+                    <li><strong>Leak Prevention:</strong> Proper resource disposal and reference management</li>
+                </ul>
+
+                <h3>⚙️ Configuration System</h3>
+                <ul>
+                    <li><strong>ScriptableObject-based:</strong> Unity-integrated configuration management</li>
+                    <li><strong>Type-safe Validation:</strong> Comprehensive validation with clear error messages</li>
+                    <li><strong>Hot-reload Support:</strong> Runtime configuration changes without restart</li>
+                    <li><strong>Environment Overrides:</strong> Different configurations for dev/staging/production</li>
+                    <li><strong>Default Values:</strong> Sensible defaults with easy customization</li>
+                </ul>
+
+                <h3>📊 Monitoring & Analytics</h3>
+                <ul>
+                    <li><strong>Performance Metrics:</strong> Load times, cache hit ratios, throughput</li>
+                    <li><strong>Error Tracking:</strong> Detailed error statistics and patterns</li>
+                    <li><strong>Provider Statistics:</strong> Per-provider performance and health metrics</li>
+                    <li><strong>Memory Analytics:</strong> Memory usage trends and pressure forecasting</li>
+                    <li><strong>Event System:</strong> Comprehensive events for monitoring and debugging</li>
+                </ul>
+            </section>
+
+            <!-- Flow Diagram Section -->
+            <section id="flow" class="section">
+                <h2>Resource Loading Flow</h2>
+                
+                <div class="flow-diagram">
+                    <h3>Standard Resource Loading Flow</h3>
+                    <div class="flow-step">Request Resource</div>
+                    <div class="flow-step">Check Cache</div>
+                    <div class="flow-step">Select Provider</div>
+                    <div class="flow-step">Circuit Breaker Check</div>
+                    <div class="flow-step">Load Resource</div>
+                    <div class="flow-step">Update Cache</div>
+                    <div class="flow-step">Return Resource</div>
+                </div>
+
+                <div class="flow-diagram">
+                    <h3>Error Handling Flow</h3>
+                    <div class="flow-step">Load Failure</div>
+                    <div class="flow-step">Classify Error</div>
+                    <div class="flow-step">Check Retry Policy</div>
+                    <div class="flow-step">Circuit Breaker Update</div>
+                    <div class="flow-step">Retry or Fail</div>
+                </div>
+
+                <div class="flow-diagram">
+                    <h3>Memory Pressure Flow</h3>
+                    <div class="flow-step">Memory Monitor</div>
+                    <div class="flow-step">Pressure Detection</div>
+                    <div class="flow-step">Cleanup Strategy</div>
+                    <div class="flow-step">LRU Eviction</div>
+                    <div class="flow-step">Memory Released</div>
+                </div>
+
+                <h3>Detailed Operation Flow</h3>
+                
+                <div class="mermaid-container">
+                    <div class="diagram-title">🔄 Complete Resource Loading Flow</div>
+                    <div class="mermaid">
+                        flowchart TD
+                            A[🎮 Client Call<br/>LoadResourceAsync] --> B{🔍 Cache Check}
+                            B -->|Cache Hit| C[⚡ Return Cached Resource]
+                            B -->|Cache Miss| D[🔧 Select Provider]
+                            
+                            D --> E{🛡️ Circuit Breaker Check}
+                            E -->|Circuit Open| F[❌ Return Error]
+                            E -->|Circuit Closed| G[🎯 Check Resource Loading]
+                            
+                            G --> H{📥 Already Loading?}
+                            H -->|Yes| I[⏳ Await Existing Task]
+                            H -->|No| J[🚀 Start Resource Runner]
+                            
+                            J --> K[📊 Semaphore Check]
+                            K --> L{🎛️ Concurrent Limit?}
+                            L -->|At Limit| M[⏳ Wait for Slot]
+                            L -->|Available| N[📥 Load Resource]
+                            M --> N
+                            
+                            N --> O{✅ Load Success?}
+                            O -->|Success| P[💾 Update Cache]
+                            O -->|Failure| Q{🔄 Retry Policy?}
+                            
+                            Q -->|Retry| R[⏰ Exponential Backoff]
+                            Q -->|No Retry| S[🔴 Circuit Breaker Update]
+                            R --> N
+                            
+                            P --> T[📡 Fire Events]
+                            S --> U[📈 Update Statistics]
+                            T --> V[📊 Memory Pressure Check]
+                            U --> V
+                            
+                            V --> W{💾 Memory High?}
+                            W -->|Yes| X[🧹 Trigger Cleanup]
+                            W -->|No| Y[✨ Return Resource]
+                            X --> Y
+                            
+                            C --> Y
+                            I --> Y
+                            F --> Z[❌ Return Error Result]
+                            
+                            style A fill:#e1f5fe
+                            style B fill:#f3e5f5
+                            style C fill:#e8f5e8
+                            style D fill:#fff3e0
+                            style E fill:#ffebee
+                            style N fill:#e3f2fd
+                            style P fill:#e8f5e8
+                            style Y fill:#e8f5e8
+                            style Z fill:#ffebee
+                    </div>
+                </div>
+
+                <div class="mermaid-container">
+                    <div class="diagram-title">⚠️ Error Handling & Circuit Breaker Flow</div>
+                    <div class="mermaid">
+                        flowchart TD
+                            A[🚨 Load Failure] --> B[🔍 Classify Error]
+                            B --> C{📋 Error Type}
+                            
+                            C -->|Transient| D[🔄 Retry Policy]
+                            C -->|Recoverable| E[🛠️ Recovery Strategy]
+                            C -->|Fatal| F[❌ Immediate Failure]
+                            
+                            D --> G{🎯 Retry Attempts Left?}
+                            G -->|Yes| H[⏰ Exponential Backoff]
+                            G -->|No| I[🔴 Update Circuit Breaker]
+                            
+                            H --> J[🔄 Retry Load Operation]
+                            J --> K{✅ Success?}
+                            K -->|Success| L[🎉 Reset Circuit Breaker]
+                            K -->|Failure| G
+                            
+                            E --> M[🔧 Execute Recovery]
+                            M --> N{✅ Recovery Success?}
+                            N -->|Success| O[📝 Log Recovery]
+                            N -->|Failure| I
+                            
+                            I --> P{🚦 Circuit State}
+                            P -->|Open| Q[⏸️ Block Future Requests]
+                            P -->|Half-Open| R[🧪 Allow Test Request]
+                            P -->|Closed| S[✅ Allow Normal Operation]
+                            
+                            F --> T[📊 Update Error Statistics]
+                            O --> T
+                            Q --> T
+                            R --> T
+                            S --> T
+                            L --> T
+                            
+                            T --> U[📡 Fire Error Events]
+                            U --> V[📈 Update Provider Health]
+                            
+                            style A fill:#ffebee
+                            style B fill:#fff3e0
+                            style D fill:#e3f2fd
+                            style E fill:#f3e5f5
+                            style F fill:#ffebee
+                            style L fill:#e8f5e8
+                            style O fill:#e8f5e8
+                            style Q fill:#ffebee
+                            style S fill:#e8f5e8
+                    </div>
+                </div>
+
+                <div class="mermaid-container">
+                    <div class="diagram-title">💾 Memory Management Flow</div>
+                    <div class="mermaid">
+                        flowchart TD
+                            A[📊 Memory Monitor] --> B[🔍 Check Memory Usage]
+                            B --> C{💾 Memory Pressure Level}
+                            
+                            C -->|< 50%| D[✅ No Action Needed]
+                            C -->|50-70%| E[⚠️ Preventive Cleanup]
+                            C -->|70-85%| F[🧹 Moderate Cleanup]
+                            C -->|85-95%| G[🚨 Aggressive Cleanup]
+                            C -->|> 95%| H[🆘 Emergency Cleanup]
+                            
+                            E --> I[📝 Mark Low Priority Resources]
+                            F --> J[🗑️ LRU Cache Eviction<br/>25% of cache]
+                            G --> K[🗑️ LRU Cache Eviction<br/>75% of cache]
+                            H --> L[💥 Clear All Non-Essential<br/>+ Force GC]
+                            
+                            I --> M[📡 Fire Memory Events]
+                            J --> N[🧮 Update Memory Stats]
+                            K --> N
+                            L --> O[📢 Critical Memory Warning]
+                            
+                            M --> P[⏳ Schedule Next Check]
+                            N --> P
+                            O --> P
+                            D --> P
+                            
+                            P --> Q[⏰ Wait Interval]
+                            Q --> A
+                            
+                            style A fill:#e1f5fe
+                            style D fill:#e8f5e8
+                            style E fill:#fff8e1
+                            style F fill:#fff3e0
+                            style G fill:#ffebee
+                            style H fill:#ff1744,color:#fff
+                            style O fill:#ff1744,color:#fff
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Reference Section -->
+            <section id="api" class="section">
+                <h2>API Reference</h2>
+                
+                <h3>🎯 Core Resource Operations</h3>
+                
+                <h4>Loading Single Resources</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Purpose</th>
+                            <th>Returns</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>LoadResourceAsync&lt;T&gt;</code></td>
+                            <td>Load a single resource of type T</td>
+                            <td>Resource&lt;T&gt; with the loaded asset</td>
+                            <td>Load a texture, audio clip, or script</td>
+                        </tr>
+                        <tr>
+                            <td><code>ResourceExistsAsync&lt;T&gt;</code></td>
+                            <td>Check if resource exists before loading</td>
+                            <td>True if resource exists, false otherwise</td>
+                            <td>Validate before attempting expensive loads</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-header">🎮 Loading Resources - Basic Examples</div>
+                <div class="code-container">
+                    <div class="code-block csharp">
+<pre><span class="comment">// 🎮 Load a texture for your game UI</span>
+<span class="keyword">var</span> logoTexture = <span class="keyword">await</span> resourceService.<span class="method">LoadResourceAsync</span>&lt;<span class="type">Texture2D</span>&gt;(<span class="string">"UI/Logo"</span>);
+<span class="keyword">if</span> (logoTexture.<span class="property">IsValid</span>)
+{
+    myImage.<span class="property">texture</span> = logoTexture.<span class="property">Asset</span>;
+}
+
+<span class="comment">// ⏱️ Load with timeout to avoid hanging</span>
+<span class="keyword">using var</span> timeout = <span class="keyword">new</span> <span class="type">CancellationTokenSource</span>(<span class="type">TimeSpan</span>.<span class="method">FromSeconds</span>(<span class="number">10</span>));
+<span class="keyword">var</span> musicClip = <span class="keyword">await</span> resourceService.<span class="method">LoadResourceAsync</span>&lt;<span class="type">AudioClip</span>&gt;(<span class="string">"Music/Theme"</span>, timeout.<span class="property">Token</span>);</pre>
+                    </div>
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                </div>
+
+                <h4>Batch Operations</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Purpose</th>
+                            <th>When to Use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>LoadResourcesAsync&lt;T&gt;</code></td>
+                            <td>Load all resources in a folder</td>
+                            <td>Loading UI icons, character portraits, level assets</td>
+                        </tr>
+                        <tr>
+                            <td><code>LocateResourcesAsync&lt;T&gt;</code></td>
+                            <td>Find all available resources in a path</td>
+                            <td>Discovering available content, building menus</td>
+                        </tr>
+                        <tr>
+                            <td><code>PreloadResourcesAsync</code></td>
+                            <td>Load critical resources at startup</td>
+                            <td>Loading screen, essential UI, core game assets</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-header">📂 Batch Operations - Load Multiple Resources</div>
+                <div class="code-container">
+                    <div class="code-block csharp">
+<pre><span class="comment">// 📂 Load all character portraits for selection screen</span>
+<span class="keyword">var</span> portraits = <span class="keyword">await</span> resourceService.<span class="method">LoadResourcesAsync</span>&lt;<span class="type">Texture2D</span>&gt;(<span class="string">"Characters/Portraits"</span>);
+<span class="keyword">foreach</span> (<span class="keyword">var</span> portrait <span class="keyword">in</span> portraits.<span class="method">Where</span>(p => p.<span class="property">IsValid</span>))
+{
+    characterSelectionUI.<span class="method">AddCharacter</span>(portrait.<span class="property">Asset</span>);
+}
+
+<span class="comment">// 🔍 Discover available levels</span>
+<span class="keyword">var</span> levelPaths = <span class="keyword">await</span> resourceService.<span class="method">LocateResourcesAsync</span>&lt;<span class="type">TextAsset</span>&gt;(<span class="string">"Levels"</span>);
+<span class="type">Debug</span>.<span class="method">Log</span>(<span class="string">$"Found {levelPaths.Count()} available levels"</span>);</pre>
+                    </div>
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                </div>
+
+                <h3>🔧 Provider Management</h3>
+                
+                <div class="alert alert-info">
+                    <strong>What are Providers?</strong> Providers are different ways to load resources - from Unity's Resources folder, Asset Bundles, or local files. The ResourceService automatically manages which provider to use.
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>What it does</th>
+                            <th>When you need it</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>IsProviderInitialized</code></td>
+                            <td>Check if a provider is ready to use</td>
+                            <td>Before loading from specific source (AssetBundles, etc.)</td>
+                        </tr>
+                        <tr>
+                            <td><code>GetProviderHealthStatusAsync</code></td>
+                            <td>Check if all providers are working correctly</td>
+                            <td>Diagnosing loading problems, health monitoring</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+<span style="color: #6a9955;">// 🏥 Check if everything is working properly</span>
+var health = await resourceService.GetProviderHealthStatusAsync();
+foreach (var (provider, isHealthy) in health)
+{
+    if (!isHealthy)
+        Debug.LogWarning($"⚠️ {provider} provider has issues - some content may not load");
+}
+                </div>
+
+                <h3>💾 Memory Management</h3>
+                
+                <div class="alert alert-warning">
+                    <strong>Why Memory Management?</strong> Games can quickly run out of memory if resources aren't managed properly. The ResourceService helps by automatically cleaning up when memory gets low.
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>What it does</th>
+                            <th>When to use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>GetMemoryStatistics</code></td>
+                            <td>See how much memory resources are using</td>
+                            <td>Monitoring performance, debugging memory issues</td>
+                        </tr>
+                        <tr>
+                            <td><code>ForceMemoryCleanupAsync</code></td>
+                            <td>Immediately free up memory</td>
+                            <td>Before loading large levels, when memory is critical</td>
+                        </tr>
+                        <tr>
+                            <td><code>UnloadResource</code></td>
+                            <td>Remove a specific resource from memory</td>
+                            <td>After cutscenes, temporary large assets</td>
+                        </tr>
+                        <tr>
+                            <td><code>RegisterMemoryPressureCallback</code></td>
+                            <td>Get notified when memory is getting low</td>
+                            <td>Automatic cleanup, warning players about memory</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+<span style="color: #6a9955;">// 📊 Check memory usage</span>
+var memStats = resourceService.GetMemoryStatistics();
+Debug.Log($"💾 Using {memStats.TotalMemoryUsed / 1024 / 1024}MB for {memStats.LoadedResourceCount} resources");
+
+<span style="color: #6a9955;">// 🚨 Get warned when memory is low</span>
+resourceService.RegisterMemoryPressureCallback(pressure => 
+{
+    if (pressure > 0.8f)
+        ShowMemoryWarning("Memory getting low! Consider closing other apps.");
+});
+
+<span style="color: #6a9955;">// 🧹 Clean up after a big cutscene</span>
+resourceService.UnloadResource("Cutscenes/Intro/HighResVideo");
+await resourceService.ForceMemoryCleanupAsync();
+                </div>
+
+                <h3>📊 Resource Status & Information</h3>
+                
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Returns</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>IsResourceLoaded</code></td>
+                            <td>True if resource is in memory</td>
+                            <td>Check before using cached resources</td>
+                        </tr>
+                        <tr>
+                            <td><code>IsResourceLoading</code></td>
+                            <td>True if resource is currently being loaded</td>
+                            <td>Show loading indicators, avoid duplicate loads</td>
+                        </tr>
+                        <tr>
+                            <td><code>GetLoadedResourceOrNull</code></td>
+                            <td>The resource if loaded, null otherwise</td>
+                            <td>Quick access to cached resources</td>
+                        </tr>
+                        <tr>
+                            <td><code>GetStatistics</code></td>
+                            <td>Detailed performance and usage stats</td>
+                            <td>Performance monitoring, debugging</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+<span style="color: #6a9955;">// ⚡ Quick check for cached resources</span>
+if (resourceService.IsResourceLoaded("UI/PlayerAvatar"))
+{
+    var avatar = resourceService.GetLoadedResourceOrNull&lt;Texture2D&gt;("UI/PlayerAvatar");
+    // Use immediately without loading
+}
+
+<span style="color: #6a9955;">// 📈 Performance monitoring</span>
+var stats = resourceService.GetStatistics();
+Debug.Log($"📊 Cache efficiency: {stats.CacheHits}/{stats.CacheHits + stats.CacheMisses} hits");
+Debug.Log($"⏱️ Average load time: {stats.AverageLoadTimeMs:F1}ms");
+                </div>
+
+                <h3>🔔 Event System</h3>
+                
+                <div class="alert alert-success">
+                    <strong>Events for Feedback:</strong> Subscribe to events to show loading progress, handle errors gracefully, and provide better user experience.
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Event</th>
+                            <th>When it fires</th>
+                            <th>Use for</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>ResourceLoadStarted</code></td>
+                            <td>When loading begins</td>
+                            <td>Show loading spinner, update progress</td>
+                        </tr>
+                        <tr>
+                            <td><code>ResourceLoadCompleted</code></td>
+                            <td>When loading succeeds</td>
+                            <td>Hide loading UI, log performance</td>
+                        </tr>
+                        <tr>
+                            <td><code>ResourceLoadFailed</code></td>
+                            <td>When loading fails</td>
+                            <td>Show error messages, fallback content</td>
+                        </tr>
+                        <tr>
+                            <td><code>MemoryPressureChanged</code></td>
+                            <td>When memory usage changes</td>
+                            <td>Automatic cleanup, user warnings</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="code-block">
+<span style="color: #6a9955;">// 🎯 Simple loading feedback</span>
+resourceService.ResourceLoadStarted += path => 
+    loadingText.text = $"Loading {Path.GetFileName(path)}...";
+
+resourceService.ResourceLoadCompleted += (path, time) => 
+    loadingText.text = "";
+
+resourceService.ResourceLoadFailed += (path, error) => 
+    ShowError($"Failed to load {Path.GetFileName(path)}: {error.Message}");
+                </div>
+            </section>
+
+            <!-- Providers Section -->
+            <section id="providers" class="section">
+                <h2>Resource Providers</h2>
+                
+                <p>The ResourceService supports multiple provider types, each optimized for different resource sources and use cases.</p>
+
+                <h3>Provider Types</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Provider Type</th>
+                            <th>Source</th>
+                            <th>Use Case</th>
+                            <th>Performance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-info">Resources</span></td>
+                            <td>Unity Resources folder</td>
+                            <td>Built-in assets, always available</td>
+                            <td>Medium</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-info">AssetBundle</span></td>
+                            <td>Asset bundles (local/remote)</td>
+                            <td>Downloadable content, modular loading</td>
+                            <td>High</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-info">Local</span></td>
+                            <td>Local file system</td>
+                            <td>Dynamic content, user-generated assets</td>
+                            <td>Variable</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Provider Interface</h3>
+                <div class="code-block">
+public interface IResourceProvider
+{
+    // Core loading operations
+    UniTask&lt;Resource&lt;T&gt;&gt; LoadResourceAsync&lt;T&gt;(string path) where T : UnityEngine.Object;
+    UniTask&lt;IEnumerable&lt;Resource&lt;T&gt;&gt;&gt; LoadResourcesAsync&lt;T&gt;(string path) where T : UnityEngine.Object;
+    UniTask&lt;IEnumerable&lt;string&gt;&gt; LocateResourcesAsync&lt;T&gt;(string path) where T : UnityEngine.Object;
+    UniTask&lt;bool&gt; ResourceExistsAsync&lt;T&gt;(string path) where T : UnityEngine.Object;
+    
+    // Resource management
+    void UnloadResource(string path);
+    void UnloadResources();
+    bool ResourceLoaded(string path);
+    bool ResourceLoading(string path);
+    Resource&lt;T&gt; GetLoadedResourceOrNull&lt;T&gt;(string path) where T : UnityEngine.Object;
+    
+    // Type support
+    bool SupportsType&lt;T&gt;() where T : UnityEngine.Object;
+}
+                </div>
+
+                <h3>Provider Selection Logic</h3>
+                <div class="code-block">
+1. Check provider type support for requested resource type
+2. Verify provider is initialized and healthy
+3. Check circuit breaker state (if enabled)
+4. Validate provider can handle the specific resource path
+5. Select provider based on priority and configuration
+6. Execute load operation with error handling and retry logic
+                </div>
+
+                <h3>Provider Health Monitoring</h3>
+                <p>Each provider is continuously monitored for health and performance:</p>
+                <ul>
+                    <li><strong>Load Success Rate:</strong> Percentage of successful load operations</li>
+                    <li><strong>Average Load Time:</strong> Mean time to load resources</li>
+                    <li><strong>Error Frequency:</strong> Rate of failures and error patterns</li>
+                    <li><strong>Circuit Breaker Status:</strong> Current protection state</li>
+                    <li><strong>Memory Usage:</strong> Resources loaded and memory consumption</li>
+                </ul>
+            </section>
+
+            <!-- Configuration Section -->
+            <section id="configuration" class="section">
+                <h2>Configuration System</h2>
+                
+                <p>The ResourceService uses a comprehensive configuration system based on Unity's ScriptableObject architecture, providing type-safe settings with validation.</p>
+
+                <h3>Configuration Categories</h3>
+                
+                <h4>Provider Settings</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>EnabledProviders</code></td>
+                            <td>ProviderType (Flags)</td>
+                            <td>Resources | AssetBundle</td>
+                            <td>Which provider types to enable</td>
+                        </tr>
+                        <tr>
+                            <td><code>MaxConcurrentLoads</code></td>
+                            <td>int (1-50)</td>
+                            <td>10</td>
+                            <td>Maximum concurrent loading operations</td>
+                        </tr>
+                        <tr>
+                            <td><code>MemoryPressureThreshold</code></td>
+                            <td>float (0.1-1.0)</td>
+                            <td>0.8</td>
+                            <td>Memory pressure level for cleanup trigger</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Performance Settings</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>EnableResourceCaching</code></td>
+                            <td>bool</td>
+                            <td>true</td>
+                            <td>Enable resource caching for performance</td>
+                        </tr>
+                        <tr>
+                            <td><code>MaxCacheSize</code></td>
+                            <td>int (100-10000)</td>
+                            <td>1000</td>
+                            <td>Maximum resources in cache</td>
+                        </tr>
+                        <tr>
+                            <td><code>UnloadUnusedResourcesInterval</code></td>
+                            <td>float (5-300)</td>
+                            <td>30</td>
+                            <td>Seconds between automatic cleanup</td>
+                        </tr>
+                        <tr>
+                            <td><code>EnableResourcePreloading</code></td>
+                            <td>bool</td>
+                            <td>false</td>
+                            <td>Enable preloading of configured resources</td>
+                        </tr>
+                        <tr>
+                            <td><code>PreloadResourcePaths</code></td>
+                            <td>string[]</td>
+                            <td>empty</td>
+                            <td>Paths to preload during initialization</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Error Handling Settings</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>MaxRetryAttempts</code></td>
+                            <td>int (0-10)</td>
+                            <td>3</td>
+                            <td>Maximum retry attempts for failed loads</td>
+                        </tr>
+                        <tr>
+                            <td><code>RetryDelaySeconds</code></td>
+                            <td>float (0.1-10)</td>
+                            <td>1</td>
+                            <td>Delay between retry attempts</td>
+                        </tr>
+                        <tr>
+                            <td><code>EnableCircuitBreaker</code></td>
+                            <td>bool</td>
+                            <td>true</td>
+                            <td>Enable circuit breaker pattern</td>
+                        </tr>
+                        <tr>
+                            <td><code>CircuitBreakerFailureThreshold</code></td>
+                            <td>int (3-20)</td>
+                            <td>5</td>
+                            <td>Failures before circuit opens</td>
+                        </tr>
+                        <tr>
+                            <td><code>CircuitBreakerTimeoutSeconds</code></td>
+                            <td>float (5-300)</td>
+                            <td>30</td>
+                            <td>Time before circuit tries to close</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Memory Management Settings</h4>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>EnableMemoryPressureResponse</code></td>
+                            <td>bool</td>
+                            <td>true</td>
+                            <td>Enable automatic memory pressure response</td>
+                        </tr>
+                        <tr>
+                            <td><code>ModerateCleanupPercentage</code></td>
+                            <td>int (1-100)</td>
+                            <td>25</td>
+                            <td>Cache percentage to clear in moderate pressure</td>
+                        </tr>
+                        <tr>
+                            <td><code>AggressiveCleanupPercentage</code></td>
+                            <td>int (1-100)</td>
+                            <td>75</td>
+                            <td>Cache percentage to clear in high pressure</td>
+                        </tr>
+                        <tr>
+                            <td><code>EnableDetailedLogging</code></td>
+                            <td>bool</td>
+                            <td>false</td>
+                            <td>Enable detailed operation logging</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Configuration Usage</h3>
+                <div class="code-block">
+// Create configuration asset in Unity
+// Right-click in Project → Create → Engine → Services → ResourceServiceConfiguration
+
+// Access configuration in code
+[ServiceConfiguration(typeof(ResourceServiceConfiguration))]
+public class ResourceService : IResourceService
+{
+    private readonly ResourceServiceConfiguration _config;
+    
+    public ResourceService(ResourceServiceConfiguration config)
+    {
+        _config = config; // Automatically injected by ServiceContainer
+    }
+    
+    private async UniTask SomeOperation()
+    {
+        if (_config.EnableResourceCaching)
+        {
+            // Use cache...
+        }
+        
+        var maxRetries = _config.MaxRetryAttempts;
+        var retryDelay = TimeSpan.FromSeconds(_config.RetryDelaySeconds);
+        // Configure retry logic...
+    }
+}
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>Configuration Validation:</strong> All configuration values are validated at startup. Invalid configurations will prevent service initialization and provide detailed error messages.
+                </div>
+            </section>
+
+            <!-- Usage Examples Section -->
+            <section id="usage" class="section">
+                <h2>Usage Examples</h2>
+                
+                <div class="alert alert-info">
+                    <strong>Getting Started:</strong> The ResourceService is automatically set up for you! Just access it through dependency injection or the Engine facade.
+                </div>
+
+                <h3>🚀 Getting Access to ResourceService</h3>
+                
+                <h4>Option 1: Dependency Injection (Recommended)</h4>
+                <div class="code-header">🎯 Dependency Injection - The Modern Way</div>
+                <div class="code-container">
+                    <div class="code-block csharp">
+<pre><span class="comment">// 🎯 The modern way - ResourceService is automatically injected</span>
+<span class="keyword">public class</span> <span class="type">MyGameManager</span> : <span class="type">IEngineService</span> 
+{
+    <span class="keyword">private readonly</span> <span class="type">IResourceService</span> _resourceService;
+    
+    <span class="comment">// ResourceService automatically provided by the engine</span>
+    <span class="keyword">public</span> <span class="method">MyGameManager</span>(<span class="type">IResourceService</span> resourceService)
+    {
+        _resourceService = resourceService;
+    }
+    
+    <span class="keyword">public async</span> <span class="type">UniTask</span> <span class="method">LoadPlayerData</span>()
+    {
+        <span class="comment">// Now you can use _resourceService anywhere in this class</span>
+        <span class="keyword">var</span> playerData = <span class="keyword">await</span> _resourceService.<span class="method">LoadResourceAsync</span>&lt;<span class="type">TextAsset</span>&gt;(<span class="string">"Save/PlayerData"</span>);
+    }
+}</pre>
+                    </div>
+                    <button class="copy-button" onclick="copyCode(this)">Copy</button>
+                </div>
+
+                <h4>Option 2: Direct Access</h4>
+                <div class="code-block">
+<span style="color: #6a9955;">// 🔧 Quick access when you need it</span>
+public class SomeScript : MonoBehaviour
+{
+    private async void Start()
+    {
+        var resourceService = Engine.GetService&lt;IResourceService&gt;();
+        var logo = await resourceService.LoadResourceAsync&lt;Texture2D&gt;("UI/Logo");
+    }
+}
+                </div>
+
+                <h3>🎮 Common Game Scenarios</h3>
+                
+                <h4>Loading UI Elements</h4>
+                <div class="code-block">
+<span style="color: #6a9955;">// 🖼️ Load textures for your UI</span>
+public async UniTask SetupMainMenu()
+{
+    <span style="color: #6a9955;">// Load the main logo</span>
+    var logoResource = await resourceService.LoadResourceAsync&lt;Texture2D&gt;("UI/MainMenu/Logo");
+    if (logoResource.IsValid)
+    {
+        logoImage.texture = logoResource.Asset;
+        Debug.Log($"✅ Logo loaded: {logoResource.Asset.width}x{logoResource.Asset.height}");
+    }
+    else
+    {
+        Debug.LogError("❌ Failed to load logo - using default");
+        logoImage.texture = defaultLogo;
+    }
+
+    <span style="color: #6a9955;">// Load background music</span>
+    var musicResource = await resourceService.LoadResourceAsync&lt;AudioClip&gt;("Audio/Music/MainTheme");
+    if (musicResource.IsValid)
+    {
+        backgroundMusic.clip = musicResource.Asset;
+        backgroundMusic.Play();
+    }
+}
+                </div>
+
+                <h4>Character Selection Screen</h4>
+                <div class="code-block">
+<span style="color: #6a9955;">// 👥 Load all character portraits at once</span>
+public async UniTask LoadCharacterSelection()
+{
+    <span style="color: #6a9955;">// Find all available characters</span>
+    var characterPaths = await resourceService.LocateResourcesAsync&lt;Texture2D&gt;("Characters/Portraits");
+    Debug.Log($"🔍 Found {characterPaths.Count()} characters available");
+
+    <span style="color: #6a9955;">// Load all portraits</span>
+    var portraitResources = await resourceService.LoadResourcesAsync&lt;Texture2D&gt;("Characters/Portraits");
+    
+    <span style="color: #6a9955;">// Add each valid character to the selection UI</span>
+    foreach (var portrait in portraitResources.Where(p => p.IsValid))
+    {
+        var characterButton = CreateCharacterButton();
+        characterButton.image.texture = portrait.Asset;
+        characterButton.characterName = Path.GetFileNameWithoutExtension(portrait.Path);
+        
+        characterSelectionPanel.AddChild(characterButton);
+        Debug.Log($"✅ Added character: {characterButton.characterName}");
+    }
+}
+                </div>
+
+                <h4>Level Loading with Progress</h4>
+                <div class="code-block">
+<span style="color: #6a9955;">// 🌍 Load level assets with user feedback</span>
+public async UniTask LoadLevel(string levelName)
+{
+    <span style="color: #6a9955;">// Show loading screen</span>
+    loadingScreen.SetActive(true);
+    loadingProgress.value = 0f;
+    
+    try
+    {
+        <span style="color: #6a9955;">// Subscribe to loading events for progress updates</span>
+        var loadedCount = 0;
+        var totalToLoad = 0;
+        
+        resourceService.ResourceLoadCompleted += (path, time) => 
+        {
+            loadedCount++;
+            loadingProgress.value = (float)loadedCount / totalToLoad;
+            loadingText.text = $"Loaded {Path.GetFileName(path)}... ({loadedCount}/{totalToLoad})";
+        };
+
+        <span style="color: #6a9955;">// Find all level assets</span>
+        var levelAssets = await resourceService.LocateResourcesAsync&lt;UnityEngine.Object&gt;($"Levels/{levelName}");
+        totalToLoad = levelAssets.Count();
+        
+        <span style="color: #6a9955;">// Load everything with timeout protection</span>
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        var loadedResources = await resourceService.LoadResourcesAsync&lt;UnityEngine.Object&gt;($"Levels/{levelName}");
+        
+        Debug.Log($"🎉 Level '{levelName}' loaded successfully!");
+        loadingScreen.SetActive(false);
+    }
+    catch (OperationCanceledException)
+    {
+        Debug.LogError("⏰ Level loading timed out!");
+        ShowError("Level loading took too long. Please check your connection.");
+    }
+}
+                </div>
+
+                <h3>⚠️ Smart Error Handling</h3>
+                
+                <div class="code-block">
+<span style="color: #6a9955;">// 🛡️ Always check if resources exist before loading expensive assets</span>
+public async UniTask LoadPlayerSaveData()
+{
+    <span style="color: #6a9955;">// Check if save file exists first</span>
+    if (await resourceService.ResourceExistsAsync&lt;TextAsset&gt;("Save/PlayerProgress"))
+    {
+        var saveData = await resourceService.LoadResourceAsync&lt;TextAsset&gt;("Save/PlayerProgress");
+        if (saveData.IsValid)
+        {
+            var playerData = JsonUtility.FromJson&lt;PlayerData&gt;(saveData.Asset.text);
+            LoadPlayerProgress(playerData);
+            Debug.Log("✅ Save data loaded successfully");
+        }
+    }
+    else
+    {
+        Debug.Log("📝 No save data found, starting new game");
+        StartNewGame();
+    }
+}
+
+<span style="color: #6a9955;">// 🔄 Handle provider issues gracefully</span>
+public async UniTask CheckSystemHealth()
+{
+    var providerHealth = await resourceService.GetProviderHealthStatusAsync();
+    
+    foreach (var (provider, isHealthy) in providerHealth)
+    {
+        if (!isHealthy)
+        {
+            Debug.LogWarning($"⚠️ {provider} provider has issues!");
+            
+            <span style="color: #6a9955;">// Show user-friendly message based on provider type</span>
+            switch (provider)
+            {
+                case ProviderType.AssetBundle:
+                    ShowNotification("Some downloadable content may not be available.");
+                    break;
+                case ProviderType.Resources:
+                    ShowError("Core game assets unavailable. Please restart the game.");
+                    break;
+                case ProviderType.Local:
+                    ShowNotification("User content may not load properly.");
+                    break;
+            }
+        }
+    }
+}
+                </div>
+
+                <h3>💾 Smart Memory Management</h3>
+                
+                <div class="code-block">
+<span style="color: #6a9955;">// 🧠 Automatic memory monitoring</span>
+public class GameMemoryManager : MonoBehaviour
+{
+    private IResourceService resourceService;
+    
+    private void Start()
+    {
+        resourceService = Engine.GetService&lt;IResourceService&gt;();
+        
+        <span style="color: #6a9955;">// Get notified when memory gets low</span>
+        resourceService.RegisterMemoryPressureCallback(OnMemoryPressure);
+        
+        <span style="color: #6a9955;">// Monitor memory usage every 30 seconds</span>
+        InvokeRepeating(nameof(CheckMemoryUsage), 30f, 30f);
+    }
+    
+    private void OnMemoryPressure(float pressure)
+    {
+        Debug.Log($"💾 Memory pressure: {pressure:P1}");
+        
+        if (pressure > 0.8f)
+        {
+            <span style="color: #6a9955;">// High memory usage - clean up non-essential stuff</span>
+            CleanupUICache();
+            UnloadOldLevelAssets();
+            
+            if (pressure > 0.9f)
+            {
+                <span style="color: #6a9955;">// Critical memory - warn the user</span>
+                ShowMemoryWarning("Memory running low. Game performance may be affected.");
+            }
+        }
+    }
+    
+    private void CheckMemoryUsage()
+    {
+        var stats = resourceService.GetMemoryStatistics();
+        var memoryMB = stats.TotalMemoryUsed / 1024 / 1024;
+        
+        Debug.Log($"📊 Resource memory: {memoryMB}MB ({stats.LoadedResourceCount} resources)");
+        
+        <span style="color: #6a9955;">// Clean up if we're using too much memory</span>
+        if (memoryMB > 500) // More than 500MB
+        {
+            await resourceService.UnloadUnusedResourcesAsync();
+            Debug.Log("🧹 Cleaned up unused resources");
+        }
+    }
+}
+
+<span style="color: #6a9955;">// 🎬 Clean up after cutscenes or big events</span>
+public async UniTask PlayCutscene(string cutsceneName)
+{
+    <span style="color: #6a9955;">// Load high-quality cutscene video</span>
+    var cutsceneVideo = await resourceService.LoadResourceAsync&lt;VideoClip&gt;($"Cutscenes/{cutsceneName}");
+    
+    <span style="color: #6a9955;">// Play the cutscene...</span>
+    videoPlayer.clip = cutsceneVideo.Asset;
+    videoPlayer.Play();
+    
+    <span style="color: #6a9955;">// Wait for it to finish</span>
+    await UniTask.WaitUntil(() => !videoPlayer.isPlaying);
+    
+    <span style="color: #6a9955;">// Immediately clean up the large video file</span>
+    resourceService.UnloadResource($"Cutscenes/{cutsceneName}");
+    Debug.Log($"🧹 Cleaned up cutscene: {cutsceneName}");
+}
+                </div>
+
+                <h3>🔧 Advanced Patterns</h3>
+                
+                <h4>Resource Preloading Strategy</h4>
+                <div class="code-block">
+<span style="color: #6a9955;">// 🚀 Smart preloading for better performance</span>
+public class GamePreloader : MonoBehaviour
+{
+    private IResourceService resourceService;
+    
+    private async void Start()
+    {
+        resourceService = Engine.GetService&lt;IResourceService&gt;();
+        
+        <span style="color: #6a9955;">// Show loading screen while preloading</span>
+        await PreloadEssentialAssets();
+        await PreloadCurrentLevelAssets();
+        
+        <span style="color: #6a9955;">// Start the game when everything is ready</span>
+        StartGame();
+    }
+    
+    private async UniTask PreloadEssentialAssets()
+    {
+        <span style="color: #6a9955;">// Load critical UI that's always needed</span>
+        var essentials = new[]
+        {
+            "UI/Common/LoadingSpinner",
+            "UI/Common/ErrorDialog", 
+            "Audio/SFX/ButtonClick",
+            "Audio/SFX/ErrorSound"
+        };
+        
+        foreach (var path in essentials)
+        {
+            await resourceService.LoadResourceAsync&lt;UnityEngine.Object&gt;(path);
+            Debug.Log($"✅ Preloaded essential: {Path.GetFileName(path)}");
+        }
+    }
+    
+    private async UniTask PreloadCurrentLevelAssets()
+    {
+        <span style="color: #6a9955;">// Use the configured preload list</span>
+        await resourceService.PreloadResourcesAsync();
+        Debug.Log("✅ All configured assets preloaded");
+    }
+}
+                </div>
+
+                <h4>Platform-Specific Loading</h4>
+                <div class="code-block">
+<span style="color: #6a9955;">// 📱 Load different assets based on platform capabilities</span>
+public async UniTask LoadPlatformSpecificAssets()
+{
+    string qualityPath;
+    
+    <span style="color: #6a9955;">// Choose asset quality based on platform</span>
+    #if UNITY_IOS || UNITY_ANDROID
+        <span style="color: #6a9955;">// Mobile devices - use compressed assets</span>
+        qualityPath = "Mobile/";
+    #elif UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX
+        <span style="color: #6a9955;">// Desktop - use high quality assets</span>
+        qualityPath = "Desktop/HighRes/";
+    #else
+        <span style="color: #6a9955;">// Other platforms - use standard quality</span>
+        qualityPath = "Standard/";
+    #endif
+    
+    <span style="color: #6a9955;">// Load appropriate background texture</span>
+    var background = await resourceService.LoadResourceAsync&lt;Texture2D&gt;($"{qualityPath}Backgrounds/MainMenu");
+    
+    <span style="color: #6a9955;">// Load platform-specific audio</span>
+    var audioFormat = Application.platform == RuntimePlatform.WebGLPlayer ? "OGG" : "MP3";
+    var bgMusic = await resourceService.LoadResourceAsync&lt;AudioClip&gt;($"Audio/{audioFormat}/BackgroundMusic");
+    
+    Debug.Log($"🎯 Loaded {qualityPath} quality assets for {Application.platform}");
+}
+                </div>
+
+                <div class="alert alert-success">
+                    <strong>Pro Tips:</strong>
+                    <ul style="margin: 0.5rem 0 0 1rem;">
+                        <li>Always check <code>resource.IsValid</code> before using assets</li>
+                        <li>Use timeouts for large assets to avoid hanging</li>
+                        <li>Subscribe to events for user feedback during loading</li>
+                        <li>Clean up large temporary assets immediately after use</li>
+                        <li>Preload essential assets for better user experience</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Monitoring Section -->
+            <section id="monitoring" class="section">
+                <h2>Monitoring & Analytics</h2>
+                
+                <h3>Performance Metrics</h3>
+                <div class="code-block">
+// Get comprehensive service statistics
+var stats = resourceService.GetStatistics();
+
+Debug.Log($"Resource Service Statistics:");
+Debug.Log($"  Total Resources Loaded: {stats.TotalResourcesLoaded}");
+Debug.Log($"  Total Load Failures: {stats.TotalLoadFailures}");
+Debug.Log($"  Cache Hit Ratio: {(float)stats.CacheHits / (stats.CacheHits + stats.CacheMisses):P1}");
+Debug.Log($"  Average Load Time: {stats.AverageLoadTimeMs:F2}ms");
+Debug.Log($"  Active Providers: {stats.ActiveProviders}");
+
+// Per-provider statistics
+foreach (var (providerType, loadCount) in stats.LoadCountByProvider)
+{
+    var avgTime = stats.AverageLoadTimeByProvider[providerType];
+    Debug.Log($"  {providerType}: {loadCount} loads, {avgTime:F2}ms avg");
+}
+
+// Memory statistics
+var memStats = stats.MemoryStats;
+Debug.Log($"Memory Usage: {memStats.TotalMemoryUsed / 1024 / 1024}MB");
+Debug.Log($"Loaded Resources: {memStats.LoadedResourceCount}");
+Debug.Log($"Cached Resources: {memStats.CachedResourceCount}");
+Debug.Log($"Memory Pressure: {memStats.MemoryPressureLevel:P1}");
+
+// Circuit breaker statistics
+var cbStats = stats.CircuitBreakerStats;
+foreach (var (providerType, failureCount) in cbStats.FailureCountByProvider)
+{
+    var isOpen = cbStats.CircuitStateByProvider[providerType];
+    var lastFailure = cbStats.LastFailureTimeByProvider.GetValueOrDefault(providerType);
+    Debug.Log($"  {providerType} CB: {failureCount} failures, " +
+              $"State: {(isOpen ? "OPEN" : "CLOSED")}, " +
+              $"Last Failure: {lastFailure:HH:mm:ss}");
+}
+                </div>
+
+                <h3>Health Monitoring</h3>
+                <div class="code-block">
+// Continuous health monitoring
+public class ResourceServiceHealthMonitor : MonoBehaviour
+{
+    private IResourceService _resourceService;
+    private float _lastHealthCheck;
+    private const float HEALTH_CHECK_INTERVAL = 30f; // seconds
+    
+    private void Start()
+    {
+        _resourceService = Engine.GetService&lt;IResourceService&gt;();
+        StartCoroutine(MonitorHealth());
+    }
+    
+    private IEnumerator MonitorHealth()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(HEALTH_CHECK_INTERVAL);
+            await CheckServiceHealth();
+        }
+    }
+    
+    private async UniTask CheckServiceHealth()
+    {
+        try
+        {
+            // Check overall service health
+            var healthResult = await _resourceService.HealthCheckAsync();
+            if (healthResult.Status != ServiceHealthStatus.Healthy)
+            {
+                Debug.LogWarning($"ResourceService health issue: {healthResult.Status} - {healthResult.Message}");
+            }
+            
+            // Check provider health
+            var providerHealth = await _resourceService.GetProviderHealthStatusAsync();
+            foreach (var (provider, isHealthy) in providerHealth)
+            {
+                if (!isHealthy)
+                {
+                    Debug.LogError($"Provider {provider} is unhealthy");
+                    // Could trigger alerts, fallback mechanisms, etc.
+                }
+            }
+            
+            // Check memory pressure
+            var memStats = _resourceService.GetMemoryStatistics();
+            if (memStats.MemoryPressureLevel &gt; 0.85f)
+            {
+                Debug.LogWarning($"High memory pressure: {memStats.MemoryPressureLevel:P1}");
+                // Could trigger proactive cleanup
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Health check failed: {ex.Message}");
+        }
+    }
+}
+                </div>
+
+                <h3>Performance Profiling</h3>
+                <div class="code-block">
+// Custom profiling for resource operations
+public class ResourceProfiler
+{
+    private readonly Dictionary&lt;string, List&lt;float&gt;&gt; _loadTimes = new();
+    private readonly Dictionary&lt;string, int&gt;&gt; _loadCounts = new();
+    
+    public ResourceProfiler(IResourceService resourceService)
+    {
+        resourceService.ResourceLoadStarted += OnLoadStarted;
+        resourceService.ResourceLoadCompleted += OnLoadCompleted;
+        resourceService.ResourceLoadFailed += OnLoadFailed;
+    }
+    
+    private void OnLoadStarted(string path)
+    {
+        // Track load start time
+        _loadStartTimes[path] = Time.realtimeSinceStartup;
+    }
+    
+    private void OnLoadCompleted(string path, TimeSpan duration)
+    {
+        // Record successful load
+        RecordLoadTime(path, (float)duration.TotalMilliseconds);
+        _loadCounts[path] = _loadCounts.GetValueOrDefault(path) + 1;
+    }
+    
+    private void OnLoadFailed(string path, Exception exception)
+    {
+        Debug.LogWarning($"Load failed for {path}: {exception.Message}");
+        // Could track failure rates, error patterns, etc.
+    }
+    
+    public void PrintReport()
+    {
+        Debug.Log("=== Resource Loading Performance Report ===");
+        
+        foreach (var (path, times) in _loadTimes)
+        {
+            var avgTime = times.Average();
+            var minTime = times.Min();
+            var maxTime = times.Max();
+            var loadCount = _loadCounts.GetValueOrDefault(path);
+            
+            Debug.Log($"{path}:");
+            Debug.Log($"  Loads: {loadCount}, Avg: {avgTime:F2}ms, Min: {minTime:F2}ms, Max: {maxTime:F2}ms");
+        }
+    }
+}
+                </div>
+
+                <div class="alert alert-success">
+                    <strong>Production Ready:</strong> The ResourceService includes comprehensive monitoring capabilities suitable for production deployments, with detailed metrics, health checks, and performance profiling tools.
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Sinkii09 Engine - Enhanced ResourceService Complete Guide</p>
+            <p>Generated from enhanced service architecture with comprehensive error handling and performance optimization</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis',
+                padding: 20
+            },
+            themeVariables: {
+                primaryColor: '#e1f5fe',
+                primaryTextColor: '#1a365d',
+                primaryBorderColor: '#2563eb',
+                lineColor: '#64748b',
+                sectionBkgColor: '#f8fafc',
+                altSectionBkgColor: '#e2e8f0',
+                gridColor: '#cbd5e1',
+                tertiaryColor: '#f1f5f9'
+            }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Highlight current section in navigation
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.section');
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (scrollY >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Copy to clipboard functionality
+        function copyCode(button) {
+            const codeBlock = button.parentElement.querySelector('.code-block pre, .code-block');
+            const code = codeBlock.textContent || codeBlock.innerText;
+            
+            navigator.clipboard.writeText(code).then(function() {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = '#238636';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#21262d';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy: ', err);
+                button.textContent = 'Failed';
+                setTimeout(() => {
+                    button.textContent = 'Copy';
+                }, 2000);
+            });
+        }
+
+        // Enhanced syntax highlighting (keeping existing functionality)
+        document.querySelectorAll('.code-block:not(.csharp)').forEach(block => {
+            let html = block.innerHTML;
+            
+            // Only apply to blocks that don't already have syntax highlighting
+            if (!html.includes('<span class="keyword">')) {
+                // Highlight keywords
+                html = html.replace(/\b(public|private|protected|async|await|UniTask|var|if|else|foreach|class|interface|namespace)\b/g, '<span style="color: #569cd6;">$1</span>');
+                
+                // Highlight strings
+                html = html.replace(/"([^"]*)"/g, '<span style="color: #ce9178;">"$1"</span>');
+                
+                // Highlight comments
+                html = html.replace(/\/\/(.*)$/gm, '<span style="color: #6a9955;">//$1</span>');
+                
+                block.innerHTML = html;
+            }
+        });
+    </script>
+</body>
+</html>
