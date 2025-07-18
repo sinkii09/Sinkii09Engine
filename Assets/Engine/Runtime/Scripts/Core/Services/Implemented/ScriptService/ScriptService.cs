@@ -158,7 +158,6 @@ namespace Sinkii09.Engine.Services
         // Memory management
         private MemoryPressureMonitor.MemoryPressureLevel _currentMemoryPressure = MemoryPressureMonitor.MemoryPressureLevel.None;
         private DateTime _lastMemoryCleanup = DateTime.UtcNow;
-        private long _estimatedMemoryUsage = 0;
         private readonly object _memoryManagementLock = new object();
         #endregion
 

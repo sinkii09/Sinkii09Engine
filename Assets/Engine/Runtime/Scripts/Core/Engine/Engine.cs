@@ -533,5 +533,91 @@ namespace Sinkii09.Engine
                 Debug.LogError($"Failed to initialize GC optimization: {ex.Message}");
             }
         }
+        
+        // SaveLoadService Facade Methods
+        
+        /// <summary>
+        /// Save data asynchronously
+        /// </summary>
+        public static async UniTask<SaveResult> SaveAsync(string saveId, SaveData data, CancellationToken cancellationToken = default)
+        {
+            var saveService = GetService<ISaveLoadService>();
+            if (saveService == null)
+                throw new InvalidOperationException("SaveLoadService is not available");
+            
+            return await saveService.SaveAsync(saveId, data, cancellationToken);
+        }
+        
+        /// <summary>
+        /// Load data asynchronously
+        /// </summary>
+        public static async UniTask<LoadResult<T>> LoadAsync<T>(string saveId, CancellationToken cancellationToken = default) where T : SaveData
+        {
+            var saveService = GetService<ISaveLoadService>();
+            if (saveService == null)
+                throw new InvalidOperationException("SaveLoadService is not available");
+            
+            return await saveService.LoadAsync<T>(saveId, cancellationToken);
+        }
+        
+        /// <summary>
+        /// Check if a save exists
+        /// </summary>
+        public static async UniTask<bool> SaveExistsAsync(string saveId, CancellationToken cancellationToken = default)
+        {
+            var saveService = GetService<ISaveLoadService>();
+            if (saveService == null)
+                throw new InvalidOperationException("SaveLoadService is not available");
+            
+            return await saveService.ExistsAsync(saveId, cancellationToken);
+        }
+        
+        /// <summary>
+        /// Delete a save
+        /// </summary>
+        public static async UniTask<bool> DeleteSaveAsync(string saveId, CancellationToken cancellationToken = default)
+        {
+            var saveService = GetService<ISaveLoadService>();
+            if (saveService == null)
+                throw new InvalidOperationException("SaveLoadService is not available");
+            
+            return await saveService.DeleteAsync(saveId, cancellationToken);
+        }
+        
+        /// <summary>
+        /// Get all save metadata
+        /// </summary>
+        public static async UniTask<IReadOnlyList<SaveMetadata>> GetAllSavesAsync(CancellationToken cancellationToken = default)
+        {
+            var saveService = GetService<ISaveLoadService>();
+            if (saveService == null)
+                throw new InvalidOperationException("SaveLoadService is not available");
+            
+            return await saveService.GetAllSavesAsync(cancellationToken);
+        }
+        
+        /// <summary>
+        /// Auto-save data
+        /// </summary>
+        public static async UniTask<SaveResult> AutoSaveAsync(SaveData data, CancellationToken cancellationToken = default)
+        {
+            var saveService = GetService<ISaveLoadService>();
+            if (saveService == null)
+                throw new InvalidOperationException("SaveLoadService is not available");
+            
+            return await saveService.AutoSaveAsync(data, cancellationToken);
+        }
+        
+        /// <summary>
+        /// Load the latest save
+        /// </summary>
+        public static async UniTask<LoadResult<T>> LoadLatestAsync<T>(CancellationToken cancellationToken = default) where T : SaveData
+        {
+            var saveService = GetService<ISaveLoadService>();
+            if (saveService == null)
+                throw new InvalidOperationException("SaveLoadService is not available");
+            
+            return await saveService.LoadLatestAsync<T>(cancellationToken);
+        }
     }
 }

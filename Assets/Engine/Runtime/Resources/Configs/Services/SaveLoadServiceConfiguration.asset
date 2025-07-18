@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7e85fdc8f88f1d4d95aba27eff77952, type: 3}
+  m_Name: SaveLoadServiceConfiguration
+  m_EditorClassIdentifier: 
+  _version: 1
+  _description: Service configuration
+  _saveDirectoryPath: SaveData
+  _backupDirectoryPath: SaveData/Backups
+  _enabledStorageProviders:
+  - LocalFile
+  _maxSaveSlots: 10
+  _maxBackupsPerSave: 5
+  _enableCaching: 1
+  _maxCacheSize: 50
+  _enableCompression: 1
+  _compressionLevel: 6
+  _enableBackgroundSaving: 1
+  _maxConcurrentOperations: 4
+  _enableEncryption: 0
+  _encryptionAlgorithm: AES-256-GCM
+  _enableIntegrityChecks: 1
+  _enableMagicBytes: 1
+  _magicBytesSignature: 170
+  _enableAutoSave: 1
+  _autoSaveInterval: 300
+  _maxAutoSaves: 3
+  _autoSaveOnSceneChange: 1
+  _autoSaveOnApplicationPause: 1
+  _enableValidation: 1
+  _validateOnLoad: 1
+  _validateOnSave: 1
+  _strictValidation: 0
+  _maxRetryAttempts: 3
+  _retryDelay: 1
+  _enableCircuitBreaker: 1
+  _circuitBreakerThreshold: 5
+  _circuitBreakerTimeout: 60
+  _enableDebugLogging: 0
+  _enablePerformanceMetrics: 1
+  _enableStatistics: 1

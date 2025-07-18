@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaveLoad Architecture - Complete Class Relationship Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.8em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-size: 2.2em;
+            border-bottom: 4px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        h3 {
+            color: #2980b9;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.6em;
+        }
+        
+        h4 {
+            color: #27ae60;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .architecture-overview {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 6px solid #3498db;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .class-relationship {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 25px 0;
+        }
+        
+        .class-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #e74c3c;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .class-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .class-card.core { border-left-color: #e74c3c; }
+        .class-card.support { border-left-color: #3498db; }
+        .class-card.data { border-left-color: #27ae60; }
+        .class-card.interface { border-left-color: #9b59b6; }
+        .class-card.enum { border-left-color: #f39c12; }
+        
+        .class-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .class-description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+        
+        .methods-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .method {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            border-left: 3px solid #3498db;
+        }
+        
+        .method-name {
+            font-weight: bold;
+            color: #2c3e50;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .method-description {
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        
+        .properties-list {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .property {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 6px 0;
+            border-left: 3px solid #27ae60;
+        }
+        
+        .property-name {
+            font-weight: bold;
+            color: #27ae60;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .relationship-diagram {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: center;
+            border: 2px dashed #3498db;
+        }
+        
+        .flow-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .flow-box {
+            background: #3498db;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: bold;
+            min-width: 150px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .flow-box.serializer { background: #e74c3c; }
+        .flow-box.compression { background: #27ae60; }
+        .flow-box.context { background: #9b59b6; }
+        .flow-box.result { background: #f39c12; }
+        
+        .flow-arrow {
+            font-size: 1.5em;
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .usage-example {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .usage-example pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .example-header {
+            background: #4a5568;
+            color: #e2e8f0;
+            padding: 12px 20px;
+            border-radius: 10px 10px 0 0;
+            margin: 20px 0 0 0;
+            font-weight: bold;
+            font-size: 1em;
+        }
+        
+        .dependency-graph {
+            background: #fff5f5;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border: 2px solid #fed7d7;
+        }
+        
+        .dependency-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #e53e3e;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .toc li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .toc a:hover {
+            color: #2980b9;
+            text-decoration: underline;
+        }
+        
+        .interaction-flow {
+            background: #f0f8ff;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border: 2px solid #b0d4f0;
+        }
+        
+        .sequence-step {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            position: relative;
+        }
+        
+        .sequence-step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .enum-values {
+            background: #fff8dc;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 2px solid #f4a261;
+        }
+        
+        .enum-value {
+            background: white;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            border-left: 3px solid #f4a261;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .performance-metrics {
+            background: #e8f5e8;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #27ae60;
+        }
+        
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #d4edda;
+        }
+        
+        .metric-name {
+            font-weight: bold;
+            color: #155724;
+        }
+        
+        .metric-value {
+            color: #27ae60;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-left: 5px solid #f39c12;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .warning-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .tip-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-left: 5px solid #27ae60;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .tip-box h4 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+        
+        .data-flow {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border: 2px solid #ba68c8;
+        }
+        
+        .data-transformation {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ba68c8;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #856404;
+        }
+        
+        .code-snippet {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #6c757d;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ SaveLoad Architecture Guide</h1>
+        <p style="text-align: center; font-size: 1.3em; color: #666; margin-bottom: 30px;">
+            Complete Class Relationship & Functionality Documentation
+        </p>
+        
+        <!-- Table of Contents -->
+        <div class="toc">
+            <h3>📋 Table of Contents</h3>
+            <ul>
+                <li><a href="#overview">🎯 Architecture Overview</a></li>
+                <li><a href="#core-classes">🏗️ Core Classes</a></li>
+                <li><a href="#support-classes">🔧 Support Classes</a></li>
+                <li><a href="#data-classes">📊 Data Classes</a></li>
+                <li><a href="#interfaces">🔌 Interfaces</a></li>
+                <li><a href="#enums">📋 Enumerations</a></li>
+                <li><a href="#relationships">🔗 Class Relationships</a></li>
+                <li><a href="#data-flow">🌊 Data Flow</a></li>
+                <li><a href="#usage-patterns">💡 Usage Patterns</a></li>
+                <li><a href="#best-practices">⭐ Best Practices</a></li>
+            </ul>
+        </div>
+        
+        <!-- Architecture Overview -->
+        <section id="overview">
+            <h2>🎯 Architecture Overview</h2>
+            <div class="architecture-overview">
+                <h3>💼 SaveLoad Service Architecture</h3>
+                <p>The SaveLoad service is built on a <strong>modular, layered architecture</strong> that separates concerns between serialization, compression, and data management. The system provides a flexible, extensible framework for handling game data persistence with advanced features like compression, validation, and performance monitoring.</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Core Classes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">4</div>
+                        <div class="stat-label">Main Interfaces</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">Enumerations</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">5</div>
+                        <div class="stat-label">Processing Stages</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Core Classes -->
+        <section id="core-classes">
+            <h2>🏗️ Core Classes</h2>
+            <div class="class-relationship">
+                
+                <!-- GameDataSerializer -->
+                <div class="class-card core">
+                    <div class="class-title">🎯 GameDataSerializer</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Main serialization engine that orchestrates the entire data serialization/deserialization process.<br>
+                        <strong>Location:</strong> Core serialization layer<br>
+                        <strong>Inherits:</strong> BinarySerializerBase<br>
+                        <strong>Key Features:</strong> 5-stage pipeline, compression integration, validation, performance metrics
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Key Methods</h4>
+                        <div class="method">
+                            <div class="method-name">SerializeAsync&lt;T&gt;(T data, SerializationContext context, CancellationToken cancellationToken)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Serializes objects through 5-stage pipeline<br>
+                                <strong>Stages:</strong> Validation → JSON → Binary → Compression → Encoding<br>
+                                <strong>Returns:</strong> SerializationResult with data and metrics<br>
+                                <strong>Usage:</strong> Primary serialization entry point
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">DeserializeAsync&lt;T&gt;(byte[] data, SerializationContext context, CancellationToken cancellationToken)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Deserializes data through reverse 5-stage pipeline<br>
+                                <strong>Stages:</strong> Validation → Decoding → Decompression → Binary → JSON<br>
+                                <strong>Returns:</strong> DeserializationResult&lt;T&gt; with object and metrics<br>
+                                <strong>Usage:</strong> Primary deserialization entry point
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">ConvertToBinary(string jsonString, SerializationContext context)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Converts JSON to custom binary format<br>
+                                <strong>Format:</strong> [Magic][Version][Metadata][Data]<br>
+                                <strong>Usage:</strong> Internal binary conversion stage
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">ConvertFromBinary(byte[] binaryData, SerializationContext context)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Extracts JSON from binary format<br>
+                                <strong>Validation:</strong> Magic byte, version, metadata parsing<br>
+                                <strong>Usage:</strong> Internal binary extraction stage
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">CreateMetadataBytes(SerializationContext context)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Creates metadata for binary format<br>
+                                <strong>Contains:</strong> Timestamp, source info, compression settings<br>
+                                <strong>Usage:</strong> Metadata generation for traceability
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">ValidateMagicBytes(byte[] data)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Validates custom magic byte (0x53)<br>
+                                <strong>Usage:</strong> Data integrity verification
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="properties-list">
+                        <h4>🏷️ Key Properties</h4>
+                        <div class="property">
+                            <div class="property-name">MAGIC_BYTE = 0x53</div>
+                            <div class="method-description">Custom format identifier ('S' for Sinkii09)</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">FORMAT_VERSION = 1</div>
+                            <div class="method-description">Binary format version for compatibility</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CompressionManager -->
+                <div class="class-card core">
+                    <div class="class-title">🗜️ CompressionManager</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Handles all compression and decompression operations with intelligent algorithm selection.<br>
+                        <strong>Location:</strong> Compression layer<br>
+                        <strong>Key Features:</strong> Multi-algorithm support, entropy analysis, automatic format detection, performance optimization
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Key Methods</h4>
+                        <div class="method">
+                            <div class="method-name">CompressAsync(byte[] data, CompressionLevel level, CancellationToken cancellationToken)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Compresses data using specified algorithm and level<br>
+                                <strong>Algorithms:</strong> None, GZip (Fastest/Balanced), Deflate (Maximum)<br>
+                                <strong>Intelligence:</strong> Skips compression for small data (&lt;100 bytes)<br>
+                                <strong>Returns:</strong> CompressionResult with performance metrics<br>
+                                <strong>Usage:</strong> Primary compression entry point
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">DecompressAsync(byte[] compressedData, CancellationToken cancellationToken)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Decompresses data with automatic format detection<br>
+                                <strong>Detection:</strong> GZip magic bytes (0x1f 0x8b), Deflate fallback<br>
+                                <strong>Fallback:</strong> Treats as uncompressed if all methods fail<br>
+                                <strong>Returns:</strong> CompressionResult with detected algorithm<br>
+                                <strong>Usage:</strong> Primary decompression entry point
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">EstimateCompressionRatio(byte[] data, CompressionLevel level)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Estimates compression efficiency before processing<br>
+                                <strong>Analysis:</strong> Entropy calculation, data characteristics<br>
+                                <strong>Usage:</strong> Performance optimization, decision making
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">ShouldCompress(byte[] data, CompressionLevel level)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Determines if compression would be beneficial<br>
+                                <strong>Criteria:</strong> Size threshold, estimated ratio (&gt;10% savings)<br>
+                                <strong>Usage:</strong> Intelligent compression decisions
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">CalculateEntropy(byte[] data)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Calculates data entropy for compressibility analysis<br>
+                                <strong>Range:</strong> 0 (perfectly predictable) to 8 (random)<br>
+                                <strong>Usage:</strong> Internal compression optimization
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="properties-list">
+                        <h4>🏷️ Key Properties</h4>
+                        <div class="property">
+                            <div class="property-name">DEFAULT_BUFFER_SIZE = 4096</div>
+                            <div class="method-description">Stream processing buffer size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">MIN_COMPRESSION_SIZE = 100</div>
+                            <div class="method-description">Minimum data size for compression</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">UNKNOWN_COMPRESSION_LEVEL = -1</div>
+                            <div class="method-description">Indicates unknown compression level during decompression</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SaveLoadService -->
+                <div class="class-card core">
+                    <div class="class-title">💾 SaveLoadService</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> High-level service that orchestrates save/load operations using GameDataSerializer.<br>
+                        <strong>Location:</strong> Service layer<br>
+                        <strong>Implements:</strong> ISaveLoadService, IEngineService<br>
+                        <strong>Key Features:</strong> Async operations, event notifications, error handling, statistics tracking
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Key Methods</h4>
+                        <div class="method">
+                            <div class="method-name">SaveAsync&lt;T&gt;(string saveId, T data, CancellationToken cancellationToken)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Saves data to storage with specified ID<br>
+                                <strong>Process:</strong> Serialization → Storage → Event notification<br>
+                                <strong>Returns:</strong> SaveResult with success status and metrics<br>
+                                <strong>Usage:</strong> Primary save operation
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">LoadAsync&lt;T&gt;(string saveId, CancellationToken cancellationToken)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Loads data from storage by ID<br>
+                                <strong>Process:</strong> Storage retrieval → Deserialization → Event notification<br>
+                                <strong>Returns:</strong> LoadResult&lt;T&gt; with data and metrics<br>
+                                <strong>Usage:</strong> Primary load operation
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">DeleteAsync(string saveId, CancellationToken cancellationToken)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Deletes saved data by ID<br>
+                                <strong>Usage:</strong> Save file management
+                            </div>
+                        </div>
+                        
+                        <div class="method">
+                            <div class="method-name">ExistsAsync(string saveId, CancellationToken cancellationToken)</div>
+                            <div class="method-description">
+                                <strong>Purpose:</strong> Checks if save data exists<br>
+                                <strong>Usage:</strong> Save file validation
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+        
+        <!-- Support Classes -->
+        <section id="support-classes">
+            <h2>🔧 Support Classes</h2>
+            <div class="class-relationship">
+                
+                <!-- SerializationContext -->
+                <div class="class-card support">
+                    <div class="class-title">🎛️ SerializationContext</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Contains all settings, options, and state for serialization operations.<br>
+                        <strong>Key Features:</strong> Configuration management, progress tracking, error collection, metadata storage
+                    </div>
+                    
+                    <div class="properties-list">
+                        <h4>🏷️ Key Properties</h4>
+                        <div class="property">
+                            <div class="property-name">Settings: SerializationSettings</div>
+                            <div class="method-description">Configuration for serialization behavior</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Metrics: SerializationMetrics</div>
+                            <div class="method-description">Performance tracking data</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Progress: SerializationProgress</div>
+                            <div class="method-description">Real-time progress information</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Errors/Warnings: List&lt;string&gt;</div>
+                            <div class="method-description">Error and warning collection</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SerializationSettings -->
+                <div class="class-card support">
+                    <div class="class-title">⚙️ SerializationSettings</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Configuration class that controls serialization behavior and options.<br>
+                        <strong>Key Features:</strong> Compression settings, validation options, encoding preferences, format options
+                    </div>
+                    
+                    <div class="properties-list">
+                        <h4>🏷️ Key Properties</h4>
+                        <div class="property">
+                            <div class="property-name">EnableCompression: bool</div>
+                            <div class="method-description">Enable/disable compression</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">CompressionLevel: CompressionLevel</div>
+                            <div class="method-description">Compression level (None/Fastest/Balanced/Maximum)</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">CompressionAlgorithm: CompressionAlgorithm</div>
+                            <div class="method-description">Compression algorithm (None/GZip/Deflate)</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">EncodingType: string</div>
+                            <div class="method-description">Final encoding ("Base64"/"Binary")</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">IncludeMagicBytes: bool</div>
+                            <div class="method-description">Include magic byte in binary format</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">IncludeMetadata: bool</div>
+                            <div class="method-description">Include metadata in binary format</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">EnableValidation: bool</div>
+                            <div class="method-description">Enable input/output validation</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Base64Utils -->
+                <div class="class-card support">
+                    <div class="class-title">🔤 Base64Utils</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Utility class for Base64 encoding/decoding operations.<br>
+                        <strong>Key Features:</strong> Async operations, error handling, performance optimization
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Key Methods</h4>
+                        <div class="method">
+                            <div class="method-name">EncodeAsync(byte[] data, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Encodes binary data to Base64 string</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">DecodeAsync(byte[] base64Data, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Decodes Base64 string to binary data</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- BinarySerializerBase -->
+                <div class="class-card support">
+                    <div class="class-title">🏗️ BinarySerializerBase</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Abstract base class providing common serialization functionality.<br>
+                        <strong>Key Features:</strong> Template methods, validation, metrics creation, common utilities
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Key Methods</h4>
+                        <div class="method">
+                            <div class="method-name">CanSerialize&lt;T&gt;(T data)</div>
+                            <div class="method-description">Validates if object can be serialized</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">CanDeserialize&lt;T&gt;(byte[] data)</div>
+                            <div class="method-description">Validates if data can be deserialized</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">CreateMetrics()</div>
+                            <div class="method-description">Creates new metrics tracking object</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">ValidateMagicBytes(byte[] data)</div>
+                            <div class="method-description">Abstract method for format validation</div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+        
+        <!-- Data Classes -->
+        <section id="data-classes">
+            <h2>📊 Data Classes</h2>
+            <div class="class-relationship">
+                
+                <!-- SerializationResult -->
+                <div class="class-card data">
+                    <div class="class-title">📋 SerializationResult</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Contains the result of serialization operations with metrics and error information.<br>
+                        <strong>Key Features:</strong> Success status, serialized data, performance metrics, error details
+                    </div>
+                    
+                    <div class="properties-list">
+                        <h4>🏷️ Key Properties</h4>
+                        <div class="property">
+                            <div class="property-name">Success: bool</div>
+                            <div class="method-description">Indicates operation success</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Data: byte[]</div>
+                            <div class="method-description">Serialized data</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">OriginalSize: long</div>
+                            <div class="method-description">Original data size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">SerializedSize: long</div>
+                            <div class="method-description">Final serialized size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Duration: TimeSpan</div>
+                            <div class="method-description">Total processing time</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Metrics: SerializationMetrics</div>
+                            <div class="method-description">Detailed performance metrics</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">ErrorMessage: string</div>
+                            <div class="method-description">Error description if failed</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- DeserializationResult -->
+                <div class="class-card data">
+                    <div class="class-title">📤 DeserializationResult&lt;T&gt;</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Contains the result of deserialization operations with the reconstructed object.<br>
+                        <strong>Key Features:</strong> Generic type safety, success status, deserialized object, performance metrics
+                    </div>
+                    
+                    <div class="properties-list">
+                        <h4>🏷️ Key Properties</h4>
+                        <div class="property">
+                            <div class="property-name">Success: bool</div>
+                            <div class="method-description">Indicates operation success</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Data: T</div>
+                            <div class="method-description">Deserialized object</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">OriginalSize: long</div>
+                            <div class="method-description">Serialized data size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Duration: TimeSpan</div>
+                            <div class="method-description">Total processing time</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Metrics: SerializationMetrics</div>
+                            <div class="method-description">Detailed performance metrics</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CompressionResult -->
+                <div class="class-card data">
+                    <div class="class-title">🗜️ CompressionResult</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Contains the result of compression/decompression operations with detailed metrics.<br>
+                        <strong>Key Features:</strong> Algorithm information, compression ratios, performance statistics, error handling
+                    </div>
+                    
+                    <div class="properties-list">
+                        <h4>🏷️ Key Properties</h4>
+                        <div class="property">
+                            <div class="property-name">Success: bool</div>
+                            <div class="method-description">Indicates operation success</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Data: byte[]</div>
+                            <div class="method-description">Processed data</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">Algorithm: CompressionAlgorithm</div>
+                            <div class="method-description">Algorithm used</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">CompressionLevel: int</div>
+                            <div class="method-description">Compression level used</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">OriginalSize: long</div>
+                            <div class="method-description">Original data size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">ProcessedSize: long</div>
+                            <div class="method-description">Final processed size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">CompressionRatio: double</div>
+                            <div class="method-description">Compression ratio (processed/original)</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">SpaceSaved: long</div>
+                            <div class="method-description">Bytes saved by compression</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">BytesPerSecond: double</div>
+                            <div class="method-description">Processing speed</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SerializationMetrics -->
+                <div class="class-card data">
+                    <div class="class-title">📊 SerializationMetrics</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Comprehensive performance metrics for serialization operations.<br>
+                        <strong>Key Features:</strong> Stage timing, size tracking, compression metrics, efficiency calculations
+                    </div>
+                    
+                    <div class="properties-list">
+                        <h4>🏷️ Key Properties</h4>
+                        <div class="property">
+                            <div class="property-name">ValidationTime: TimeSpan</div>
+                            <div class="method-description">Time spent on validation</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">JsonSerializationTime: TimeSpan</div>
+                            <div class="method-description">JSON conversion time</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">BinaryConversionTime: TimeSpan</div>
+                            <div class="method-description">Binary format conversion time</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">CompressionTime: TimeSpan</div>
+                            <div class="method-description">Compression processing time</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">EncodingTime: TimeSpan</div>
+                            <div class="method-description">Final encoding time</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">JsonSize: long</div>
+                            <div class="method-description">JSON representation size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">BinarySize: long</div>
+                            <div class="method-description">Binary format size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">CompressedSize: long</div>
+                            <div class="method-description">Compressed data size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">EncodedSize: long</div>
+                            <div class="method-description">Final encoded size</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">CompressionAlgorithm: CompressionAlgorithm</div>
+                            <div class="method-description">Algorithm used for compression</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">TotalTime: TimeSpan</div>
+                            <div class="method-description">Total processing time (calculated)</div>
+                        </div>
+                        <div class="property">
+                            <div class="property-name">CompressionEfficiency: double</div>
+                            <div class="method-description">Compression efficiency ratio (calculated)</div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+        
+        <!-- Interfaces -->
+        <section id="interfaces">
+            <h2>🔌 Interfaces</h2>
+            <div class="class-relationship">
+                
+                <!-- IBinarySerializer -->
+                <div class="class-card interface">
+                    <div class="class-title">🔌 IBinarySerializer</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Main interface for binary serialization operations.<br>
+                        <strong>Implemented by:</strong> GameDataSerializer, BinarySerializerBase<br>
+                        <strong>Key Features:</strong> Generic serialization, validation, size estimation, capability reporting
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Interface Methods</h4>
+                        <div class="method">
+                            <div class="method-name">SerializeAsync&lt;T&gt;(T data, SerializationContext context, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Primary serialization method</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">DeserializeAsync&lt;T&gt;(byte[] data, SerializationContext context, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Primary deserialization method</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">CanSerialize&lt;T&gt;(T data)</div>
+                            <div class="method-description">Validation capability check</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">CanDeserialize&lt;T&gt;(byte[] data)</div>
+                            <div class="method-description">Deserialization capability check</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">EstimateSerializedSize&lt;T&gt;(T data)</div>
+                            <div class="method-description">Size estimation for planning</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">GetInfo()</div>
+                            <div class="method-description">Serializer capability information</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ISaveLoadService -->
+                <div class="class-card interface">
+                    <div class="class-title">🔌 ISaveLoadService</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> High-level interface for save/load operations.<br>
+                        <strong>Implemented by:</strong> SaveLoadService<br>
+                        <strong>Key Features:</strong> CRUD operations, existence checks, metadata management
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Interface Methods</h4>
+                        <div class="method">
+                            <div class="method-name">SaveAsync&lt;T&gt;(string saveId, T data, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Save data with identifier</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">LoadAsync&lt;T&gt;(string saveId, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Load data by identifier</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">DeleteAsync(string saveId, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Delete saved data</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">ExistsAsync(string saveId, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Check data existence</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ISaveDataProvider -->
+                <div class="class-card interface">
+                    <div class="class-title">🔌 ISaveDataProvider</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Interface for classes that provide save data.<br>
+                        <strong>Key Features:</strong> Data validation, metadata provision, serialization preparation
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Interface Methods</h4>
+                        <div class="method">
+                            <div class="method-name">Validate()</div>
+                            <div class="method-description">Validates data integrity</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">GetMetadata()</div>
+                            <div class="method-description">Provides save metadata</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- IEngineService -->
+                <div class="class-card interface">
+                    <div class="class-title">🔌 IEngineService</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Base interface for all engine services.<br>
+                        <strong>Implemented by:</strong> SaveLoadService<br>
+                        <strong>Key Features:</strong> Service lifecycle, dependency injection, state management
+                    </div>
+                    
+                    <div class="methods-list">
+                        <h4>🔧 Interface Methods</h4>
+                        <div class="method">
+                            <div class="method-name">InitializeAsync(IServiceProvider provider, CancellationToken cancellationToken)</div>
+                            <div class="method-description">Service initialization</div>
+                        </div>
+                        <div class="method">
+                            <div class="method-name">ShutdownAsync(CancellationToken cancellationToken)</div>
+                            <div class="method-description">Service cleanup</div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+        
+        <!-- Enums -->
+        <section id="enums">
+            <h2>📋 Enumerations</h2>
+            <div class="class-relationship">
+                
+                <!-- CompressionAlgorithm -->
+                <div class="class-card enum">
+                    <div class="class-title">📋 CompressionAlgorithm</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Defines supported compression algorithms.<br>
+                        <strong>Usage:</strong> Type-safe algorithm selection, result reporting
+                    </div>
+                    
+                    <div class="enum-values">
+                        <h4>🏷️ Values</h4>
+                        <div class="enum-value">
+                            <strong>None</strong> - No compression applied
+                        </div>
+                        <div class="enum-value">
+                            <strong>GZip</strong> - GZip compression (RFC 1952)
+                        </div>
+                        <div class="enum-value">
+                            <strong>Deflate</strong> - Deflate compression (RFC 1951)
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CompressionLevel -->
+                <div class="class-card enum">
+                    <div class="class-title">📋 CompressionLevel</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Defines compression level preferences.<br>
+                        <strong>Usage:</strong> Performance vs size trade-off control
+                    </div>
+                    
+                    <div class="enum-values">
+                        <h4>🏷️ Values</h4>
+                        <div class="enum-value">
+                            <strong>None</strong> - No compression
+                        </div>
+                        <div class="enum-value">
+                            <strong>Fastest</strong> - Fast compression (GZip Fastest)
+                        </div>
+                        <div class="enum-value">
+                            <strong>Balanced</strong> - Balanced speed/size (GZip Optimal)
+                        </div>
+                        <div class="enum-value">
+                            <strong>Maximum</strong> - Maximum compression (Deflate Optimal)
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ServicePriority -->
+                <div class="class-card enum">
+                    <div class="class-title">📋 ServicePriority</div>
+                    <div class="class-description">
+                        <strong>Purpose:</strong> Defines service initialization priority.<br>
+                        <strong>Usage:</strong> Dependency ordering, initialization sequence
+                    </div>
+                    
+                    <div class="enum-values">
+                        <h4>🏷️ Values</h4>
+                        <div class="enum-value">
+                            <strong>Low</strong> - Low priority services
+                        </div>
+                        <div class="enum-value">
+                            <strong>Normal</strong> - Standard priority
+                        </div>
+                        <div class="enum-value">
+                            <strong>High</strong> - High priority services
+                        </div>
+                        <div class="enum-value">
+                            <strong>Critical</strong> - Critical system services
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+        
+        <!-- Class Relationships -->
+        <section id="relationships">
+            <h2>🔗 Class Relationships</h2>
+            
+            <div class="relationship-diagram">
+                <h3>🏗️ Architecture Diagram</h3>
+                <div class="flow-diagram">
+                    <div class="flow-box serializer">SaveLoadService</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box serializer">GameDataSerializer</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box compression">CompressionManager</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box result">Storage Layer</div>
+                </div>
+            </div>
+            
+            <div class="dependency-graph">
+                <h3>📊 Dependency Graph</h3>
+                <div class="dependency-item">
+                    <strong>SaveLoadService</strong>
+                    <ul>
+                        <li>→ GameDataSerializer (composition)</li>
+                        <li>→ SaveLoadServiceConfiguration (dependency injection)</li>
+                        <li>→ ISaveLoadService (interface implementation)</li>
+                        <li>→ IEngineService (interface implementation)</li>
+                    </ul>
+                </div>
+                
+                <div class="dependency-item">
+                    <strong>GameDataSerializer</strong>
+                    <ul>
+                        <li>→ CompressionManager (composition)</li>
+                        <li>→ Base64Utils (composition)</li>
+                        <li>→ BinarySerializerBase (inheritance)</li>
+                        <li>→ IBinarySerializer (interface implementation)</li>
+                        <li>→ SerializationContext (parameter dependency)</li>
+                    </ul>
+                </div>
+                
+                <div class="dependency-item">
+                    <strong>CompressionManager</strong>
+                    <ul>
+                        <li>→ CompressionAlgorithm (enum usage)</li>
+                        <li>→ CompressionLevel (enum usage)</li>
+                        <li>→ CompressionResult (return type)</li>
+                        <li>→ System.IO.Compression (framework dependency)</li>
+                    </ul>
+                </div>
+                
+                <div class="dependency-item">
+                    <strong>SerializationContext</strong>
+                    <ul>
+                        <li>→ SerializationSettings (composition)</li>
+                        <li>→ SerializationMetrics (composition)</li>
+                        <li>→ SerializationProgress (composition)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Data Flow -->
+        <section id="data-flow">
+            <h2>🌊 Data Flow</h2>
+            
+            <div class="data-flow">
+                <h3>💾 Serialization Data Flow</h3>
+                <div class="data-transformation" data-step="1">
+                    <strong>Input Object</strong> → SerializationContext created with settings
+                </div>
+                <div class="data-transformation" data-step="2">
+                    <strong>Validation Stage</strong> → Object validation and SaveData-specific checks
+                </div>
+                <div class="data-transformation" data-step="3">
+                    <strong>JSON Conversion</strong> → Unity JsonUtility.ToJson() with options
+                </div>
+                <div class="data-transformation" data-step="4">
+                    <strong>Binary Conversion</strong> → Custom binary format with magic byte, version, metadata
+                </div>
+                <div class="data-transformation" data-step="5">
+                    <strong>Compression</strong> → CompressionManager applies algorithm based on level
+                </div>
+                <div class="data-transformation" data-step="6">
+                    <strong>Final Encoding</strong> → Base64 encoding if requested
+                </div>
+                <div class="data-transformation" data-step="7">
+                    <strong>Result</strong> → SerializationResult with data and comprehensive metrics
+                </div>
+            </div>
+            
+            <div class="data-flow">
+                <h3>📤 Deserialization Data Flow</h3>
+                <div class="data-transformation" data-step="1">
+                    <strong>Input Data</strong> → byte[] with SerializationContext
+                </div>
+                <div class="data-transformation" data-step="2">
+                    <strong>Validation Stage</strong> → Input validation and size checks
+                </div>
+                <div class="data-transformation" data-step="3">
+                    <strong>Decoding</strong> → Base64 decoding if needed
+                </div>
+                <div class="data-transformation" data-step="4">
+                    <strong>Decompression</strong> → CompressionManager auto-detects and decompresses
+                </div>
+                <div class="data-transformation" data-step="5">
+                    <strong>Binary Extraction</strong> → Magic byte validation, metadata parsing, data extraction
+                </div>
+                <div class="data-transformation" data-step="6">
+                    <strong>JSON Conversion</strong> → Unity JsonUtility.FromJson() to object
+                </div>
+                <div class="data-transformation" data-step="7">
+                    <strong>Result</strong> → DeserializationResult&lt;T&gt; with object and metrics
+                </div>
+            </div>
+        </section>
+        
+        <!-- Usage Patterns -->
+        <section id="usage-patterns">
+            <h2>💡 Usage Patterns</h2>
+            
+            <div class="example-header">🎯 Basic SaveLoad Usage</div>
+            <div class="usage-example">
+                <pre>
+// Initialize service
+var saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+
+// Save player data
+var playerData = new PlayerSaveData { /* ... */ };
+var saveResult = await saveLoadService.SaveAsync("player_001", playerData);
+
+if (saveResult.Success)
+{
+    Console.WriteLine($"Saved in {saveResult.Duration.TotalMilliseconds}ms");
+    Console.WriteLine($"Compression: {saveResult.Metrics.CompressionEfficiency:P2}");
+}
+
+// Load player data
+var loadResult = await saveLoadService.LoadAsync&lt;PlayerSaveData&gt;("player_001");
+if (loadResult.Success)
+{
+    var loadedData = loadResult.Data;
+    Console.WriteLine($"Loaded in {loadResult.Duration.TotalMilliseconds}ms");
+}
+                </pre>
+            </div>
+            
+            <div class="example-header">🔧 Advanced Serialization Configuration</div>
+            <div class="usage-example">
+                <pre>
+// Create custom context with specific settings
+var context = new SerializationContext
+{
+    Settings = new SerializationSettings
+    {
+        EnableCompression = true,
+        CompressionLevel = CompressionLevel.Maximum,
+        CompressionAlgorithm = CompressionAlgorithm.Deflate,
+        EncodingType = "Base64",
+        IncludeMagicBytes = true,
+        IncludeMetadata = true,
+        EnableValidation = true,
+        EnableDebugLogging = false
+    }
+};
+
+// Use GameDataSerializer directly
+var serializer = new GameDataSerializer();
+var result = await serializer.SerializeAsync(data, context);
+
+// Analyze detailed metrics
+var metrics = result.Metrics;
+Console.WriteLine($"JSON Size: {metrics.JsonSize} bytes");
+Console.WriteLine($"Binary Size: {metrics.BinarySize} bytes");
+Console.WriteLine($"Compressed Size: {metrics.CompressedSize} bytes");
+Console.WriteLine($"Final Size: {metrics.EncodedSize} bytes");
+Console.WriteLine($"Total Time: {metrics.TotalTime.TotalMilliseconds}ms");
+Console.WriteLine($"Compression Efficiency: {metrics.CompressionEfficiency:P2}");
+                </pre>
+            </div>
+            
+            <div class="example-header">🗜️ Compression Manager Usage</div>
+            <div class="usage-example">
+                <pre>
+var compressionManager = new CompressionManager();
+
+// Check if compression would be beneficial
+bool shouldCompress = compressionManager.ShouldCompress(data, CompressionLevel.Balanced);
+if (shouldCompress)
+{
+    // Estimate compression ratio
+    double estimatedRatio = compressionManager.EstimateCompressionRatio(data, CompressionLevel.Balanced);
+    Console.WriteLine($"Estimated compression ratio: {estimatedRatio:P2}");
+    
+    // Compress data
+    var compressionResult = await compressionManager.CompressAsync(data, CompressionLevel.Balanced);
+    
+    if (compressionResult.Success)
+    {
+        Console.WriteLine($"Algorithm: {compressionResult.Algorithm}");
+        Console.WriteLine($"Original: {compressionResult.OriginalSize} bytes");
+        Console.WriteLine($"Compressed: {compressionResult.ProcessedSize} bytes");
+        Console.WriteLine($"Ratio: {compressionResult.CompressionRatio:P2}");
+        Console.WriteLine($"Saved: {compressionResult.SpaceSavedPercentage:F1}%");
+        Console.WriteLine($"Speed: {compressionResult.BytesPerSecond:F0} bytes/sec");
+    }
+}
+                </pre>
+            </div>
+            
+            <div class="example-header">📊 Performance Monitoring</div>
+            <div class="usage-example">
+                <pre>
+// Custom progress handler
+var context = new SerializationContext();
+context.Progress = new SerializationProgress();
+context.Progress.ProgressChanged += (sender, args) =>
+{
+    Console.WriteLine($"Progress: {args.Current}/{args.Total} - {args.Message}");
+};
+
+// Serialize with progress tracking
+var result = await serializer.SerializeAsync(largeData, context);
+
+// Analyze performance bottlenecks
+var metrics = result.Metrics;
+Console.WriteLine("Performance Breakdown:");
+Console.WriteLine($"  Validation: {metrics.ValidationTime.TotalMilliseconds}ms");
+Console.WriteLine($"  JSON Conv:  {metrics.JsonSerializationTime.TotalMilliseconds}ms");
+Console.WriteLine($"  Binary Conv: {metrics.BinaryConversionTime.TotalMilliseconds}ms");
+Console.WriteLine($"  Compression: {metrics.CompressionTime.TotalMilliseconds}ms");
+Console.WriteLine($"  Encoding:   {metrics.EncodingTime.TotalMilliseconds}ms");
+Console.WriteLine($"  Total:      {metrics.TotalTime.TotalMilliseconds}ms");
+                </pre>
+            </div>
+        </section>
+        
+        <!-- Best Practices -->
+        <section id="best-practices">
+            <h2>⭐ Best Practices</h2>
+            
+            <div class="tip-box">
+                <h4>💡 Serialization Best Practices</h4>
+                <ul>
+                    <li><strong>Always check Success property</strong> before using result data</li>
+                    <li><strong>Use appropriate compression levels</strong> based on data type and usage</li>
+                    <li><strong>Enable validation</strong> for critical data, disable for performance-critical paths</li>
+                    <li><strong>Monitor metrics</strong> to identify performance bottlenecks</li>
+                    <li><strong>Use cancellation tokens</strong> for long-running operations</li>
+                    <li><strong>Include metadata</strong> for debugging and traceability</li>
+                </ul>
+            </div>
+            
+            <div class="warning-box">
+                <h4>⚠️ Performance Considerations</h4>
+                <ul>
+                    <li><strong>Compression overhead</strong>: Small data (&lt;100 bytes) skips compression automatically</li>
+                    <li><strong>Memory usage</strong>: Large objects require 2x memory during processing</li>
+                    <li><strong>CPU usage</strong>: Maximum compression is CPU-intensive</li>
+                    <li><strong>Network data</strong>: Use Fastest compression for real-time scenarios</li>
+                    <li><strong>Storage data</strong>: Use Maximum compression for long-term storage</li>
+                </ul>
+            </div>
+            
+            <div class="tip-box">
+                <h4>🔧 Configuration Guidelines</h4>
+                <ul>
+                    <li><strong>Game Save Data</strong>: Balanced compression, Base64 encoding, full validation</li>
+                    <li><strong>Temporary Data</strong>: Fastest compression, binary encoding, minimal validation</li>
+                    <li><strong>Critical Data</strong>: Maximum compression, magic bytes, metadata inclusion</li>
+                    <li><strong>Network Data</strong>: Fastest compression, no encoding, basic validation</li>
+                    <li><strong>Archive Data</strong>: Maximum compression, full metadata, complete validation</li>
+                </ul>
+            </div>
+            
+            <div class="performance-metrics">
+                <h4>📊 Performance Targets</h4>
+                <div class="metric-item">
+                    <span class="metric-name">Serialization Speed</span>
+                    <span class="metric-value">&lt;1ms for small data (&lt;1KB)</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Memory Overhead</span>
+                    <span class="metric-value">2x data size during processing</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Compression Ratio</span>
+                    <span class="metric-value">60-70% for typical game data</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Binary Format Overhead</span>
+                    <span class="metric-value">11 bytes + metadata size</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-name">Compression Threshold</span>
+                    <span class="metric-value">100 bytes minimum</span>
+                </div>
+            </div>
+            
+            <div class="interaction-flow">
+                <h3>🔄 Typical Interaction Sequence</h3>
+                <div class="sequence-step" data-step="1">
+                    <strong>Service Request</strong><br>
+                    Client calls SaveLoadService.SaveAsync() with data and saveId
+                </div>
+                <div class="sequence-step" data-step="2">
+                    <strong>Context Creation</strong><br>
+                    Service creates SerializationContext with configuration
+                </div>
+                <div class="sequence-step" data-step="3">
+                    <strong>Serialization</strong><br>
+                    GameDataSerializer processes data through 5-stage pipeline
+                </div>
+                <div class="sequence-step" data-step="4">
+                    <strong>Compression</strong><br>
+                    CompressionManager applies algorithm based on settings
+                </div>
+                <div class="sequence-step" data-step="5">
+                    <strong>Storage</strong><br>
+                    Serialized data is written to storage with saveId
+                </div>
+                <div class="sequence-step" data-step="6">
+                    <strong>Result</strong><br>
+                    SaveResult returned with success status and metrics
+                </div>
+                <div class="sequence-step" data-step="7">
+                    <strong>Event Notification</strong><br>
+                    SaveLoadService raises events for completion/error
+                </div>
+            </div>
+        </section>
+        
+        <!-- Footer -->
+        <div style="margin-top: 50px; padding-top: 30px; border-top: 3px solid #ecf0f1; text-align: center; color: #666;">
+            <p><strong>SaveLoad Architecture Guide</strong> - Comprehensive Class Relationship Documentation</p>
+            <p>Part of the Sinkii09 Engine - Advanced Game Development Framework</p>
+            <p style="margin-top: 20px; font-size: 0.9em;">
+                <span class="highlight">Classes:</span> 12 Core + Support | 
+                <span class="highlight">Interfaces:</span> 4 | 
+                <span class="highlight">Enums:</span> 3 | 
+                <span class="highlight">Methods:</span> 25+ | 
+                <span class="highlight">Properties:</span> 50+
+            </p>
+        </div>
+    </div>
+</body>
+</html>
