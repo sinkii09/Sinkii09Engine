@@ -357,6 +357,7 @@ namespace Sinkii09.Engine.Services
             public bool IsValid { get; set; } = true;
             public List<string> Errors { get; set; } = new List<string>();
             public List<string> Warnings { get; set; } = new List<string>();
+            public string ErrorMessage => Errors.Count > 0 ? string.Join("; ", Errors) : null;
         }
     }
     
