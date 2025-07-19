@@ -246,7 +246,7 @@ namespace Sinkii09.Engine.Services
         /// <summary>
         /// Perform health check on the ScriptService
         /// </summary>
-        public UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             try
             {

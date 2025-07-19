@@ -2,6 +2,7 @@ using NUnit.Framework;
 using Sinkii09.Engine.Services;
 using Sinkii09.Engine.Tests.TestHelpers;
 using System;
+using System.Threading;
 using UnityEngine;
 
 namespace Sinkii09.Engine.Tests.Services
@@ -229,7 +230,7 @@ namespace Sinkii09.Engine.Tests.Services
 
         public abstract Cysharp.Threading.Tasks.UniTask<ServiceInitializationResult> InitializeAsync(IServiceProvider provider, System.Threading.CancellationToken cancellationToken = default);
         public abstract Cysharp.Threading.Tasks.UniTask<ServiceShutdownResult> ShutdownAsync(System.Threading.CancellationToken cancellationToken = default);
-        public abstract Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync();
+        public abstract Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default);
     }
 
     public class ServiceWithoutPublicConstructor : IEngineService
@@ -249,7 +250,7 @@ namespace Sinkii09.Engine.Tests.Services
             return ServiceShutdownResult.Success();
         }
 
-        public async Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await Cysharp.Threading.Tasks.UniTask.Yield();
             return ServiceHealthStatus.Healthy();
@@ -272,7 +273,7 @@ namespace Sinkii09.Engine.Tests.Services
             return ServiceShutdownResult.Success();
         }
 
-        public async Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await Cysharp.Threading.Tasks.UniTask.Yield();
             return ServiceHealthStatus.Healthy();
@@ -295,7 +296,7 @@ namespace Sinkii09.Engine.Tests.Services
             return ServiceShutdownResult.Success();
         }
 
-        public async Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await Cysharp.Threading.Tasks.UniTask.Yield();
             return ServiceHealthStatus.Healthy();
@@ -318,7 +319,7 @@ namespace Sinkii09.Engine.Tests.Services
             return ServiceShutdownResult.Success();
         }
 
-        public async Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async Cysharp.Threading.Tasks.UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await Cysharp.Threading.Tasks.UniTask.Yield();
             return ServiceHealthStatus.Healthy();

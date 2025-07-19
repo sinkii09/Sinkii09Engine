@@ -11,7 +11,7 @@ namespace Sinkii09.Engine.Services
         [Header("Storage Settings")]
         [SerializeField] private string _saveDirectoryPath = "SaveData";
         [SerializeField] private string _backupDirectoryPath = "SaveData/Backups";
-        [SerializeField] private List<string> _enabledStorageProviders = new() { "LocalFile" };
+        [SerializeField] private StorageProviderType _enabledStorageProviders = StorageProviderType.LocalFile;
         [SerializeField] private int _maxSaveSlots = 10;
         [SerializeField] private int _maxBackupsPerSave = 5;
         
@@ -57,7 +57,7 @@ namespace Sinkii09.Engine.Services
 
         public string SaveDirectoryPath => _saveDirectoryPath;
         public string BackupDirectoryPath => _backupDirectoryPath;
-        public IReadOnlyList<string> EnabledStorageProviders => _enabledStorageProviders;
+        public StorageProviderType EnabledStorageProviders => _enabledStorageProviders;
         public int MaxSaveSlots => _maxSaveSlots;
         public int MaxBackupsPerSave => _maxBackupsPerSave;
         
@@ -103,7 +103,7 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(_backupDirectoryPath))
                 errors.Add("Backup directory path cannot be empty");
             
-            if (_enabledStorageProviders == null || _enabledStorageProviders.Count == 0)
+            if (_enabledStorageProviders == StorageProviderType.None)
                 errors.Add("At least one storage provider must be enabled");
             
             if (_maxSaveSlots <= 0)
@@ -149,7 +149,7 @@ namespace Sinkii09.Engine.Services
         {
             _saveDirectoryPath = "SaveData";
             _backupDirectoryPath = "SaveData/Backups";
-            _enabledStorageProviders = new List<string> { "LocalFile" };
+            _enabledStorageProviders = StorageProviderType.LocalFile;
             _maxSaveSlots = 10;
             _maxBackupsPerSave = 5;
             _enableCaching = true;

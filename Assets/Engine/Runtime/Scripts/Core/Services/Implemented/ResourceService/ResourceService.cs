@@ -332,7 +332,7 @@ namespace Sinkii09.Engine.Services
         /// <summary>
         /// Perform health check on all providers and service state
         /// </summary>
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             try
             {

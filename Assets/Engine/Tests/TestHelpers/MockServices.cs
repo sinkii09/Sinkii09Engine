@@ -44,7 +44,7 @@ namespace Sinkii09.Engine.Tests.TestHelpers
             return ServiceShutdownResult.Success();
         }
 
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await UniTask.Yield();
             return ServiceHealthStatus.Healthy("Mock service is healthy");
@@ -88,7 +88,7 @@ namespace Sinkii09.Engine.Tests.TestHelpers
             return ServiceShutdownResult.Success();
         }
 
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await UniTask.Yield();
             return ServiceHealthStatus.Healthy("Mock service is healthy");
@@ -128,7 +128,7 @@ namespace Sinkii09.Engine.Tests.TestHelpers
             return ServiceShutdownResult.Success();
         }
 
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await UniTask.Yield();
             return ServiceHealthStatus.Healthy("Mock service is healthy");
@@ -164,7 +164,7 @@ namespace Sinkii09.Engine.Tests.TestHelpers
             return ServiceShutdownResult.Success();
         }
 
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await UniTask.Yield();
             return ServiceHealthStatus.Healthy("Mock service is healthy");
@@ -186,7 +186,7 @@ namespace Sinkii09.Engine.Tests.TestHelpers
             return ServiceShutdownResult.Success();
         }
 
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await UniTask.Yield();
             return ServiceHealthStatus.Healthy("Mock service is healthy");
@@ -209,7 +209,7 @@ namespace Sinkii09.Engine.Tests.TestHelpers
             return ServiceShutdownResult.Success();
         }
 
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await UniTask.Yield();
             return ServiceHealthStatus.Healthy("Mock service is healthy");
@@ -232,7 +232,7 @@ namespace Sinkii09.Engine.Tests.TestHelpers
             return ServiceShutdownResult.Success();
         }
 
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await UniTask.Yield();
             return ServiceHealthStatus.Healthy("Mock service is healthy");

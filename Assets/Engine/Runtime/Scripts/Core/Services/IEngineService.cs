@@ -28,7 +28,7 @@ namespace Sinkii09.Engine.Services
         /// Perform health check on the service
         /// </summary>
         /// <returns>Health check result with status and performance metrics</returns>
-        UniTask<ServiceHealthStatus> HealthCheckAsync();
+        UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default);
 
         #endregion
     }

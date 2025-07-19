@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
+using ZLinq;
 using Stopwatch = System.Diagnostics.Stopwatch;
 
 namespace Sinkii09.Engine.Services
@@ -17,13 +18,17 @@ namespace Sinkii09.Engine.Services
         private readonly SaveLoadServiceConfiguration _config;
         private readonly SaveLoadServiceStatistics _statistics;
         private IServiceProvider _serviceProvider;
-        
+
         // Serialization system components
         private IBinarySerializer _serializer;
         private SaveDataValidator _validator;
         private SaveDataProviderManager _providerManager;
         private SerializationPerformanceMonitor _performanceMonitor;
-        
+
+        // Storage system components
+        private StorageManager _storageManager;
+        private StorageHealthMonitor _healthMonitor;
+
         // Service state tracking
         private bool _isInitialized;
         private bool _isDisposed;
@@ -50,9 +55,6 @@ namespace Sinkii09.Engine.Services
         {
             try
             {
-                // Add a minimal await to avoid CS1998 warning
-                await UniTask.Yield();
-
                 if (_isInitialized)
                 {
                     return ServiceInitializationResult.Success();
@@ -83,15 +85,32 @@ namespace Sinkii09.Engine.Services
                 _providerManager = new SaveDataProviderManager();
                 _performanceMonitor = new SerializationPerformanceMonitor();
 
-                Debug.Log("SaveLoadService serialization system initialized");
+                // Initialize storage system
+                _storageManager = new StorageManager();
+                _healthMonitor = new StorageHealthMonitor();
+
+                // Configure storage providers based on configuration
+                await InitializeStorageProvidersAsync(_config.EnabledStorageProviders, cancellationToken);
+
+                // Initialize storage manager
+                var storageInitResult = await _storageManager.InitializeAsync(new StorageProviderConfiguration
+                {
+                    BasePath = _config.SaveDirectoryPath ?? "SaveData"
+                }, cancellationToken);
+
+                if (!storageInitResult.Success)
+                {
+                    return ServiceInitializationResult.Failed($"Storage initialization failed: {storageInitResult.ErrorMessage}");
+                }
+
+                // Start health monitoring
+                await _healthMonitor.StartMonitoringAsync(cancellationToken);
 
                 _isInitialized = true;
-                Debug.Log($"SaveLoadService initialized successfully with {_config.EnabledStorageProviders.Count} storage providers");
                 return ServiceInitializationResult.Success();
             }
             catch (Exception ex)
             {
-                Debug.LogError($"SaveLoadService initialization failed: {ex.Message}");
                 return ServiceInitializationResult.Failed(ex.Message, ex);
             }
         }
@@ -105,24 +124,27 @@ namespace Sinkii09.Engine.Services
                     return ServiceShutdownResult.Success();
                 }
 
-                await UniTask.Yield();
-                // TODO: Shutdown storage providers
-                // TODO: Complete any pending operations
-                // TODO: Cleanup resources
+                // Shutdown storage system
+                if (_storageManager != null)
+                {
+                    await _storageManager.ShutdownAsync(cancellationToken);
+                }
+
+                // Stop health monitoring
+                _healthMonitor?.StopMonitoring();
+                _healthMonitor?.Dispose();
 
                 _isDisposed = true;
-                
-                Debug.Log("SaveLoadService shutdown completed");
+
                 return ServiceShutdownResult.Success();
             }
             catch (Exception ex)
             {
-                Debug.LogError($"SaveLoadService shutdown failed: {ex.Message}");
                 return ServiceShutdownResult.Failed(ex.Message, ex);
             }
         }
 
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -136,16 +158,29 @@ namespace Sinkii09.Engine.Services
                     return ServiceHealthStatus.Unhealthy("Service disposed");
                 }
 
-                await UniTask.Yield(); // Simulate async operation
-                // TODO: Add more comprehensive health checks
-                // - Check storage provider health
-                // - Check available disk space
-                // - Check configuration validity
+                // Check storage system health
+                var storageHealthResult = await _storageManager.HealthCheckAsync(cancellationToken);
+                if (!storageHealthResult.Success)
+                {
+                    return ServiceHealthStatus.Unhealthy($"Storage system unhealthy: {storageHealthResult.ErrorMessage}");
+                }
+                
+                if (storageHealthResult.Status == StorageHealthStatus.Unhealthy)
+                {
+                    return ServiceHealthStatus.Unhealthy($"Storage system unhealthy: {storageHealthResult.StatusMessage}");
+                }
+
+                // Check health monitoring status
+                var healthSummary = _healthMonitor.GetHealthSummary();
+                if (healthSummary.UnhealthyProviders > 0)
+                {
+                    return ServiceHealthStatus.Degraded($"Storage health degraded: {healthSummary.UnhealthyProviders} unhealthy providers");
+                }
 
                 var healthInfo = $"Saves: {_statistics.TotalSaves}, " +
                                 $"Loads: {_statistics.TotalLoads}, " +
                                 $"Success rate: {(_statistics.TotalSaves + _statistics.TotalLoads > 0 ? (double)(_statistics.SuccessfulSaves + _statistics.SuccessfulLoads) / (_statistics.TotalSaves + _statistics.TotalLoads) * 100 : 0):F1}%";
-                
+
                 return ServiceHealthStatus.Healthy(healthInfo);
             }
             catch (Exception ex)
@@ -168,7 +203,7 @@ namespace Sinkii09.Engine.Services
                 throw new ArgumentNullException(nameof(data));
 
             var stopwatch = Stopwatch.StartNew();
-            
+
             try
             {
                 OnSaveStarted?.Invoke(new SaveEventArgs(saveId));
@@ -195,7 +230,7 @@ namespace Sinkii09.Engine.Services
                 data = await provider.PreProcessAsync(data, cancellationToken);
 
                 // Create serialization context
-                var context = SerializationContext.ForSave(saveId, data.GetType(), 
+                var context = SerializationContext.ForSave(saveId, data.GetType(),
                     _config.EnableCompression, _config.EnableValidation);
 
                 // Serialize data
@@ -205,15 +240,38 @@ namespace Sinkii09.Engine.Services
                     throw new InvalidOperationException($"Serialization failed: {serializationResult.ErrorMessage}");
                 }
 
+                // Create save metadata
+                var metadata = new SaveMetadata
+                {
+                    SaveId = saveId,
+                    SaveType = data.GetType().Name,
+                    CreatedAt = DateTime.UtcNow,
+                    ModifiedAt = DateTime.UtcNow,
+                    SaveVersion = 1,
+                    FileSize = serializationResult.Data.Length,
+                    IsCompressed = _config.EnableCompression
+                };
+
+                // Save to storage
+                var saveResult = await _storageManager.SaveAsync(saveId, serializationResult.Data, metadata, cancellationToken);
+                if (!saveResult.Success)
+                {
+                    throw new InvalidOperationException($"Storage save failed: {saveResult.ErrorMessage}");
+                }
+
                 // Record performance metrics
                 _performanceMonitor.RecordMetrics(serializationResult.Metrics, data.GetType().Name);
+                _statistics.TotalBytesWritten += serializationResult.Data.Length;
+                _statistics.TotalBytesCompressed += serializationResult.SerializedSize;
+                _statistics.AverageCompressionRatio = _config.EnableCompression ?
+                    (double)serializationResult.SerializedSize / serializationResult.OriginalSize : 1.0;
 
                 stopwatch.Stop();
                 _statistics.SuccessfulSaves++;
                 _statistics.TotalSaveTime = _statistics.TotalSaveTime.Add(stopwatch.Elapsed);
                 _statistics.LastSaveTime = DateTime.UtcNow;
 
-                var result = SaveResult.CreateSuccess(saveId, stopwatch.Elapsed, 
+                var result = SaveResult.CreateSuccess(saveId, stopwatch.Elapsed,
                     serializationResult.OriginalSize, serializationResult.SerializedSize);
                 OnSaveCompleted?.Invoke(new SaveEventArgs(saveId, result.UncompressedSize));
 
@@ -245,25 +303,31 @@ namespace Sinkii09.Engine.Services
                 throw new ArgumentException("SaveId cannot be null or empty", nameof(saveId));
 
             var stopwatch = Stopwatch.StartNew();
-            
+
             try
             {
                 OnLoadStarted?.Invoke(new LoadEventArgs(saveId));
                 _statistics.TotalLoads++;
 
+                // Load data from storage
+                var loadResult = await _storageManager.LoadAsync(saveId, cancellationToken);
+                if (!loadResult.Success)
+                {
+                    throw new InvalidOperationException($"Storage load failed: {loadResult.ErrorMessage}");
+                }
+
                 // Create serialization context for loading
                 var context = SerializationContext.ForLoad(saveId, typeof(T), _config.EnableValidation);
 
-                // TODO: Load actual data from storage provider
-                // For now, create placeholder data to test serialization pipeline
-                byte[] savedData = CreateTestData<T>();
-
                 // Deserialize data
-                var deserializationResult = await _serializer.DeserializeAsync<T>(savedData, context, cancellationToken);
+                var deserializationResult = await _serializer.DeserializeAsync<T>(loadResult.Data, context, cancellationToken);
                 if (!deserializationResult.Success)
                 {
                     throw new InvalidOperationException($"Deserialization failed: {deserializationResult.ErrorMessage}");
                 }
+
+                // Update statistics
+                _statistics.TotalBytesRead += loadResult.Data.Length;
 
                 var loadedData = deserializationResult.Data;
 
@@ -313,9 +377,8 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(saveId))
                 throw new ArgumentException("SaveId cannot be null or empty", nameof(saveId));
 
-            // TODO: Implement actual exists check
-            await UniTask.Delay(10, cancellationToken: cancellationToken);
-            return false;
+            var existsResult = await _storageManager.ExistsAsync(saveId, cancellationToken);
+            return existsResult.Success && existsResult.Exists;
         }
 
         public async UniTask<bool> DeleteAsync(string saveId, CancellationToken cancellationToken = default)
@@ -326,10 +389,19 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(saveId))
                 throw new ArgumentException("SaveId cannot be null or empty", nameof(saveId));
 
-            // TODO: Implement actual delete logic
-            await UniTask.Delay(10, cancellationToken: cancellationToken);
-            _statistics.TotalDeletes++;
-            return true;
+            var deleteResult = await _storageManager.DeleteAsync(saveId, cancellationToken);
+            if (deleteResult.Success)
+            {
+                _statistics.TotalDeletes++;
+                return true;
+            }
+
+            if (_config.EnableDebugLogging)
+            {
+                Debug.LogError($"Delete failed for '{saveId}': {deleteResult.ErrorMessage}");
+            }
+
+            return false;
         }
 
         public async UniTask<IReadOnlyList<SaveMetadata>> GetAllSavesAsync(CancellationToken cancellationToken = default)
@@ -337,8 +409,17 @@ namespace Sinkii09.Engine.Services
             if (!_isInitialized)
                 throw new InvalidOperationException("SaveLoadService is not initialized");
 
-            // TODO: Implement actual metadata retrieval
-            await UniTask.Delay(10, cancellationToken: cancellationToken);
+            var listResult = await _storageManager.GetSaveListAsync(cancellationToken);
+            if (listResult.Success)
+            {
+                return listResult.SaveList;
+            }
+
+            if (_config.EnableDebugLogging)
+            {
+                Debug.LogError($"Failed to get save list: {listResult.ErrorMessage}");
+            }
+
             return new List<SaveMetadata>();
         }
 
@@ -350,8 +431,17 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(saveId))
                 throw new ArgumentException("SaveId cannot be null or empty", nameof(saveId));
 
-            // TODO: Implement actual metadata retrieval
-            await UniTask.Delay(10, cancellationToken: cancellationToken);
+            var metadataResult = await _storageManager.GetMetadataAsync(saveId, cancellationToken);
+            if (metadataResult.Success)
+            {
+                return metadataResult.Metadata;
+            }
+
+            if (_config.EnableDebugLogging)
+            {
+                Debug.LogError($"Failed to get metadata for '{saveId}': {metadataResult.ErrorMessage}");
+            }
+
             return null;
         }
 
@@ -363,9 +453,41 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(saveId))
                 throw new ArgumentException("SaveId cannot be null or empty", nameof(saveId));
 
-            // TODO: Implement actual validation
-            await UniTask.Delay(10, cancellationToken: cancellationToken);
-            return true;
+            try
+            {
+                // Check if save exists
+                var existsResult = await _storageManager.ExistsAsync(saveId, cancellationToken);
+                if (!existsResult.Success || !existsResult.Exists)
+                {
+                    return false;
+                }
+
+                // Try to load and validate the save
+                var loadResult = await _storageManager.LoadAsync(saveId, cancellationToken);
+                if (!loadResult.Success)
+                {
+                    return false;
+                }
+
+                // Validate the loaded data structure
+                if (loadResult.Data == null || loadResult.Data.Length == 0)
+                {
+                    return false;
+                }
+
+                // Additional validation could be added here
+                // For example, checking data integrity, version compatibility, etc.
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                if (_config.EnableDebugLogging)
+                {
+                    Debug.LogError($"Validation failed for '{saveId}': {ex.Message}");
+                }
+                return false;
+            }
         }
 
         public async UniTask<SaveResult> AutoSaveAsync(SaveData data, CancellationToken cancellationToken = default)
@@ -386,8 +508,17 @@ namespace Sinkii09.Engine.Services
             if (saves.Count == 0)
                 return LoadResult<T>.CreateNotFound("latest", TimeSpan.Zero);
 
-            // TODO: Find actual latest save
-            return LoadResult<T>.CreateNotFound("latest", TimeSpan.Zero);
+            // Find the latest save based on modification time
+            var latestSave = saves
+                .AsValueEnumerable()
+                .Where(s => !s.SaveId.Contains("_backup_")) // Exclude backups
+                .OrderByDescending(s => s.ModifiedAt)
+                .FirstOrDefault();
+
+            if (latestSave == null)
+                return LoadResult<T>.CreateNotFound("latest", TimeSpan.Zero);
+
+            return await LoadAsync<T>(latestSave.SaveId, cancellationToken);
         }
 
         public async UniTask<bool> CreateBackupAsync(string saveId, CancellationToken cancellationToken = default)
@@ -398,10 +529,21 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(saveId))
                 throw new ArgumentException("SaveId cannot be null or empty", nameof(saveId));
 
-            // TODO: Implement actual backup creation
-            await UniTask.Delay(10, cancellationToken: cancellationToken);
-            _statistics.TotalBackups++;
-            return true;
+            var backupId = $"{saveId}_backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
+            var backupResult = await _storageManager.CreateBackupAsync(saveId, backupId, cancellationToken);
+
+            if (backupResult.Success)
+            {
+                _statistics.TotalBackups++;
+                return true;
+            }
+
+            if (_config.EnableDebugLogging)
+            {
+                Debug.LogError($"Backup creation failed for '{saveId}': {backupResult.ErrorMessage}");
+            }
+
+            return false;
         }
 
         public async UniTask<bool> RestoreBackupAsync(string saveId, string backupId, CancellationToken cancellationToken = default)
@@ -415,10 +557,20 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(backupId))
                 throw new ArgumentException("BackupId cannot be null or empty", nameof(backupId));
 
-            // TODO: Implement actual backup restore
-            await UniTask.Delay(10, cancellationToken: cancellationToken);
-            _statistics.TotalRestores++;
-            return true;
+            var restoreResult = await _storageManager.RestoreFromBackupAsync(backupId, saveId, cancellationToken);
+
+            if (restoreResult.Success)
+            {
+                _statistics.TotalRestores++;
+                return true;
+            }
+
+            if (_config.EnableDebugLogging)
+            {
+                Debug.LogError($"Backup restore failed for '{saveId}' from '{backupId}': {restoreResult.ErrorMessage}");
+            }
+
+            return false;
         }
 
         public async UniTask<IReadOnlyList<string>> GetBackupsAsync(string saveId, CancellationToken cancellationToken = default)
@@ -429,9 +581,17 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(saveId))
                 throw new ArgumentException("SaveId cannot be null or empty", nameof(saveId));
 
-            // TODO: Implement actual backup listing
-            await UniTask.Delay(10, cancellationToken: cancellationToken);
-            return new List<string>();
+            // Get all saves and filter for backups of the specified saveId
+            var allSaves = await GetAllSavesAsync(cancellationToken);
+            var backupPrefix = $"{saveId}_backup_";
+
+            var backups = allSaves
+                .AsValueEnumerable()
+                .Where(metadata => metadata.SaveId.StartsWith(backupPrefix))
+                .Select(metadata => metadata.SaveId)
+                .ToList();
+
+            return backups;
         }
 
         public SaveLoadServiceStatistics GetStatistics()
@@ -477,7 +637,7 @@ namespace Sinkii09.Engine.Services
                     };
                     gameData.UnlockLevel("Level1");
                     gameData.SetFlag("tutorial_completed", true);
-                    
+
                     var context = SerializationContext.ForSave("test", typeof(GameSaveData));
                     var result = _serializer.SerializeAsync(gameData, context).GetAwaiter().GetResult();
                     return result.Success ? result.Data : new byte[0];
@@ -492,17 +652,95 @@ namespace Sinkii09.Engine.Services
                     };
                     playerData.AddItem(new InventoryItem("sword1", "Iron Sword", "Weapon"));
                     playerData.UnlockAchievement("first_kill");
-                    
+
                     var context = SerializationContext.ForSave("test", typeof(PlayerSaveData));
                     var result = _serializer.SerializeAsync(playerData, context).GetAwaiter().GetResult();
                     return result.Success ? result.Data : new byte[0];
                 }
-                
+
                 return new byte[0];
             }
             catch
             {
                 return new byte[0];
+            }
+        }
+        #endregion
+
+        #region Private Helper Methods
+        private async UniTask InitializeStorageProvidersAsync(StorageProviderType enabledProviders, CancellationToken cancellationToken)
+        {
+            var registry = StorageProviderRegistry.Instance;
+            var availableProviders = registry.GetAvailableProviders();
+            
+            foreach (var providerType in Enum.GetValues(typeof(StorageProviderType)).AsValueEnumerable().Cast<StorageProviderType>())
+            {
+                // Skip None and check if provider is enabled
+                if (providerType == StorageProviderType.None || !enabledProviders.HasFlag(providerType))
+                    continue;
+                
+                // Check if provider is available on this platform
+                if (!availableProviders.AsValueEnumerable().Contains(providerType))
+                {
+                    Debug.LogWarning($"Storage provider '{providerType}' is not available on this platform");
+                    continue;
+                }
+                
+                try
+                {
+                    // Create provider instance
+                    var provider = registry.CreateProvider(providerType);
+                    
+                    // Create configuration for provider
+                    var storageConfig = new StorageProviderConfiguration
+                    {
+                        ProviderType = providerType,
+                        BasePath = _config.SaveDirectoryPath ?? "SaveData"
+                    };
+                    
+                    // Add provider-specific settings
+                    ConfigureProviderSettings(storageConfig, providerType);
+                    
+                    // Register provider
+                    _storageManager.RegisterProvider(provider, storageConfig);
+                    _healthMonitor.RegisterProvider(provider);
+                    
+                    Debug.Log($"Registered storage provider: {providerType}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Failed to initialize storage provider '{providerType}': {ex.Message}");
+                }
+            }
+            await UniTask.CompletedTask;
+        }
+        
+        private void ConfigureProviderSettings(StorageProviderConfiguration config, StorageProviderType providerType)
+        {
+            // Add provider-specific settings based on type
+            switch (providerType)
+            {
+                case StorageProviderType.LocalFile:
+                    config.Settings["MaxFileSize"] = 10 * 1024 * 1024; // 10MB
+                    config.Settings["EnableCompression"] = _config.EnableCompression;
+                    break;
+                    
+                case StorageProviderType.CloudStorage:
+                    config.Settings["SyncInterval"] = 300; // 5 minutes
+                    config.Settings["EnableOfflineCache"] = true;
+                    break;
+                    
+                case StorageProviderType.PlayerPrefs:
+                    config.Settings["KeyPrefix"] = "SaveData_";
+                    config.Settings["MaxKeyLength"] = 255;
+                    break;
+                    
+                case StorageProviderType.Steam:
+                    config.Settings["CloudEnabled"] = true;
+                    config.Settings["AutoSync"] = true;
+                    break;
+                    
+                // Add more provider-specific configurations as needed
             }
         }
         #endregion

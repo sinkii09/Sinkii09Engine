@@ -76,7 +76,7 @@ namespace Sinkii09.Engine.Services.Performance
         /// <summary>
         /// Health check for the performance monitor
         /// </summary>
-        public async UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public async UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             await UniTask.Yield();
             
