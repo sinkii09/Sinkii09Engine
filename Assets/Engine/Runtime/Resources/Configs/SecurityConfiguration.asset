@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0da3e062deeb05949b9580efc4d6b1e1, type: 3}
+  m_Name: SecurityConfiguration
+  m_EditorClassIdentifier: 
+  _enableEncryption: 0
+  _encryptionAlgorithm: 1
+  _requireEncryptionForAllSaves: 0
+  _enablePerSaveEncryption: 1
+  _keyDerivationMethod: 0
+  _keyDerivationIterations: 100000
+  _saltSize: 32
+  _keySize: 32
+  _enablePasswordStrengthValidation: 1
+  _minimumPasswordStrength: 3
+  _requirePasswordForEncryption: 1
+  _passwordMinLength: 8
+  _passwordMaxLength: 128
+  _enableIntegrityValidation: 1
+  _enableChecksumValidation: 1
+  _enableAntiTamperProtection: 1
+  _enableCorruptionDetection: 1
+  _enableAuditLogging: 1
+  _verboseAuditLogging: 0
+  _logSecurityEvents: 1
+  _logPerformanceMetrics: 0
+  _logLevel: 2
+  _enableAsyncEncryption: 1
+  _enableEncryptionCaching: 0
+  _encryptionTimeoutMs: 30000
+  _maxConcurrentEncryptions: 2
+  _enableSecureBackups: 1
+  _encryptBackups: 1
+  _maxBackupRetention: 5
+  _enableBackupVerification: 1

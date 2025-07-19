@@ -41,10 +41,11 @@ namespace Sinkii09.Engine.Services
                 // Skip compression for very small data
                 if (data.Length < MIN_COMPRESSION_SIZE)
                 {
-                    return CompressionResult.CreateSuccess(data, stopwatch.Elapsed, CompressionAlgorithm.None, 0);
+                    return CompressionResult.CreateSuccess(data, stopwatch.Elapsed, CompressionAlgorithm.None, 0, data.Length, data.Length);
                 }
                 
                 byte[] compressedData;
+                byte[] markerData;
                 CompressionAlgorithm algorithm;
                 int compressionLevel;
                 
@@ -78,16 +79,18 @@ namespace Sinkii09.Engine.Services
                     default:
                         throw new ArgumentException($"Unsupported compression level: {level}");
                 }
-                
+
+                markerData = AddCompressionMarker(algorithm, compressedData);
+
                 stopwatch.Stop();
                 
                 return CompressionResult.CreateSuccess(
-                    compressedData, 
+                    markerData, 
                     stopwatch.Elapsed, 
                     algorithm, 
                     compressionLevel,
                     data.Length,
-                    compressedData.Length);
+                    markerData.Length);
             }
             catch (OperationCanceledException)
             {
@@ -101,7 +104,7 @@ namespace Sinkii09.Engine.Services
         }
         
         /// <summary>
-        /// Decompress data asynchronously
+        /// Decompress data asynchronously using specified algorithm
         /// </summary>
         public async UniTask<CompressionResult> DecompressAsync(byte[] compressedData, CancellationToken cancellationToken = default)
         {
@@ -109,33 +112,29 @@ namespace Sinkii09.Engine.Services
                 return CompressionResult.CreateFailure("Input data is null or empty");
             
             var stopwatch = Stopwatch.StartNew();
-            
+
+            (CompressionAlgorithm algorithm, byte[] payload) = GetCompressionAlgorithmFromMarker(compressedData);
+
             try
             {
-                // Try to detect compression format and decompress accordingly
                 byte[] decompressedData;
-                CompressionAlgorithm algorithm = CompressionAlgorithm.None;
                 
-                // Check for GZip magic number (1f 8b)
-                if (compressedData.Length >= 2 && compressedData[0] == 0x1f && compressedData[1] == 0x8b)
+                switch (algorithm)
                 {
-                    decompressedData = await DecompressWithGZipAsync(compressedData, cancellationToken);
-                    algorithm = CompressionAlgorithm.GZip;
-                }
-                // Check for Deflate (no magic number, so try it if GZip fails)
-                else
-                {
-                    try
-                    {
-                        decompressedData = await DecompressWithDeflateAsync(compressedData, cancellationToken);
-                        algorithm = CompressionAlgorithm.Deflate;
-                    }
-                    catch
-                    {
-                        // If all compression methods fail, assume data is not compressed
-                        decompressedData = compressedData;
-                        algorithm = CompressionAlgorithm.None;
-                    }
+                    case CompressionAlgorithm.None:
+                        decompressedData = payload;
+                        break;
+                        
+                    case CompressionAlgorithm.GZip:
+                        decompressedData = await DecompressWithGZipAsync(payload, cancellationToken);
+                        break;
+                        
+                    case CompressionAlgorithm.Deflate:
+                        decompressedData = await DecompressWithDeflateAsync(payload, cancellationToken);
+                        break;
+                        
+                    default:
+                        throw new NotSupportedException($"Unsupported compression algorithm: {algorithm}");
                 }
                 
                 stopwatch.Stop();
@@ -158,7 +157,26 @@ namespace Sinkii09.Engine.Services
                 return CompressionResult.CreateFailure($"Decompression failed: {ex.Message}", stopwatch.Elapsed, ex);
             }
         }
-        
+
+        private (CompressionAlgorithm,byte[]) GetCompressionAlgorithmFromMarker(byte[] compressedData)
+        {
+            var algorithm = (CompressionAlgorithm)compressedData[0];
+            byte[] dataWithoutMarker = new byte[compressedData.Length - 1];
+            Array.Copy(compressedData, 1, dataWithoutMarker, 0, compressedData.Length - 1);
+            return (algorithm, dataWithoutMarker);
+        }
+
+        private byte[] AddCompressionMarker(CompressionAlgorithm algorithm, byte[] data)
+        {
+            if (data == null || data.Length == 0)
+                return new byte[] { (byte)algorithm };
+            
+            byte[] result = new byte[data.Length + 1];
+            result[0] = (byte)algorithm;
+            Array.Copy(data, 0, result, 1, data.Length);
+            return result;
+        }
+
         /// <summary>
         /// Get compression ratio estimate for data
         /// </summary>
@@ -332,6 +350,7 @@ namespace Sinkii09.Engine.Services
             
             return entropy;
         }
+        
     }
     
     /// <summary>

@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using System.Threading;
 using UnityEngine;
 using System.Diagnostics;
-using System.Security.Cryptography;
+using Newtonsoft.Json;
 
 namespace Sinkii09.Engine.Services
 {
@@ -18,12 +18,50 @@ namespace Sinkii09.Engine.Services
         
         private readonly CompressionManager _compressionManager;
         private readonly Base64Utils _base64Utils;
+        private IEncryptionProvider _encryptionProvider;
+        private KeyDerivationManager _keyDerivationManager;
+        private IntegrityValidator _integrityValidator;
         
-        public GameDataSerializer(CompressionManager compressionManager = null, Base64Utils base64Utils = null) 
+        public GameDataSerializer(CompressionManager compressionManager = null, Base64Utils base64Utils = null, 
+            IEncryptionProvider encryptionProvider = null, KeyDerivationManager keyDerivationManager = null, 
+            IntegrityValidator integrityValidator = null) 
             : base(CreateSerializerInfo())
         {
             _compressionManager = compressionManager ?? new CompressionManager();
             _base64Utils = base64Utils ?? new Base64Utils();
+            _encryptionProvider = encryptionProvider;
+            _keyDerivationManager = keyDerivationManager;
+            _integrityValidator = integrityValidator;
+        }
+
+        /// <summary>
+        /// Initialize security components for encryption support
+        /// </summary>
+        public override async UniTask<bool> InitializeSecurityAsync(SecurityConfiguration securityConfig, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (securityConfig?.EnableEncryption == true)
+                {
+                    _encryptionProvider = new AESEncryptionProvider();
+                    _keyDerivationManager = new KeyDerivationManager();
+                    _integrityValidator = new IntegrityValidator();
+
+                    var encryptionInit = _encryptionProvider.InitializeAsync(securityConfig, cancellationToken);
+                    var keyDerivationInit = _keyDerivationManager.InitializeAsync(securityConfig, cancellationToken);
+                    var integrityInit = _integrityValidator.InitializeAsync(securityConfig, cancellationToken);
+
+                    var results = await UniTask.WhenAll(encryptionInit, keyDerivationInit, integrityInit);
+                    
+                    return results.Item1 && results.Item2 && results.Item3;
+                }
+                return true; // No encryption, initialization successful
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"Failed to initialize serializer security: {ex.Message}");
+                return false;
+            }
         }
         
         public override async UniTask<SerializationResult> SerializeAsync<T>(T data, SerializationContext context = null, CancellationToken cancellationToken = default)
@@ -65,21 +103,36 @@ namespace Sinkii09.Engine.Services
                 context.UpdateProgress(2, 5, "Converting to JSON");
                 var jsonStart = Stopwatch.StartNew();
                 
-                string jsonString;
+                string jsonString = string.Empty;
                 try
-                {
-                    jsonString = JsonUtility.ToJson(data, context.Settings.EnableDebugLogging);
+                {                    
+                    // Try Newtonsoft.Json first (supports properties, collections, etc.)
+                    try
+                    {
+                        var jsonSettings = new JsonSerializerSettings
+                        {
+                            Formatting = context.Settings.EnableDebugLogging ? Formatting.Indented : Formatting.None,
+                            NullValueHandling = NullValueHandling.Include,
+                            DefaultValueHandling = DefaultValueHandling.Include,
+                            DateFormatHandling = DateFormatHandling.IsoDateFormat
+                        };
+
+                        jsonString = JsonConvert.SerializeObject(data, jsonSettings);
+                        UnityEngine.Debug.Log($"[GameDataSerializer] Newtonsoft.Json result: '{jsonString}' (Length: {jsonString?.Length ?? 0})");
+                    }
+                    catch (Exception newtonsoftEx)
+                    {
+                        UnityEngine.Debug.LogWarning($"[GameDataSerializer] Newtonsoft.Json failed: {newtonsoftEx.Message}, falling back to JsonUtility");
+                        
+                        // Fallback to JsonUtility for Unity-specific types
+                        jsonString = JsonUtility.ToJson(data, context.Settings.EnableDebugLogging);
+                        UnityEngine.Debug.Log($"[GameDataSerializer] JsonUtility fallback result: '{jsonString}' (Length: {jsonString?.Length ?? 0})");
+                    }
                 }
                 catch (Exception ex)
                 {
                     return SerializationResult.CreateFailure(
                         $"JSON serialization failed: {ex.Message}", ex, stopwatch.Elapsed);
-                }
-                
-                if (string.IsNullOrEmpty(jsonString))
-                {
-                    return SerializationResult.CreateFailure(
-                        "JSON serialization produced empty result", null, stopwatch.Elapsed);
                 }
                 
                 jsonStart.Stop();
@@ -97,7 +150,7 @@ namespace Sinkii09.Engine.Services
                 metrics.BinarySize = binaryData.Length;
                 
                 // Step 4: Compression
-                context.UpdateProgress(4, 5, "Compressing data");
+                context.UpdateProgress(4, 7, "Compressing data");
                 byte[] finalData = binaryData;
                 
                 if (context.Settings.EnableCompression)
@@ -129,9 +182,68 @@ namespace Sinkii09.Engine.Services
                 {
                     metrics.CompressedSize = binaryData.Length;
                 }
+
+                // Step 5: Encryption
+                context.UpdateProgress(5, 7, "Encrypting data");
+                if (context.Settings.EnableEncryption && _encryptionProvider != null && _keyDerivationManager != null)
+                {
+                    var encryptionStart = Stopwatch.StartNew();
+                    
+                    // Derive encryption key
+                    var keyResult = await _keyDerivationManager.DeriveKeyForSaveAsync(
+                        context.Settings.EncryptionPassword, context.SourceId, cancellationToken: cancellationToken);
+                    
+                    if (!keyResult.Success)
+                    {
+                        return SerializationResult.CreateFailure(
+                            $"Key derivation failed: {keyResult.ErrorMessage}", keyResult.Exception, stopwatch.Elapsed);
+                    }
+
+                    // Create encryption context
+                    var encryptionContext = EncryptionContext.ForSave(context.SourceId, 
+                        context.Settings.EncryptionKeyId ?? "default", context.Settings.SecurityConfiguration);
+
+                    // Encrypt data
+                    var encryptionResult = await _encryptionProvider.EncryptAsync(
+                        finalData, keyResult.DerivedKey, encryptionContext, cancellationToken);
+
+                    // Secure clear the derived key
+                    _keyDerivationManager.SecureClear(keyResult.DerivedKey);
+
+                    if (!encryptionResult.Success)
+                    {
+                        return SerializationResult.CreateFailure(
+                            $"Encryption failed: {encryptionResult.ErrorMessage}", encryptionResult.Exception, stopwatch.Elapsed);
+                    }
+
+                    // Pack encrypted data with IV and auth tag
+                    finalData = encryptionResult.ToPackedFormat();
+                    
+                    encryptionStart.Stop();
+                    metrics.EncryptionTime = encryptionStart.Elapsed;
+                    metrics.EncryptedSize = finalData.Length;
+                    metrics.EncryptionAlgorithm = _encryptionProvider.AlgorithmName;
+                }
+
+                // Step 6: Integrity Validation
+                context.UpdateProgress(6, 7, "Validating integrity");
+                if (context.Settings.EnableIntegrityValidation && _integrityValidator != null)
+                {
+                    var integrityStart = Stopwatch.StartNew();
+                    
+                    var checksumResult = await _integrityValidator.CalculateChecksumAsync(finalData, cancellationToken: cancellationToken);
+                    if (checksumResult.Success)
+                    {
+                        metrics.DataChecksum = checksumResult.Checksum;
+                        metrics.ChecksumAlgorithm = checksumResult.Algorithm;
+                    }
+                    
+                    integrityStart.Stop();
+                    metrics.IntegrityValidationTime = integrityStart.Elapsed;
+                }
                 
-                // Step 5: Final Encoding
-                context.UpdateProgress(5, 5, "Final encoding");
+                // Step 7: Final Encoding
+                context.UpdateProgress(7, 7, "Final encoding");
                 var encodingStart = Stopwatch.StartNew();
                 
                 byte[] encodedData = finalData;
@@ -183,7 +295,7 @@ namespace Sinkii09.Engine.Services
             
             try
             {
-                context.UpdateProgress(0, 5, "Starting deserialization");
+                context.UpdateProgress(0, 7, "Starting deserialization");
                 
                 if (data == null || data.Length == 0)
                 {
@@ -194,7 +306,7 @@ namespace Sinkii09.Engine.Services
                 // Step 1: Validation
                 if (context.Settings.EnableValidation)
                 {
-                    context.UpdateProgress(1, 5, "Validating input");
+                    context.UpdateProgress(1, 7, "Validating input");
                     var validationStart = Stopwatch.StartNew();
                     
                     if (!CanDeserialize<T>(data))
@@ -210,7 +322,7 @@ namespace Sinkii09.Engine.Services
                 byte[] workingData = data;
                 
                 // Step 2: Decoding
-                context.UpdateProgress(2, 5, "Decoding data");
+                context.UpdateProgress(2, 7, "Decoding data");
                 var decodingStart = Stopwatch.StartNew();
                 
                 if (context.Settings.EncodingType == "Base64")
@@ -231,9 +343,72 @@ namespace Sinkii09.Engine.Services
                 
                 decodingStart.Stop();
                 metrics.EncodingTime = decodingStart.Elapsed;
+
+                // Step 3: Integrity Validation
+                context.UpdateProgress(3, 7, "Validating integrity");
+                if (context.Settings.EnableIntegrityValidation && _integrityValidator != null && !string.IsNullOrEmpty(context.Settings.ExpectedChecksum))
+                {
+                    var integrityStart = Stopwatch.StartNew();
+                    
+                    var integrityResult = await _integrityValidator.ValidateIntegrityAsync(
+                        workingData, context.Settings.ExpectedChecksum, cancellationToken: cancellationToken);
+                    
+                    if (!integrityResult.IsValid)
+                    {
+                        return DeserializationResult<T>.CreateFailure(
+                            $"Integrity validation failed: {integrityResult.ErrorMessage}", 
+                            integrityResult.Exception, stopwatch.Elapsed);
+                    }
+                    
+                    integrityStart.Stop();
+                    metrics.IntegrityValidationTime = integrityStart.Elapsed;
+                }
+
+                // Step 4: Decryption
+                context.UpdateProgress(4, 7, "Decrypting data");
+                if (context.Settings.EnableEncryption && _encryptionProvider != null && _keyDerivationManager != null)
+                {
+                    var decryptionStart = Stopwatch.StartNew();
+                    
+                    // Derive decryption key
+                    var keyResult = await _keyDerivationManager.DeriveKeyForSaveAsync(
+                        context.Settings.EncryptionPassword, context.SourceId, cancellationToken: cancellationToken);
+                    
+                    if (!keyResult.Success)
+                    {
+                        return DeserializationResult<T>.CreateFailure(
+                            $"Key derivation failed: {keyResult.ErrorMessage}", keyResult.Exception, stopwatch.Elapsed);
+                    }
+
+                    // Unpack encrypted data (IV, auth tag, encrypted data)
+                    var (iv, authTag, encryptedData) = AESEncryptionExtensions.FromPackedFormat(workingData, AESEncryptionProvider.AES_IV_SIZE_BYTES, AESEncryptionProvider.AES_TAG_SIZE_BYTES);
+
+                    // Create decryption context
+                    var encryptionContext = EncryptionContext.ForLoad(context.SourceId, 
+                        context.Settings.EncryptionKeyId ?? "default", context.Settings.SecurityConfiguration);
+
+                    // Decrypt data
+                    var decryptionResult = await _encryptionProvider.DecryptAsync(
+                        encryptedData, keyResult.DerivedKey, iv, authTag, encryptionContext, cancellationToken);
+
+                    // Secure clear the derived key
+                    _keyDerivationManager.SecureClear(keyResult.DerivedKey);
+
+                    if (!decryptionResult.Success)
+                    {
+                        return DeserializationResult<T>.CreateFailure(
+                            $"Decryption failed: {decryptionResult.ErrorMessage}", decryptionResult.Exception, stopwatch.Elapsed);
+                    }
+
+                    workingData = decryptionResult.DecryptedData;
+                    
+                    decryptionStart.Stop();
+                    metrics.EncryptionTime = decryptionStart.Elapsed;
+                    metrics.EncryptionAlgorithm = _encryptionProvider.AlgorithmName;
+                }
                 
-                // Step 3: Decompression
-                context.UpdateProgress(3, 5, "Decompressing data");
+                // Step 5: Decompression
+                context.UpdateProgress(5, 7, "Decompressing data");
                 if (context.Settings.EnableCompression)
                 {
                     var decompressionStart = Stopwatch.StartNew();
@@ -259,8 +434,8 @@ namespace Sinkii09.Engine.Services
                         metrics.CompressionTime = decompressionStart.Elapsed;
                 }
                 
-                // Step 4: Binary to JSON conversion
-                context.UpdateProgress(4, 5, "Converting from binary");
+                // Step 6: Binary to JSON conversion
+                context.UpdateProgress(6, 7, "Converting from binary");
                 var binaryStart = Stopwatch.StartNew();
                 
                 string jsonString = ConvertFromBinary(workingData, context);
@@ -275,14 +450,33 @@ namespace Sinkii09.Engine.Services
                 metrics.BinarySize = workingData.Length;
                 metrics.JsonSize = Encoding.UTF8.GetByteCount(jsonString);
                 
-                // Step 5: JSON Deserialization
-                context.UpdateProgress(5, 5, "Converting from JSON");
+                // Step 7: JSON Deserialization
+                context.UpdateProgress(7, 7, "Converting from JSON");
                 var jsonStart = Stopwatch.StartNew();
                 
-                T result;
+                T result = default;
                 try
                 {
-                    result = JsonUtility.FromJson<T>(jsonString);
+                    // Try Newtonsoft.Json first
+                    try
+                    {
+                        var jsonSettings = new JsonSerializerSettings
+                        {
+                            NullValueHandling = NullValueHandling.Include,
+                            DefaultValueHandling = DefaultValueHandling.Include,
+                            DateFormatHandling = DateFormatHandling.IsoDateFormat
+                        };
+
+                        result = JsonConvert.DeserializeObject<T>(jsonString, jsonSettings);
+                        UnityEngine.Debug.Log($"[GameDataSerializer] Newtonsoft.Json deserialization successful");
+                    }
+                    catch (Exception newtonsoftEx)
+                    {
+                        UnityEngine.Debug.LogWarning($"[GameDataSerializer] Newtonsoft.Json deserialization failed: {newtonsoftEx.Message}, falling back to JsonUtility");
+                        
+                        // Fallback to JsonUtility
+                        result = JsonUtility.FromJson<T>(jsonString);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -457,8 +651,8 @@ namespace Sinkii09.Engine.Services
                     encoding = context.Settings.EncodingType
                 }
             };
-            
-            var metadataJson = JsonUtility.ToJson(metadata);
+
+            var metadataJson = JsonConvert.SerializeObject(metadata, Formatting.None);
             return context.Settings.TextEncoding.GetBytes(metadataJson);
         }
         
@@ -481,7 +675,7 @@ namespace Sinkii09.Engine.Services
                 SupportedEncodingTypes = new[] { "Base64", "Binary" },
                 SupportsStreaming = false,
                 SupportsCompression = true,
-                SupportsEncryption = false,
+                SupportsEncryption = true,
                 MaxDataSize = 100 * 1024 * 1024, // 100MB
                 Capabilities = new SerializerCapabilities
                 {
@@ -493,7 +687,7 @@ namespace Sinkii09.Engine.Services
                     SupportsParallelProcessing = false,
                     SupportsVersioning = true,
                     SupportsMagicBytes = true,
-                    SupportsChecksums = false,
+                    SupportsChecksums = true,
                     SupportsMetadata = true
                 }
             };

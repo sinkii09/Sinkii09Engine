@@ -70,6 +70,14 @@ namespace Sinkii09.Engine.Services
         UniTask<StorageListResult> GetSaveListAsync(CancellationToken cancellationToken = default);
         
         /// <summary>
+        /// Gets a list of backup files for a specific save ID
+        /// </summary>
+        /// <param name="saveId">Save ID to get backups for</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>List of backup metadata</returns>
+        UniTask<StorageListResult> GetBackupListAsync(string saveId, CancellationToken cancellationToken = default);
+        
+        /// <summary>
         /// Gets metadata for a specific save file
         /// </summary>
         /// <param name="saveId">Unique identifier for the save data</param>

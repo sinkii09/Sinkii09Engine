@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ec8830dc05a5b242aad492d9683d396, type: 3}
   m_Name: ResourceServiceConfiguration
   m_EditorClassIdentifier: 
-  _version: 1
+  _version: 6
   _description: Service configuration
   _enabledProviders: 3
   _maxConcurrentLoads: 10

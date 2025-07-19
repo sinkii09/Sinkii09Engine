@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using System.Threading;
 using UnityEngine;
 using System.Diagnostics;
+using System.IO;
 
 namespace Sinkii09.Engine.Services
 {
@@ -324,6 +325,18 @@ namespace Sinkii09.Engine.Services
             return await provider.GetSaveListAsync(cancellationToken);
         }
         
+        public async UniTask<StorageListResult> GetBackupListAsync(string saveId, CancellationToken cancellationToken = default)
+        {
+            ValidateInitialization();
+            ValidateSaveId(saveId);
+            
+            var provider = GetHealthyProvider();
+            if (provider == null)
+                return StorageListResult.CreateFailure("No healthy storage providers available");
+            
+            return await provider.GetBackupListAsync(saveId, cancellationToken);
+        }
+        
         public async UniTask<StorageMetadataResult> GetMetadataAsync(string saveId, CancellationToken cancellationToken = default)
         {
             ValidateInitialization();
@@ -600,6 +613,15 @@ namespace Sinkii09.Engine.Services
         {
             if (!_isInitialized)
                 throw new InvalidOperationException("StorageManager is not initialized");
+        }
+        
+        private void ValidateSaveId(string saveId)
+        {
+            if (string.IsNullOrWhiteSpace(saveId))
+                throw new ArgumentException("Save ID cannot be null or empty", nameof(saveId));
+            
+            if (saveId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+                throw new ArgumentException("Save ID contains invalid characters", nameof(saveId));
         }
         
         private IStorageProvider GetHealthyProvider()
