@@ -203,6 +203,22 @@ namespace Sinkii09.Engine.Services
             }
         }
         
+        public async UniTask<StorageListResult> GetBackupListAsync(string saveId, CancellationToken cancellationToken = default)
+        {
+            ValidateInitialization();
+            
+            var cloudBackupResult = await GetCloudBackupListAsync(saveId, cancellationToken);
+            
+            if (cloudBackupResult.Success)
+            {
+                return StorageListResult.CreateSuccess(cloudBackupResult.SaveList, cloudBackupResult.Duration);
+            }
+            else
+            {
+                return StorageListResult.CreateFailure(cloudBackupResult.ErrorMessage, cloudBackupResult.Exception, cloudBackupResult.Duration);
+            }
+        }
+        
         public async UniTask<StorageMetadataResult> GetMetadataAsync(string saveId, CancellationToken cancellationToken = default)
         {
             ValidateInitialization();
@@ -456,6 +472,7 @@ namespace Sinkii09.Engine.Services
         public abstract UniTask<CloudUploadResult> UploadAsync(string saveId, byte[] data, SaveMetadata metadata = null, bool overwrite = true, CancellationToken cancellationToken = default);
         public abstract UniTask<CloudDownloadResult> DownloadAsync(string saveId, CancellationToken cancellationToken = default);
         public abstract UniTask<CloudSaveListResult> GetCloudSaveListAsync(CancellationToken cancellationToken = default);
+        public abstract UniTask<CloudSaveListResult> GetCloudBackupListAsync(string saveId, CancellationToken cancellationToken = default);
         public abstract UniTask<CloudOperationResult> DeleteFromCloudAsync(string saveId, CancellationToken cancellationToken = default);
         public abstract UniTask<CloudConflictResolutionResult> ResolveConflictAsync(string saveId, CloudConflictResolution conflictResolution, CancellationToken cancellationToken = default);
         #endregion

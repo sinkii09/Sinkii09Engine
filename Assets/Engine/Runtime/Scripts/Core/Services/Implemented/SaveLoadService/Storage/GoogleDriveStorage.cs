@@ -414,6 +414,61 @@ namespace Sinkii09.Engine.Services
             
             UnityEngine.Debug.Log($"Google Drive save folder ensured: {_saveFolderId}");
         }
+
+        public override async UniTask<CloudSaveListResult> GetCloudBackupListAsync(string saveId, CancellationToken cancellationToken = default)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            
+            try
+            {
+                ValidateInitialization();
+                ValidateAuthentication();
+                
+                if (string.IsNullOrWhiteSpace(saveId))
+                    throw new ArgumentException("Save ID cannot be null or empty", nameof(saveId));
+                
+                // Simulate list backup files API call
+                await UniTask.Delay(600, cancellationToken: cancellationToken);
+                
+                // Simulate backup list for the specific save ID
+                var backupList = new List<SaveMetadata>();
+                var cloudFileIds = new Dictionary<string, string>();
+                
+                // Generate mock backup entries for the save ID
+                for (int i = 1; i <= 3; i++)
+                {
+                    var backupId = $"{saveId}_backup_{DateTime.UtcNow.AddDays(-i):yyyyMMdd_HHmmss}";
+                    var cloudFileId = $"gdrive_{backupId}_{Guid.NewGuid():N}";
+                    
+                    var backupMetadata = new SaveMetadata
+                    {
+                        SaveId = backupId,
+                        OriginalSaveId = saveId,
+                        IsBackup = true,
+                        CreatedAt = DateTime.UtcNow.AddDays(-i),
+                        ModifiedAt = DateTime.UtcNow.AddDays(-i).AddMinutes(5),
+                        FileSize = UnityEngine.Random.Range(512, 4096), // Simulate varying backup sizes
+                        SaveVersion = 1,
+                        DisplayName = $"Backup of {saveId} - Day {i}",
+                        Description = $"Automatic backup created {i} day(s) ago"
+                    };
+                    
+                    backupList.Add(backupMetadata);
+                    cloudFileIds[backupId] = cloudFileId;
+                }
+                
+                // Sort by creation time, newest first
+                backupList.Sort((a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+                
+                stopwatch.Stop();
+                return CloudSaveListResult.CreateSuccess(backupList.ToArray(), cloudFileIds, stopwatch.Elapsed);
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                return CloudSaveListResult.CreateFailure($"Google Drive backup list failed for '{saveId}': {ex.Message}", ex, stopwatch.Elapsed);
+            }
+        }
         #endregion
     }
 }

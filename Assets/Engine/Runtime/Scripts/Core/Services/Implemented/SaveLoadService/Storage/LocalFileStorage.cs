@@ -6,6 +6,8 @@ using Cysharp.Threading.Tasks;
 using System.Threading;
 using UnityEngine;
 using System.Diagnostics;
+using Debug = UnityEngine.Debug;
+using ZLinq;
 
 namespace Sinkii09.Engine.Services
 {
@@ -29,6 +31,7 @@ namespace Sinkii09.Engine.Services
         private string _saveDirectory;
         private string _backupDirectory;
         private bool _isInitialized;
+        private bool _enableDebugLogging;
         private readonly object _lockObject = new object();
         #endregion
         
@@ -47,6 +50,10 @@ namespace Sinkii09.Engine.Services
                 _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
                 _statistics = new StorageProviderStatistics();
                 _healthStatus = StorageHealthStatus.Unknown;
+                
+                // Initialize debug logging from configuration
+                _enableDebugLogging = _configuration.Settings.ContainsKey("EnableDebugLogging") && 
+                                     (bool)_configuration.Settings["EnableDebugLogging"];
                 
                 // Set up directories
                 _saveDirectory = Path.Combine(Application.persistentDataPath, configuration.BasePath ?? "SaveData");
@@ -333,6 +340,70 @@ namespace Sinkii09.Engine.Services
                 FileSize = fileInfo.Length,
                 SaveVersion = 1
             };
+        }
+        
+        public async UniTask<StorageListResult> GetBackupListAsync(string saveId, CancellationToken cancellationToken = default)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            
+            try
+            {
+                ValidateInitialization();
+                ValidateSaveId(saveId);
+                
+                var backupFiles = await GetBackupFilesForSaveAsync(saveId, cancellationToken);
+                
+                var backupList = new List<SaveMetadata>();
+                
+                foreach (var filePath in backupFiles)
+                {
+                    try
+                    {
+                        var backupId = Path.GetFileNameWithoutExtension(filePath);
+                        var fileInfo = new FileInfo(filePath);
+                        var metadataFilePath = GetBackupMetadataFilePath(backupId);
+                        
+                        SaveMetadata metadata = null;
+                        if (File.Exists(metadataFilePath))
+                        {
+                            try
+                            {
+                                metadata = await LoadMetadataAsync(metadataFilePath, cancellationToken);
+                            }
+                            catch
+                            {
+                                // If metadata loading fails, create basic metadata
+                                metadata = CreateBasicMetadata(backupId, fileInfo);
+                                metadata.IsBackup = true;
+                                metadata.OriginalSaveId = saveId;
+                            }
+                        }
+                        else
+                        {
+                            metadata = CreateBasicMetadata(backupId, fileInfo);
+                            metadata.IsBackup = true;
+                            metadata.OriginalSaveId = saveId;
+                        }
+                        
+                        backupList.Add(metadata);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"Failed to process backup file '{filePath}': {ex.Message}");
+                    }
+                }
+                
+                // Sort by creation time, newest first
+                backupList.Sort((a, b) => b.CreatedAt.CompareTo(a.CreatedAt));
+                
+                stopwatch.Stop();
+                return StorageListResult.CreateSuccess(backupList.AsValueEnumerable().ToArray(), stopwatch.Elapsed);
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                return StorageListResult.CreateFailure($"Failed to get backup list for '{saveId}': {ex.Message}", ex, stopwatch.Elapsed);
+            }
         }
         #endregion
         
@@ -753,6 +824,94 @@ namespace Sinkii09.Engine.Services
                 return Directory.GetFiles(_saveDirectory, $"*{SAVE_FILE_EXTENSION}")
                     .Where(f => !Path.GetFileName(f).StartsWith("temp_"))
                     .ToArray();
+            }, cancellationToken: cancellationToken);
+        }
+        
+        private async UniTask<string[]> GetBackupFilesAsync(CancellationToken cancellationToken)
+        {
+            return await UniTask.RunOnThreadPool(() =>
+            {
+                try
+                {
+                    if (!Directory.Exists(_backupDirectory))
+                    {
+                        if (_enableDebugLogging)
+                            Debug.LogWarning($"Backup directory does not exist: {_backupDirectory}");
+                        return new string[0];
+                    }
+                
+                    var files = Directory.GetFiles(_backupDirectory, $"*{BACKUP_FILE_EXTENSION}")
+                        .Where(f => !Path.GetFileName(f).StartsWith("temp_"))
+                        .ToArray();
+                        
+                    if (_enableDebugLogging)
+                        Debug.Log($"Found {files.Length} backup files in {_backupDirectory}");
+                        
+                    return files;
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    Debug.LogError($"Access denied to backup directory '{_backupDirectory}': {ex.Message}");
+                    return new string[0];
+                }
+                catch (DirectoryNotFoundException ex)
+                {
+                    Debug.LogWarning($"Backup directory not found '{_backupDirectory}': {ex.Message}");
+                    return new string[0];
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error scanning backup directory '{_backupDirectory}': {ex.Message}");
+                    return new string[0];
+                }
+            }, cancellationToken: cancellationToken);
+        }
+        
+        private async UniTask<string[]> GetBackupFilesForSaveAsync(string saveId, CancellationToken cancellationToken)
+        {
+            return await UniTask.RunOnThreadPool(() =>
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(saveId))
+                    {
+                        Debug.LogError("SaveId cannot be null or empty for backup file search");
+                        return new string[0];
+                    }
+                    
+                    if (!Directory.Exists(_backupDirectory))
+                    {
+                        if (_enableDebugLogging)
+                            Debug.LogWarning($"Backup directory does not exist: {_backupDirectory}");
+                        return new string[0];
+                    }
+                
+                    var backupPrefix = $"{saveId}_backup_";
+                    var files = Directory.GetFiles(_backupDirectory, $"*{BACKUP_FILE_EXTENSION}")
+                        .Where(f => !Path.GetFileName(f).StartsWith("temp_"))
+                        .Where(f => Path.GetFileNameWithoutExtension(f).StartsWith(backupPrefix))
+                        .ToArray();
+                        
+                    if (_enableDebugLogging)
+                        Debug.Log($"Found {files.Length} backup files for save '{saveId}' in {_backupDirectory}");
+                        
+                    return files;
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    Debug.LogError($"Access denied to backup directory '{_backupDirectory}': {ex.Message}");
+                    return new string[0];
+                }
+                catch (DirectoryNotFoundException ex)
+                {
+                    Debug.LogWarning($"Backup directory not found '{_backupDirectory}': {ex.Message}");
+                    return new string[0];
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error scanning backup directory '{_backupDirectory}' for save '{saveId}': {ex.Message}");
+                    return new string[0];
+                }
             }, cancellationToken: cancellationToken);
         }
         

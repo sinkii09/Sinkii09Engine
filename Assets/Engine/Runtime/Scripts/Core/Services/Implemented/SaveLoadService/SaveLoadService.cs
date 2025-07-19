@@ -85,6 +85,16 @@ namespace Sinkii09.Engine.Services
                 _providerManager = new SaveDataProviderManager();
                 _performanceMonitor = new SerializationPerformanceMonitor();
 
+                // Initialize security components if encryption is enabled
+                if (_config.EnableEncryption && _config.SecurityConfiguration != null)
+                {
+                    var securityInitResult = await _serializer.InitializeSecurityAsync(_config.SecurityConfiguration, cancellationToken);
+                    if (!securityInitResult)
+                    {
+                        return ServiceInitializationResult.Failed("Security initialization failed");
+                    }
+                }
+
                 // Initialize storage system
                 _storageManager = new StorageManager();
                 _healthMonitor = new StorageHealthMonitor();
@@ -581,17 +591,46 @@ namespace Sinkii09.Engine.Services
             if (string.IsNullOrEmpty(saveId))
                 throw new ArgumentException("SaveId cannot be null or empty", nameof(saveId));
 
-            // Get all saves and filter for backups of the specified saveId
-            var allSaves = await GetAllSavesAsync(cancellationToken);
-            var backupPrefix = $"{saveId}_backup_";
-
-            var backups = allSaves
-                .AsValueEnumerable()
-                .Where(metadata => metadata.SaveId.StartsWith(backupPrefix))
-                .Select(metadata => metadata.SaveId)
-                .ToList();
-
-            return backups;
+            try
+            {
+                // Use the new backup-specific method for better performance and accuracy
+                var backupListResult = await _storageManager.GetBackupListAsync(saveId, cancellationToken);
+                
+                if (backupListResult.Success)
+                {
+                    var backupIds = backupListResult.SaveList
+                        .AsValueEnumerable()
+                        .Select(metadata => metadata.SaveId)
+                        .ToList();
+                    
+                    if (_config.EnableDebugLogging)
+                    {
+                        Debug.Log($"Found {backupIds.Count} backups for save '{saveId}': {string.Join(", ", backupIds)}");
+                    }
+                    
+                    return backupIds;
+                }
+                else
+                {
+                    if (_config.EnableDebugLogging)
+                    {
+                        Debug.LogWarning($"Failed to get backup list for '{saveId}': {backupListResult.ErrorMessage}");
+                    }
+                    
+                    // Return empty list if backup scanning fails
+                    return new List<string>();
+                }
+            }
+            catch (Exception ex)
+            {
+                if (_config.EnableDebugLogging)
+                {
+                    Debug.LogError($"Exception while getting backups for '{saveId}': {ex.Message}");
+                }
+                
+                // Return empty list on exception
+                return new List<string>();
+            }
         }
 
         public SaveLoadServiceStatistics GetStatistics()

@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace Sinkii09.Engine.Services
 {
@@ -18,6 +19,11 @@ namespace Sinkii09.Engine.Services
         /// Deserialize byte array to object with performance tracking
         /// </summary>
         UniTask<DeserializationResult<T>> DeserializeAsync<T>(byte[] data, SerializationContext context = null, CancellationToken cancellationToken = default);
+        
+        /// <summary>
+        /// Initialize security components for encryption support
+        /// </summary>
+        UniTask<bool> InitializeSecurityAsync(SecurityConfiguration securityConfig, CancellationToken cancellationToken = default);
         
         /// <summary>
         /// Validate that data can be serialized
@@ -139,20 +145,26 @@ namespace Sinkii09.Engine.Services
         public TimeSpan CompressionTime { get; set; }
         public TimeSpan EncodingTime { get; set; }
         public TimeSpan ValidationTime { get; set; }
+        public TimeSpan EncryptionTime { get; set; }
+        public TimeSpan IntegrityValidationTime { get; set; }
         
         public long JsonSize { get; set; }
         public long BinarySize { get; set; }
         public long CompressedSize { get; set; }
+        public long EncryptedSize { get; set; }
         public long EncodedSize { get; set; }
         
         public int CompressionLevel { get; set; }
         public CompressionAlgorithm CompressionAlgorithm { get; set; }
         public string EncodingType { get; set; }
+        public string EncryptionAlgorithm { get; set; }
+        public string DataChecksum { get; set; }
+        public string ChecksumAlgorithm { get; set; }
         
         /// <summary>
         /// Total processing time
         /// </summary>
-        public TimeSpan TotalTime => JsonSerializationTime + BinaryConversionTime + CompressionTime + EncodingTime + ValidationTime;
+        public TimeSpan TotalTime => JsonSerializationTime + BinaryConversionTime + CompressionTime + EncryptionTime + IntegrityValidationTime + EncodingTime + ValidationTime;
         
         /// <summary>
         /// Compression efficiency (compressed size / binary size)
@@ -223,6 +235,13 @@ namespace Sinkii09.Engine.Services
         
         public abstract UniTask<DeserializationResult<T>> DeserializeAsync<T>(byte[] data, SerializationContext context = null, CancellationToken cancellationToken = default);
         
+        public virtual async UniTask<bool> InitializeSecurityAsync(SecurityConfiguration securityConfig, CancellationToken cancellationToken = default)
+        {
+            // Default implementation - no security support
+            await UniTask.CompletedTask;
+            return true;
+        }
+        
         public virtual bool CanSerialize<T>(T data)
         {
             if (data == null)
@@ -239,7 +258,10 @@ namespace Sinkii09.Engine.Services
             {
                 var estimatedSize = EstimateSerializedSize(data);
                 if (estimatedSize > _info.MaxDataSize)
+                {
+                    UnityEngine.Debug.LogWarning($"Data size estimation ({estimatedSize} bytes) exceeds maximum allowed size ({_info.MaxDataSize} bytes) for type {type.Name}");
                     return false;
+                }
             }
             
             return true;
@@ -249,14 +271,13 @@ namespace Sinkii09.Engine.Services
         {
             if (data == null || data.Length == 0)
                 return false;
-                
-            // Check basic format validation
-            if (_info.Capabilities.SupportsMagicBytes)
-            {
-                // Implement magic bytes validation
-                return ValidateMagicBytes(data);
-            }
-            
+
+            if (data.Length < 4)
+                return false;
+
+            var type = typeof(T);
+            if (!type.IsSerializable && !HasSerializableAttribute(type))
+                return false;
             return true;
         }
         
@@ -265,9 +286,68 @@ namespace Sinkii09.Engine.Services
             if (data == null)
                 return 0;
                 
-            // Basic estimation - can be overridden for more accurate estimates
-            var json = UnityEngine.JsonUtility.ToJson(data);
-            return System.Text.Encoding.UTF8.GetByteCount(json);
+            try
+            {
+                // Use Newtonsoft.Json for accurate size estimation (matches actual serialization)
+                var jsonSettings = new JsonSerializerSettings
+                {
+                    Formatting = Formatting.None,
+                    NullValueHandling = NullValueHandling.Include,
+                    DefaultValueHandling = DefaultValueHandling.Include,
+                    DateFormatHandling = DateFormatHandling.IsoDateFormat
+                };
+                
+                var json = JsonConvert.SerializeObject(data, jsonSettings);
+                var jsonSize = System.Text.Encoding.UTF8.GetByteCount(json);
+                
+                // Add overhead for binary format (magic bytes, metadata, compression, etc.)
+                // Rough estimation: JSON size + 25% overhead for binary format
+                var estimatedBinarySize = (long)(jsonSize * 1.25f);
+                
+                return estimatedBinarySize;
+            }
+            catch (Exception)
+            {
+                // Fallback to Unity JsonUtility if Newtonsoft.Json fails
+                try
+                {
+                    var json = UnityEngine.JsonUtility.ToJson(data);
+                    return System.Text.Encoding.UTF8.GetByteCount(json);
+                }
+                catch
+                {
+                    // If both fail, return a conservative estimate based on object type
+                    return EstimateObjectSize(data);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Fallback size estimation based on object reflection
+        /// </summary>
+        private long EstimateObjectSize<T>(T data)
+        {
+            if (data == null) return 0;
+            
+            var type = data.GetType();
+            
+            // Primitive types
+            if (type.IsPrimitive)
+            {
+                return System.Runtime.InteropServices.Marshal.SizeOf(type);
+            }
+            
+            // String estimation
+            if (data is string str)
+            {
+                return System.Text.Encoding.UTF8.GetByteCount(str);
+            }
+            
+            // Conservative estimate for complex objects: 1KB base + field count * 50 bytes
+            var fields = type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            var properties = type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            
+            return 1024 + (fields.Length + properties.Length) * 50;
         }
         
         public SerializerInfo GetInfo()

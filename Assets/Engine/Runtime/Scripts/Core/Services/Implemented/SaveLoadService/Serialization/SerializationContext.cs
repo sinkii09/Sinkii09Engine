@@ -244,6 +244,14 @@ namespace Sinkii09.Engine.Services
         public bool IncludeMetadata { get; set; } = true;
         public bool IncludeChecksums { get; set; } = true;
         public bool IncludeTimestamp { get; set; } = true;
+
+        // Security settings
+        public bool EnableEncryption { get; set; } = false;
+        public bool EnableIntegrityValidation { get; set; } = true;
+        public string EncryptionPassword { get; set; }
+        public string EncryptionKeyId { get; set; }
+        public string ExpectedChecksum { get; set; }
+        public SecurityConfiguration SecurityConfiguration { get; set; }
         
         // Performance settings
         public bool EnableStreaming { get; set; } = false;

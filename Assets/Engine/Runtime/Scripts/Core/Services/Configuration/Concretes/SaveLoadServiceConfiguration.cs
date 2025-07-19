@@ -24,11 +24,10 @@ namespace Sinkii09.Engine.Services
         [SerializeField] private int _maxConcurrentOperations = 4;
         
         [Header("Security Settings")]
+        [SerializeField] private SecurityConfiguration _securityConfiguration;
         [SerializeField] private bool _enableEncryption = false;
-        [SerializeField] private string _encryptionAlgorithm = "AES-256-GCM";
         [SerializeField] private bool _enableIntegrityChecks = true;
         [SerializeField] private bool _enableMagicBytes = true;
-        [SerializeField] private byte _magicBytesSignature = 0xAA;
         
         [Header("Auto-Save Settings")]
         [SerializeField] private bool _enableAutoSave = true;
@@ -68,11 +67,10 @@ namespace Sinkii09.Engine.Services
         public bool EnableBackgroundSaving => _enableBackgroundSaving;
         public int MaxConcurrentOperations => _maxConcurrentOperations;
         
-        public bool EnableEncryption => _enableEncryption;
-        public string EncryptionAlgorithm => _encryptionAlgorithm;
+        public SecurityConfiguration SecurityConfiguration => _securityConfiguration;
+        public bool EnableEncryption => _enableEncryption || (_securityConfiguration?.EnableEncryption ?? false);
         public bool EnableIntegrityChecks => _enableIntegrityChecks;
         public bool EnableMagicBytes => _enableMagicBytes;
-        public byte MagicBytesSignature => _magicBytesSignature;
         
         public bool EnableAutoSave => _enableAutoSave;
         public float AutoSaveInterval => _autoSaveInterval;
@@ -121,8 +119,16 @@ namespace Sinkii09.Engine.Services
             if (_maxConcurrentOperations <= 0)
                 errors.Add("Max concurrent operations must be greater than 0");
             
-            if (_enableEncryption && string.IsNullOrEmpty(_encryptionAlgorithm))
-                errors.Add("Encryption algorithm cannot be empty when encryption is enabled");
+            if (_enableEncryption && _securityConfiguration == null)
+                errors.Add("Security configuration is required when encryption is enabled");
+
+            if (_securityConfiguration != null)
+            {
+                if (!_securityConfiguration.Validate(out var securityErrors))
+                {
+                    errors.AddRange(securityErrors);
+                }
+            }
             
             if (_autoSaveInterval <= 0)
                 errors.Add("Auto save interval must be greater than 0");
@@ -159,10 +165,8 @@ namespace Sinkii09.Engine.Services
             _enableBackgroundSaving = true;
             _maxConcurrentOperations = 4;
             _enableEncryption = false;
-            _encryptionAlgorithm = "AES-256-GCM";
             _enableIntegrityChecks = true;
             _enableMagicBytes = true;
-            _magicBytesSignature = 0xAA;
             _enableAutoSave = true;
             _autoSaveInterval = 300f;
             _maxAutoSaves = 3;
