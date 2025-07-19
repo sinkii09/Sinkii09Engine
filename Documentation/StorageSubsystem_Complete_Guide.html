@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinkii09 Engine - Storage Subsystem Complete Guide</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --background-color: #f5f7fa;
+            --text-color: #2c3e50;
+            --border-color: #dce1e7;
+            --code-bg: #282c34;
+            --code-text: #abb2bf;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 60px 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+
+        nav a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 1.1rem;
+        }
+
+        nav a:hover {
+            color: var(--secondary-color);
+        }
+
+        /* Section Styles */
+        section {
+            background: white;
+            margin: 30px 0;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--secondary-color);
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            font-size: 1.6rem;
+            margin: 30px 0 20px;
+        }
+
+        h4 {
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            margin: 20px 0 15px;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        .inline-code {
+            background: #f0f2f5;
+            color: var(--accent-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            border-color: var(--secondary-color);
+            color: #1565c0;
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            border-color: var(--success-color);
+            color: #2e7d32;
+        }
+
+        .alert-warning {
+            background: #fff3e0;
+            border-color: var(--warning-color);
+            color: #e65100;
+        }
+
+        .alert-danger {
+            background: #ffebee;
+            border-color: var(--accent-color);
+            color: #c62828;
+        }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid var(--border-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        /* Diagrams */
+        .diagram {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            border: 2px dashed var(--border-color);
+        }
+
+        .mermaid {
+            margin: 20px 0;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        /* Copy Button */
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.3s;
+        }
+
+        .copy-button:hover {
+            background: var(--primary-color);
+        }
+
+        /* Tab System */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-color);
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab:hover {
+            color: var(--secondary-color);
+        }
+
+        .tab.active {
+            color: var(--secondary-color);
+            border-bottom-color: var(--secondary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            nav ul {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            section {
+                padding: 20px;
+            }
+            
+            h2 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#2c3e50',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#3498db',
+                lineColor: '#5D6D7E',
+                secondaryColor: '#3498db',
+                tertiaryColor: '#e74c3c'
+            }
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Storage Subsystem</h1>
+            <p>Complete Guide to Sinkii09 Engine's Save/Load System</p>
+            <p style="margin-top: 10px; opacity: 0.8;">Version 1.0 | Last Updated: January 2025</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#components">Components</a></li>
+                <li><a href="#usage">Usage</a></li>
+                <li><a href="#providers">Providers</a></li>
+                <li><a href="#extending">Extending</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+                <li><a href="#best-practices">Best Practices</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Overview Section -->
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>The Storage Subsystem is a comprehensive save/load solution for the Sinkii09 Engine, providing a flexible, extensible, and platform-agnostic way to persist game data. It supports multiple storage backends, automatic provider discovery, health monitoring, and advanced features like compression, encryption, and cloud synchronization.</p>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h4>Multiple Storage Backends</h4>
+                    <p>Support for local files, cloud storage, PlayerPrefs, and platform-specific solutions</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h4>Automatic Discovery</h4>
+                    <p>Storage providers are discovered automatically using attributes</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏥</div>
+                    <h4>Health Monitoring</h4>
+                    <p>Real-time monitoring of storage provider health and performance</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">☁️</div>
+                    <h4>Cloud Integration</h4>
+                    <p>Built-in support for Google Drive, OneDrive, and other cloud providers</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h4>Security Features</h4>
+                    <p>Optional encryption and integrity checks for save data</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h4>Performance Optimized</h4>
+                    <p>Async operations, compression, and caching for optimal performance</p>
+                </div>
+            </div>
+
+            <h3>Key Features</h3>
+            <ul>
+                <li><strong>Platform-Agnostic Design</strong>: Works across all Unity-supported platforms</li>
+                <li><strong>Extensible Architecture</strong>: Easy to add new storage providers</li>
+                <li><strong>Type-Safe Configuration</strong>: ScriptableObject-based configuration system</li>
+                <li><strong>Async/Await Support</strong>: Built on UniTask for better performance</li>
+                <li><strong>Automatic Backup System</strong>: Create and restore backups easily</li>
+                <li><strong>Comprehensive Error Handling</strong>: Detailed error reporting and recovery</li>
+                <li><strong>Performance Monitoring</strong>: Built-in statistics and metrics</li>
+            </ul>
+        </section>
+
+        <!-- Architecture Section -->
+        <section id="architecture">
+            <h2>System Architecture</h2>
+            
+            <h3>High-Level Architecture</h3>
+            <div class="diagram">
+                <div class="mermaid">
+                graph TB
+                    subgraph "Game Layer"
+                        Game[Game Code]
+                    end
+                    
+                    subgraph "Service Layer"
+                        SLS[SaveLoadService]
+                        SLS --> SM[StorageManager]
+                        SLS --> HM[HealthMonitor]
+                        SLS --> PM[ProviderManager]
+                    end
+                    
+                    subgraph "Provider Layer"
+                        SM --> LFS[LocalFileStorage]
+                        SM --> CS[CloudStorage]
+                        SM --> PPS[PlayerPrefsStorage]
+                        CS --> GDS[GoogleDriveStorage]
+                        CS --> ODS[OneDriveStorage]
+                    end
+                    
+                    subgraph "Data Layer"
+                        LFS --> FS[File System]
+                        CS --> Cloud[Cloud Services]
+                        PPS --> PP[PlayerPrefs]
+                    end
+                    
+                    Game --> SLS
+                    
+                    style Game fill:#e3f2fd
+                    style SLS fill:#3498db,color:#fff
+                    style SM fill:#2ecc71,color:#fff
+                    style HM fill:#f39c12,color:#fff
+                    style PM fill:#9b59b6,color:#fff
+                </div>
+            </div>
+
+            <h3>Component Relationships</h3>
+            <div class="diagram">
+                <div class="mermaid">
+                classDiagram
+                    class ISaveLoadService {
+                        <<interface>>
+                        +SaveAsync(saveId, data) UniTask~SaveResult~
+                        +LoadAsync(saveId) UniTask~LoadResult~
+                        +ExistsAsync(saveId) UniTask~bool~
+                        +DeleteAsync(saveId) UniTask~bool~
+                        +GetAllSavesAsync() UniTask~IReadOnlyList~
+                    }
+                    
+                    class SaveLoadService {
+                        -StorageManager storageManager
+                        -HealthMonitor healthMonitor
+                        -Configuration config
+                        +InitializeAsync() UniTask
+                        +ShutdownAsync() UniTask
+                    }
+                    
+                    class IStorageProvider {
+                        <<interface>>
+                        +ProviderType StorageProviderType
+                        +SaveAsync(saveId, data) UniTask
+                        +LoadAsync(saveId) UniTask
+                        +DeleteAsync(saveId) UniTask
+                        +HealthCheckAsync() UniTask
+                    }
+                    
+                    class LocalFileStorage {
+                        -saveDirectory string
+                        -backupDirectory string
+                        +CreateBackupAsync() UniTask
+                        +RestoreBackupAsync() UniTask
+                    }
+                    
+                    class CloudStorageBase {
+                        <<abstract>>
+                        #credentials CloudCredentials
+                        #authStatus CloudAuthenticationStatus
+                        +AuthenticateAsync() UniTask
+                        +SyncAsync() UniTask
+                    }
+                    
+                    class GoogleDriveStorage {
+                        -apiKey string
+                        -folderId string
+                        +UploadAsync() UniTask
+                        +DownloadAsync() UniTask
+                    }
+                    
+                    ISaveLoadService <|.. SaveLoadService
+                    IStorageProvider <|.. LocalFileStorage
+                    IStorageProvider <|.. CloudStorageBase
+                    CloudStorageBase <|-- GoogleDriveStorage
+                    SaveLoadService --> IStorageProvider
+                </div>
+            </div>
+
+            <h3>Data Flow</h3>
+            <div class="diagram">
+                <div class="mermaid">
+                sequenceDiagram
+                    participant Game
+                    participant SaveLoadService
+                    participant StorageManager
+                    participant Provider
+                    participant Storage
+                    
+                    Game->>SaveLoadService: SaveAsync(data)
+                    SaveLoadService->>SaveLoadService: Validate data
+                    SaveLoadService->>SaveLoadService: Serialize data
+                    SaveLoadService->>StorageManager: SaveAsync(serialized)
+                    StorageManager->>Provider: SaveAsync(data)
+                    Provider->>Storage: Write data
+                    Storage-->>Provider: Success
+                    Provider-->>StorageManager: Result
+                    StorageManager-->>SaveLoadService: Result
+                    SaveLoadService-->>Game: SaveResult
+                </div>
+            </div>
+        </section>
+
+        <!-- Components Section -->
+        <section id="components">
+            <h2>Core Components</h2>
+
+            <h3>SaveLoadService</h3>
+            <p>The main service that provides the high-level API for save/load operations. It handles serialization, compression, encryption, and coordinates with storage providers.</p>
+
+            <h4>Key Responsibilities:</h4>
+            <ul>
+                <li>Data serialization and deserialization</li>
+                <li>Compression and decompression</li>
+                <li>Encryption and decryption (optional)</li>
+                <li>Provider initialization and management</li>
+                <li>Event notifications</li>
+                <li>Statistics tracking</li>
+            </ul>
+
+            <pre><code class="language-csharp">// SaveLoadService API
+public interface ISaveLoadService : IEngineService
+{
+    // Core Operations
+    UniTask&lt;SaveResult&gt; SaveAsync(string saveId, SaveData data, CancellationToken cancellationToken = default);
+    UniTask&lt;LoadResult&lt;T&gt;&gt; LoadAsync&lt;T&gt;(string saveId, CancellationToken cancellationToken = default) where T : SaveData;
+    UniTask&lt;bool&gt; ExistsAsync(string saveId, CancellationToken cancellationToken = default);
+    UniTask&lt;bool&gt; DeleteAsync(string saveId, CancellationToken cancellationToken = default);
+    
+    // Metadata Operations
+    UniTask&lt;IReadOnlyList&lt;SaveMetadata&gt;&gt; GetAllSavesAsync(CancellationToken cancellationToken = default);
+    UniTask&lt;SaveMetadata&gt; GetSaveMetadataAsync(string saveId, CancellationToken cancellationToken = default);
+    
+    // Backup Operations
+    UniTask&lt;bool&gt; CreateBackupAsync(string saveId, CancellationToken cancellationToken = default);
+    UniTask&lt;bool&gt; RestoreBackupAsync(string saveId, string backupId, CancellationToken cancellationToken = default);
+    UniTask&lt;IReadOnlyList&lt;string&gt;&gt; GetBackupsAsync(string saveId, CancellationToken cancellationToken = default);
+    
+    // Utility Operations
+    UniTask&lt;bool&gt; ValidateSaveAsync(string saveId, CancellationToken cancellationToken = default);
+    UniTask&lt;SaveResult&gt; AutoSaveAsync(SaveData data, CancellationToken cancellationToken = default);
+    UniTask&lt;LoadResult&lt;T&gt;&gt; LoadLatestAsync&lt;T&gt;(CancellationToken cancellationToken = default) where T : SaveData;
+    
+    // Statistics
+    SaveLoadServiceStatistics GetStatistics();
+    void ResetStatistics();
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h3>StorageManager</h3>
+            <p>Manages multiple storage providers, handles routing, failover, and aggregates operations across providers.</p>
+
+            <h4>Features:</h4>
+            <ul>
+                <li>Provider registration and lifecycle management</li>
+                <li>Automatic failover between providers</li>
+                <li>Health monitoring integration</li>
+                <li>Aggregated statistics</li>
+                <li>Load balancing (future)</li>
+            </ul>
+
+            <div class="alert alert-info">
+                <strong>Tip:</strong> StorageManager automatically registers a LocalFileStorage provider if no providers are configured, ensuring the system always has at least one functional storage backend.
+            </div>
+
+            <h3>Storage Providers</h3>
+            <p>Storage providers implement the actual storage operations for different backends. Each provider must implement the <code class="inline-code">IStorageProvider</code> interface.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Type</th>
+                        <th>Platforms</th>
+                        <th>Features</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>LocalFileStorage</strong></td>
+                        <td>StorageProviderType.LocalFile</td>
+                        <td>All</td>
+                        <td>File system storage, atomic writes, backup support</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GoogleDriveStorage</strong></td>
+                        <td>StorageProviderType.CloudStorage</td>
+                        <td>Desktop, Mobile</td>
+                        <td>Cloud sync, authentication, conflict resolution</td>
+                    </tr>
+                    <tr>
+                        <td><strong>PlayerPrefsStorage</strong></td>
+                        <td>StorageProviderType.PlayerPrefs</td>
+                        <td>All</td>
+                        <td>Unity PlayerPrefs, size limitations, platform-specific</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SteamCloudStorage</strong></td>
+                        <td>StorageProviderType.Steam</td>
+                        <td>Desktop</td>
+                        <td>Steam Cloud sync, achievements integration</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Health Monitoring</h3>
+            <p>The StorageHealthMonitor continuously monitors the health and performance of storage providers.</p>
+
+            <pre><code class="language-csharp">// Health monitoring configuration
+var healthConfig = new StorageHealthConfiguration
+{
+    MonitoringInterval = TimeSpan.FromSeconds(30),
+    MaxConsecutiveFailures = 3,
+    EnablePerformanceAlerts = true,
+    MinSuccessRate = 0.95,
+    MaxAverageOperationTime = TimeSpan.FromSeconds(5)
+};
+
+// Health report structure
+public class StorageHealthReport
+{
+    public DateTime Timestamp { get; set; }
+    public StorageHealthStatus OverallStatus { get; set; }
+    public List&lt;StorageProviderHealthReport&gt; ProviderReports { get; set; }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h3>Provider Registry</h3>
+            <p>The StorageProviderRegistry automatically discovers and manages storage providers using reflection and attributes.</p>
+
+            <div class="diagram">
+                <div class="mermaid">
+                graph LR
+                    A[Application Start] --> B[Provider Discovery]
+                    B --> C{Has StorageProviderAttribute?}
+                    C -->|Yes| D[Register Provider]
+                    C -->|No| E[Skip]
+                    D --> F[Check Platform Support]
+                    F --> G[Available for Use]
+                </div>
+            </div>
+        </section>
+
+        <!-- Usage Section -->
+        <section id="usage">
+            <h2>Usage Guide</h2>
+
+            <h3>Basic Save/Load Operations</h3>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="showTab(event, 'save-example')">Saving Data</button>
+                <button class="tab" onclick="showTab(event, 'load-example')">Loading Data</button>
+                <button class="tab" onclick="showTab(event, 'exists-example')">Checking Existence</button>
+                <button class="tab" onclick="showTab(event, 'delete-example')">Deleting Saves</button>
+            </div>
+
+            <div id="save-example" class="tab-content active">
+                <pre><code class="language-csharp">// Define your save data class
+[Serializable]
+public class GameSaveData : SaveData
+{
+    public string PlayerName { get; set; }
+    public int Level { get; set; }
+    public float PlayTime { get; set; }
+    public List&lt;string&gt; UnlockedItems { get; set; }
+}
+
+// Save data
+public async UniTask SaveGameAsync()
+{
+    var saveData = new GameSaveData
+    {
+        PlayerName = "Player1",
+        Level = 10,
+        PlayTime = 3600f,
+        UnlockedItems = new List&lt;string&gt; { "sword", "shield", "potion" }
+    };
+    
+    var saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+    var result = await saveLoadService.SaveAsync("save_slot_1", saveData);
+    
+    if (result.Success)
+    {
+        Debug.Log($"Game saved successfully in {result.Duration.TotalMilliseconds}ms");
+        Debug.Log($"Compressed size: {result.CompressedSize} bytes");
+    }
+    else
+    {
+        Debug.LogError($"Save failed: {result.ErrorMessage}");
+    }
+}</code></pre>
+                <button class="copy-button" onclick="copyCode(this)">Copy</button>
+            </div>
+
+            <div id="load-example" class="tab-content">
+                <pre><code class="language-csharp">// Load data
+public async UniTask LoadGameAsync()
+{
+    var saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+    var result = await saveLoadService.LoadAsync&lt;GameSaveData&gt;("save_slot_1");
+    
+    if (result.Success)
+    {
+        var saveData = result.Data;
+        Debug.Log($"Loaded game for player: {saveData.PlayerName}");
+        Debug.Log($"Level: {saveData.Level}, Play time: {saveData.PlayTime}s");
+        
+        // Apply loaded data to game
+        ApplyLoadedData(saveData);
+    }
+    else if (result.NotFound)
+    {
+        Debug.LogWarning("Save file not found");
+    }
+    else
+    {
+        Debug.LogError($"Load failed: {result.ErrorMessage}");
+    }
+}</code></pre>
+                <button class="copy-button" onclick="copyCode(this)">Copy</button>
+            </div>
+
+            <div id="exists-example" class="tab-content">
+                <pre><code class="language-csharp">// Check if save exists
+public async UniTask&lt;bool&gt; HasSaveGameAsync(string saveId)
+{
+    var saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+    return await saveLoadService.ExistsAsync(saveId);
+}
+
+// List all saves
+public async UniTask ListSavesAsync()
+{
+    var saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+    var saves = await saveLoadService.GetAllSavesAsync();
+    
+    foreach (var save in saves)
+    {
+        Debug.Log($"Save: {save.SaveId}");
+        Debug.Log($"  Created: {save.CreatedAt}");
+        Debug.Log($"  Modified: {save.ModifiedAt}");
+        Debug.Log($"  Size: {save.FileSize} bytes");
+    }
+}</code></pre>
+                <button class="copy-button" onclick="copyCode(this)">Copy</button>
+            </div>
+
+            <div id="delete-example" class="tab-content">
+                <pre><code class="language-csharp">// Delete a save
+public async UniTask DeleteSaveAsync(string saveId)
+{
+    var saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+    
+    // Optional: Create backup before deleting
+    await saveLoadService.CreateBackupAsync(saveId);
+    
+    bool deleted = await saveLoadService.DeleteAsync(saveId);
+    
+    if (deleted)
+    {
+        Debug.Log($"Save '{saveId}' deleted successfully");
+    }
+    else
+    {
+        Debug.LogError($"Failed to delete save '{saveId}'");
+    }
+}</code></pre>
+                <button class="copy-button" onclick="copyCode(this)">Copy</button>
+            </div>
+
+            <h3>Advanced Features</h3>
+
+            <h4>Auto-Save System</h4>
+            <pre><code class="language-csharp">// Configure auto-save in SaveLoadServiceConfiguration
+public class AutoSaveManager : MonoBehaviour
+{
+    private float _autoSaveTimer;
+    private ISaveLoadService _saveLoadService;
+    
+    async void Start()
+    {
+        _saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+        var config = Engine.GetConfiguration&lt;SaveLoadServiceConfiguration&gt;();
+        
+        if (config.EnableAutoSave)
+        {
+            InvokeRepeating(nameof(AutoSave), config.AutoSaveInterval, config.AutoSaveInterval);
+        }
+    }
+    
+    async void AutoSave()
+    {
+        var gameData = CollectGameData();
+        var result = await _saveLoadService.AutoSaveAsync(gameData);
+        
+        if (result.Success)
+        {
+            ShowAutoSaveNotification();
+        }
+    }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h4>Backup and Restore</h4>
+            <pre><code class="language-csharp">// Create and manage backups
+public class BackupManager
+{
+    private ISaveLoadService _saveLoadService;
+    
+    public async UniTask CreateBackupAsync(string saveId)
+    {
+        bool success = await _saveLoadService.CreateBackupAsync(saveId);
+        if (success)
+        {
+            Debug.Log($"Backup created for save '{saveId}'");
+        }
+    }
+    
+    public async UniTask ShowBackupsAsync(string saveId)
+    {
+        var backups = await _saveLoadService.GetBackupsAsync(saveId);
+        
+        foreach (var backupId in backups)
+        {
+            var metadata = await _saveLoadService.GetSaveMetadataAsync(backupId);
+            Debug.Log($"Backup: {backupId}, Created: {metadata.CreatedAt}");
+        }
+    }
+    
+    public async UniTask RestoreFromBackupAsync(string saveId, string backupId)
+    {
+        bool success = await _saveLoadService.RestoreBackupAsync(saveId, backupId);
+        if (success)
+        {
+            Debug.Log($"Restored save '{saveId}' from backup '{backupId}'");
+        }
+    }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h4>Cloud Synchronization</h4>
+            <pre><code class="language-csharp">// Using cloud storage providers
+public class CloudSyncManager
+{
+    private GoogleDriveStorage _cloudStorage;
+    
+    public async UniTask SetupCloudSyncAsync()
+    {
+        // Get cloud storage provider
+        var storageManager = Engine.GetService&lt;ISaveLoadService&gt;()
+            .GetStorageManager();
+        
+        _cloudStorage = storageManager.GetProvider&lt;GoogleDriveStorage&gt;();
+        
+        // Authenticate
+        var credentials = new CloudCredentials
+        {
+            AccessToken = PlayerPrefs.GetString("GoogleAccessToken"),
+            RefreshToken = PlayerPrefs.GetString("GoogleRefreshToken")
+        };
+        
+        var authResult = await _cloudStorage.AuthenticateAsync(credentials);
+        
+        if (authResult.Success)
+        {
+            // Start synchronization
+            var syncOptions = new CloudSyncOptions
+            {
+                UploadLocalChanges = true,
+                DownloadCloudChanges = true,
+                DefaultConflictResolution = CloudConflictResolution.KeepNewer
+            };
+            
+            var syncResult = await _cloudStorage.SyncAsync(syncOptions);
+            Debug.Log($"Synced {syncResult.FilesUploaded} uploads, {syncResult.FilesDownloaded} downloads");
+        }
+    }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+        </section>
+
+        <!-- Providers Section -->
+        <section id="providers">
+            <h2>Storage Providers</h2>
+
+            <h3>LocalFileStorage</h3>
+            <p>The default storage provider that saves data to the local file system. It provides robust file operations with atomic writes and automatic backup support.</p>
+
+            <h4>Features:</h4>
+            <ul>
+                <li>Atomic file operations (write to temp, then move)</li>
+                <li>Automatic directory creation</li>
+                <li>Metadata files for save information</li>
+                <li>Built-in backup/restore functionality</li>
+                <li>Cross-platform file path handling</li>
+            </ul>
+
+            <h4>File Structure:</h4>
+            <pre><code>SaveData/
+├── save_slot_1.sav          # Main save file
+├── save_slot_1.meta         # Metadata (JSON)
+├── save_slot_2.sav
+├── save_slot_2.meta
+└── Backups/
+    ├── save_slot_1_backup_20250119_143022.bak
+    └── save_slot_1_backup_20250119_143022.meta</code></pre>
+
+            <div class="alert alert-warning">
+                <strong>Platform Note:</strong> On mobile platforms, files are saved to <code>Application.persistentDataPath</code> to ensure they persist between app updates.
+            </div>
+
+            <h3>Cloud Storage Providers</h3>
+            <p>Cloud storage providers extend the <code class="inline-code">CloudStorageBase</code> class and add cloud-specific functionality.</p>
+
+            <h4>Common Cloud Features:</h4>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Authentication</h4>
+                    <p>OAuth2 authentication with token refresh</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Synchronization</h4>
+                    <p>Bi-directional sync with conflict resolution</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Quota Management</h4>
+                    <p>Monitor and manage cloud storage usage</p>
+                </div>
+            </div>
+
+            <h4>GoogleDriveStorage Example:</h4>
+            <pre><code class="language-csharp">[StorageProvider(StorageProviderType.CloudStorage,
+    Description = "Google Drive cloud storage provider",
+    RequiresAuthentication = true,
+    SupportedPlatforms = SupportedPlatform.Desktop | SupportedPlatform.Mobile)]
+public class GoogleDriveStorage : CloudStorageBase
+{
+    public override StorageProviderType ProviderType => StorageProviderType.CloudStorage;
+    public override CloudProviderType CloudProvider => CloudProviderType.GoogleDrive;
+    
+    protected override async UniTask InitializeCloudProviderAsync(CancellationToken cancellationToken)
+    {
+        // Initialize Google Drive API
+        // Set up authentication
+        // Create or locate save folder
+    }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h3>Platform-Specific Providers</h3>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Platform</th>
+                        <th>Provider</th>
+                        <th>Storage Location</th>
+                        <th>Limitations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Steam</td>
+                        <td>SteamCloudStorage</td>
+                        <td>Steam Cloud</td>
+                        <td>1GB per game, requires Steamworks</td>
+                    </tr>
+                    <tr>
+                        <td>PlayStation</td>
+                        <td>PSNStorage</td>
+                        <td>PlayStation Cloud</td>
+                        <td>Platform certification required</td>
+                    </tr>
+                    <tr>
+                        <td>Xbox</td>
+                        <td>XboxLiveStorage</td>
+                        <td>Xbox Cloud</td>
+                        <td>Connected storage, requires Xbox Live</td>
+                    </tr>
+                    <tr>
+                        <td>WebGL</td>
+                        <td>IndexedDBStorage</td>
+                        <td>Browser IndexedDB</td>
+                        <td>Storage limits vary by browser</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Extending Section -->
+        <section id="extending">
+            <h2>Extending the System</h2>
+
+            <h3>Creating a Custom Storage Provider</h3>
+            <p>Follow these steps to create your own storage provider:</p>
+
+            <h4>Step 1: Create the Provider Class</h4>
+            <pre><code class="language-csharp">using System;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+namespace Sinkii09.Engine.Services
+{
+    [StorageProvider(StorageProviderType.Custom,
+        Description = "My custom storage provider",
+        SupportedPlatforms = SupportedPlatform.All)]
+    public class MyCustomStorage : IStorageProvider
+    {
+        public StorageProviderType ProviderType => StorageProviderType.Custom;
+        public StorageHealthStatus HealthStatus { get; private set; }
+        
+        private bool _isInitialized;
+        private string _storagePath;
+        
+        public async UniTask&lt;StorageInitializationResult&gt; InitializeAsync(
+            StorageProviderConfiguration configuration, 
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // Initialize your storage backend
+                _storagePath = configuration.BasePath;
+                
+                // Perform any necessary setup
+                await SetupStorageBackendAsync(cancellationToken);
+                
+                _isInitialized = true;
+                HealthStatus = StorageHealthStatus.Healthy;
+                
+                return StorageInitializationResult.CreateSuccess(TimeSpan.Zero);
+            }
+            catch (Exception ex)
+            {
+                HealthStatus = StorageHealthStatus.Unhealthy;
+                return StorageInitializationResult.CreateFailure(ex.Message, ex);
+            }
+        }
+        
+        public async UniTask&lt;StorageOperationResult&gt; SaveAsync(
+            string saveId, 
+            byte[] data, 
+            SaveMetadata metadata = null, 
+            CancellationToken cancellationToken = default)
+        {
+            ValidateInitialization();
+            
+            try
+            {
+                // Implement your save logic
+                await WriteDataToBackendAsync(saveId, data, cancellationToken);
+                
+                return StorageOperationResult.CreateSuccess(
+                    TimeSpan.FromMilliseconds(100), 
+                    data.Length);
+            }
+            catch (Exception ex)
+            {
+                return StorageOperationResult.CreateFailure(ex.Message, ex);
+            }
+        }
+        
+        public async UniTask&lt;StorageLoadResult&gt; LoadAsync(
+            string saveId, 
+            CancellationToken cancellationToken = default)
+        {
+            ValidateInitialization();
+            
+            try
+            {
+                // Implement your load logic
+                var data = await ReadDataFromBackendAsync(saveId, cancellationToken);
+                var metadata = await ReadMetadataAsync(saveId, cancellationToken);
+                
+                return StorageLoadResult.CreateSuccess(
+                    data, 
+                    metadata, 
+                    TimeSpan.FromMilliseconds(100));
+            }
+            catch (Exception ex)
+            {
+                return StorageLoadResult.CreateFailure(ex.Message, ex);
+            }
+        }
+        
+        // Implement other required methods...
+        
+        private void ValidateInitialization()
+        {
+            if (!_isInitialized)
+                throw new InvalidOperationException("Storage provider not initialized");
+        }
+    }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h4>Step 2: Add to StorageProviderType Enum</h4>
+            <pre><code class="language-csharp">// In StorageProviderType.cs
+[Flags]
+public enum StorageProviderType
+{
+    None = 0,
+    LocalFile = 1 << 0,
+    CloudStorage = 1 << 1,
+    PlayerPrefs = 1 << 2,
+    Steam = 1 << 3,
+    GooglePlay = 1 << 4,
+    Custom = 1 << 5,  // Add your custom type
+    
+    // Update combinations if needed
+    All = LocalFile | CloudStorage | PlayerPrefs | Steam | GooglePlay | Custom,
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h4>Step 3: Configure Provider Settings (Optional)</h4>
+            <pre><code class="language-csharp">// In SaveLoadService.ConfigureProviderSettings method
+case StorageProviderType.Custom:
+    config.Settings["CustomSetting1"] = "value1";
+    config.Settings["CustomSetting2"] = 12345;
+    config.Settings["EnableFeatureX"] = true;
+    break;</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h3>Creating Custom Save Data Types</h3>
+            <p>Extend the <code class="inline-code">SaveData</code> base class to create type-safe save data structures:</p>
+
+            <pre><code class="language-csharp">[Serializable]
+public abstract class SaveData
+{
+    public string SaveVersion { get; set; } = "1.0";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
+}
+
+[Serializable]
+public class PlayerProgressData : SaveData
+{
+    public int CurrentLevel { get; set; }
+    public float[] LevelCompletionTimes { get; set; }
+    public Dictionary&lt;string, bool&gt; Achievements { get; set; }
+    public PlayerStats Stats { get; set; }
+}
+
+[Serializable]
+public class SettingsData : SaveData
+{
+    public float MasterVolume { get; set; } = 1.0f;
+    public float MusicVolume { get; set; } = 0.8f;
+    public float SFXVolume { get; set; } = 1.0f;
+    public int GraphicsQuality { get; set; } = 2;
+    public bool EnableVSync { get; set; } = true;
+    public string Language { get; set; } = "en-US";
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h3>Custom Serialization</h3>
+            <p>Implement custom serialization for complex data types:</p>
+
+            <pre><code class="language-csharp">public class CustomDataSerializer : IBinarySerializer
+{
+    public async UniTask&lt;SerializationResult&gt; SerializeAsync&lt;T&gt;(
+        T data, 
+        SerializationContext context, 
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Custom serialization logic
+            byte[] serializedData;
+            
+            if (context.EnableCompression)
+            {
+                serializedData = await CompressDataAsync(data, cancellationToken);
+            }
+            else
+            {
+                serializedData = await SerializeToByteArrayAsync(data, cancellationToken);
+            }
+            
+            return SerializationResult.CreateSuccess(
+                serializedData, 
+                originalSize: GetObjectSize(data),
+                serializedSize: serializedData.Length);
+        }
+        catch (Exception ex)
+        {
+            return SerializationResult.CreateFailure(ex.Message, ex);
+        }
+    }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+        </section>
+
+        <!-- Configuration Section -->
+        <section id="configuration">
+            <h2>Configuration</h2>
+
+            <h3>SaveLoadServiceConfiguration</h3>
+            <p>The storage subsystem is configured through a ScriptableObject-based configuration system.</p>
+
+            <div class="diagram">
+                <div class="mermaid">
+                graph LR
+                    A[SaveLoadServiceConfiguration] --> B[Storage Settings]
+                    A --> C[Performance Settings]
+                    A --> D[Security Settings]
+                    A --> E[Auto-Save Settings]
+                    A --> F[Validation Settings]
+                    A --> G[Error Handling]
+                    A --> H[Debug Settings]
+                </div>
+            </div>
+
+            <h4>Configuration Properties:</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Property</th>
+                        <th>Default</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="5"><strong>Storage</strong></td>
+                        <td>SaveDirectoryPath</td>
+                        <td>"SaveData"</td>
+                        <td>Base directory for save files</td>
+                    </tr>
+                    <tr>
+                        <td>BackupDirectoryPath</td>
+                        <td>"SaveData/Backups"</td>
+                        <td>Directory for backup files</td>
+                    </tr>
+                    <tr>
+                        <td>EnabledStorageProviders</td>
+                        <td>LocalFile</td>
+                        <td>Flags enum of enabled providers</td>
+                    </tr>
+                    <tr>
+                        <td>MaxSaveSlots</td>
+                        <td>10</td>
+                        <td>Maximum number of save slots</td>
+                    </tr>
+                    <tr>
+                        <td>MaxBackupsPerSave</td>
+                        <td>5</td>
+                        <td>Maximum backups per save file</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="6"><strong>Performance</strong></td>
+                        <td>EnableCaching</td>
+                        <td>true</td>
+                        <td>Enable in-memory caching</td>
+                    </tr>
+                    <tr>
+                        <td>MaxCacheSize</td>
+                        <td>50</td>
+                        <td>Maximum cached saves</td>
+                    </tr>
+                    <tr>
+                        <td>EnableCompression</td>
+                        <td>true</td>
+                        <td>Enable data compression</td>
+                    </tr>
+                    <tr>
+                        <td>CompressionLevel</td>
+                        <td>6</td>
+                        <td>Compression level (0-9)</td>
+                    </tr>
+                    <tr>
+                        <td>EnableBackgroundSaving</td>
+                        <td>true</td>
+                        <td>Async background saves</td>
+                    </tr>
+                    <tr>
+                        <td>MaxConcurrentOperations</td>
+                        <td>4</td>
+                        <td>Max parallel operations</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="5"><strong>Security</strong></td>
+                        <td>EnableEncryption</td>
+                        <td>false</td>
+                        <td>Enable save encryption</td>
+                    </tr>
+                    <tr>
+                        <td>EncryptionAlgorithm</td>
+                        <td>"AES-256-GCM"</td>
+                        <td>Encryption algorithm</td>
+                    </tr>
+                    <tr>
+                        <td>EnableIntegrityChecks</td>
+                        <td>true</td>
+                        <td>Verify save integrity</td>
+                    </tr>
+                    <tr>
+                        <td>EnableMagicBytes</td>
+                        <td>true</td>
+                        <td>Add file signature</td>
+                    </tr>
+                    <tr>
+                        <td>MagicBytesSignature</td>
+                        <td>0xAA</td>
+                        <td>File signature byte</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Creating Configuration</h3>
+            <pre><code class="language-csharp">// Create configuration asset in Unity
+[CreateAssetMenu(fileName = "SaveLoadServiceConfiguration", 
+                 menuName = "Engine/Services/SaveLoadService Configuration")]
+public class SaveLoadServiceConfiguration : ServiceConfigurationBase
+{
+    // Configuration is created in Unity Editor
+    // Assets > Create > Engine > Services > SaveLoadService Configuration
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h3>Runtime Configuration</h3>
+            <pre><code class="language-csharp">// Access configuration at runtime
+var config = Engine.GetConfiguration&lt;SaveLoadServiceConfiguration&gt;();
+
+// Modify settings (before service initialization)
+config.EnableCompression = true;
+config.CompressionLevel = 9; // Maximum compression
+config.EnabledStorageProviders = StorageProviderType.LocalFile | StorageProviderType.CloudStorage;
+
+// Some settings can be changed at runtime
+var saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+saveLoadService.SetDebugLogging(true);</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+        </section>
+
+        <!-- Best Practices Section -->
+        <section id="best-practices">
+            <h2>Best Practices</h2>
+
+            <h3>Save Data Design</h3>
+            <div class="alert alert-success">
+                <h4>✅ DO:</h4>
+                <ul>
+                    <li>Keep save data classes simple and serializable</li>
+                    <li>Version your save data for backward compatibility</li>
+                    <li>Use primitive types and simple collections when possible</li>
+                    <li>Separate game progress from settings data</li>
+                    <li>Implement data validation in your save classes</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-danger">
+                <h4>❌ DON'T:</h4>
+                <ul>
+                    <li>Save references to Unity objects (use IDs instead)</li>
+                    <li>Include transient or calculated data</li>
+                    <li>Use complex nested structures unnecessarily</li>
+                    <li>Save sensitive information without encryption</li>
+                    <li>Assume save/load operations are instant</li>
+                </ul>
+            </div>
+
+            <h3>Performance Optimization</h3>
+            <pre><code class="language-csharp">// 1. Use async operations properly
+public async UniTask SaveAllGameDataAsync()
+{
+    var tasks = new List&lt;UniTask&lt;SaveResult&gt;&gt;();
+    
+    // Save different data types in parallel
+    tasks.Add(_saveLoadService.SaveAsync("player", _playerData));
+    tasks.Add(_saveLoadService.SaveAsync("settings", _settingsData));
+    tasks.Add(_saveLoadService.SaveAsync("progress", _progressData));
+    
+    var results = await UniTask.WhenAll(tasks);
+    
+    // Check all results
+    foreach (var result in results)
+    {
+        if (!result.Success)
+        {
+            Debug.LogError($"Save failed: {result.ErrorMessage}");
+        }
+    }
+}
+
+// 2. Implement save data pooling for frequently saved data
+public class SaveDataPool&lt;T&gt; where T : SaveData, new()
+{
+    private readonly Stack&lt;T&gt; _pool = new Stack&lt;T&gt;();
+    
+    public T Get()
+    {
+        return _pool.Count > 0 ? _pool.Pop() : new T();
+    }
+    
+    public void Return(T item)
+    {
+        // Reset item state
+        item.ModifiedAt = DateTime.UtcNow;
+        _pool.Push(item);
+    }
+}
+
+// 3. Use compression wisely
+var config = new SaveLoadServiceConfiguration
+{
+    EnableCompression = true,
+    CompressionLevel = 6, // Balance between speed and size
+    // Only compress large saves
+    MinCompressionSize = 1024 // 1KB
+};</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h3>Error Handling</h3>
+            <pre><code class="language-csharp">public class SaveGameManager
+{
+    private readonly ISaveLoadService _saveLoadService;
+    private readonly int _maxRetries = 3;
+    
+    public async UniTask&lt;bool&gt; SaveWithRetryAsync(string saveId, SaveData data)
+    {
+        for (int attempt = 0; attempt < _maxRetries; attempt++)
+        {
+            try
+            {
+                var result = await _saveLoadService.SaveAsync(saveId, data);
+                
+                if (result.Success)
+                {
+                    return true;
+                }
+                
+                // Log error and retry
+                Debug.LogWarning($"Save attempt {attempt + 1} failed: {result.ErrorMessage}");
+                
+                // Wait before retry with exponential backoff
+                await UniTask.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Save exception on attempt {attempt + 1}: {ex.Message}");
+                
+                if (attempt == _maxRetries - 1)
+                {
+                    // Final attempt failed, handle critical error
+                    HandleCriticalSaveError(ex);
+                    return false;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    private void HandleCriticalSaveError(Exception ex)
+    {
+        // Show user notification
+        // Log to analytics
+        // Attempt emergency backup
+        // Consider switching to alternative storage provider
+    }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+
+            <h3>Security Considerations</h3>
+            <ul>
+                <li><strong>Encryption:</strong> Enable encryption for sensitive data like player progress or in-app purchases</li>
+                <li><strong>Integrity Checks:</strong> Use checksums to detect save file tampering</li>
+                <li><strong>Backup Strategy:</strong> Maintain multiple backups and validate before overwriting</li>
+                <li><strong>Cloud Security:</strong> Use secure authentication and never store credentials in code</li>
+                <li><strong>Data Privacy:</strong> Follow platform guidelines for data collection and storage</li>
+            </ul>
+
+            <h3>Platform-Specific Guidelines</h3>
+            
+            <h4>Mobile (iOS/Android)</h4>
+            <ul>
+                <li>Use <code>Application.persistentDataPath</code> for save location</li>
+                <li>Handle app suspension gracefully</li>
+                <li>Implement iCloud/Google Play Games sync</li>
+                <li>Consider storage limitations on older devices</li>
+            </ul>
+
+            <h4>Console (PlayStation/Xbox/Switch)</h4>
+            <ul>
+                <li>Follow platform certification requirements</li>
+                <li>Use platform-specific save systems</li>
+                <li>Handle user switching properly</li>
+                <li>Implement proper save icons and metadata</li>
+            </ul>
+
+            <h4>WebGL</h4>
+            <ul>
+                <li>Use IndexedDB for larger saves</li>
+                <li>Implement fallback to LocalStorage</li>
+                <li>Handle browser storage limits</li>
+                <li>Consider cloud backup for persistence</li>
+            </ul>
+
+            <h3>Testing Storage Providers</h3>
+            <pre><code class="language-csharp">[TestFixture]
+public class StorageProviderTests
+{
+    private ISaveLoadService _saveLoadService;
+    private TestSaveData _testData;
+    
+    [SetUp]
+    public async Task Setup()
+    {
+        // Initialize service with test configuration
+        var config = ScriptableObject.CreateInstance&lt;SaveLoadServiceConfiguration&gt;();
+        config.SaveDirectoryPath = "TestSaves";
+        config.EnabledStorageProviders = StorageProviderType.LocalFile;
+        
+        _saveLoadService = new SaveLoadService(config);
+        await _saveLoadService.InitializeAsync(new ServiceProvider(), CancellationToken.None);
+        
+        _testData = new TestSaveData
+        {
+            TestString = "Hello, World!",
+            TestInt = 42,
+            TestFloat = 3.14f
+        };
+    }
+    
+    [Test]
+    public async Task SaveAndLoad_ShouldPreserveData()
+    {
+        // Save
+        var saveResult = await _saveLoadService.SaveAsync("test_save", _testData);
+        Assert.IsTrue(saveResult.Success);
+        
+        // Load
+        var loadResult = await _saveLoadService.LoadAsync&lt;TestSaveData&gt;("test_save");
+        Assert.IsTrue(loadResult.Success);
+        Assert.NotNull(loadResult.Data);
+        
+        // Verify data
+        Assert.AreEqual(_testData.TestString, loadResult.Data.TestString);
+        Assert.AreEqual(_testData.TestInt, loadResult.Data.TestInt);
+        Assert.AreEqual(_testData.TestFloat, loadResult.Data.TestFloat, 0.001f);
+    }
+    
+    [TearDown]
+    public async Task Teardown()
+    {
+        await _saveLoadService.ShutdownAsync(CancellationToken.None);
+        // Clean up test files
+        Directory.Delete("TestSaves", true);
+    }
+}</code></pre>
+            <button class="copy-button" onclick="copyCode(this)">Copy</button>
+        </section>
+
+        <!-- Footer -->
+        <footer style="text-align: center; padding: 40px; color: #666; background: white; margin-top: 60px;">
+            <p>Sinkii09 Engine Storage Subsystem Documentation</p>
+            <p>© 2025 Sinkii09 Engine. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Tab functionality
+        function showTab(evt, tabName) {
+            var i, tabcontent, tabs;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tabs = document.getElementsByClassName("tab");
+            for (i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Copy code functionality
+        function copyCode(button) {
+            const codeBlock = button.previousElementSibling;
+            const code = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(code).then(function() {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.background = '#27ae60';
+                
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add syntax highlighting (you would need to include a library like Prism.js)
+        // This is a placeholder for demonstration
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize any syntax highlighting library here
+        });
+    </script>
+</body>
+</html>

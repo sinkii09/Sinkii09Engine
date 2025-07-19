@@ -18,6 +18,7 @@ namespace Sinkii09.Engine.Services
         public string ThumbnailData { get; set; }
         public bool IsAutoSave { get; set; }
         public bool IsBackup { get; set; }
+        public bool IsCompressed { get; set; }
         public string OriginalSaveId { get; set; }
         public int PlayTime { get; set; }
         public string Platform { get; set; }

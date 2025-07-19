@@ -21,7 +21,7 @@ namespace Sinkii09.Engine.Services
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
-        public UniTask<ServiceHealthStatus> HealthCheckAsync()
+        public UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
             return UniTask.FromResult(ServiceHealthStatus.Unknown("ActorService health check not implemented"));
         }
