@@ -14,6 +14,16 @@ namespace Sinkii09.Engine
 {
     public class Engine
     {
+        /// <summary>
+        /// Fired when all services have been initialized
+        /// </summary>
+        public static event Action<ServiceInitializationReport> EngineInitialized;
+
+        /// <summary>
+        /// Fired when the engine is about to shutdown
+        /// </summary>
+        public static event Action EngineShuttingDown;
+
         /// <summary>  
         /// Whether the engine is initialized and ready.  
         /// </summary>  
@@ -164,7 +174,9 @@ namespace Sinkii09.Engine
         public static async UniTask TerminateAsync()
         {
             Debug.Log("Terminating Engine...");
-            
+
+            EngineShuttingDown?.Invoke();
+
             // Cancel any ongoing operations
             terminationCTS?.Cancel();
             
@@ -290,6 +302,8 @@ namespace Sinkii09.Engine
                     }
                     Debug.Log($"Initialize Time: {report.TotalTime.TotalMilliseconds} ms");
                     initializeTCS?.TrySetResult(null);
+
+                    EngineInitialized?.Invoke(report);
                 }
                 else
                 {
@@ -595,19 +609,6 @@ namespace Sinkii09.Engine
             
             return await saveService.GetAllSavesAsync(cancellationToken);
         }
-        
-        /// <summary>
-        /// Auto-save data
-        /// </summary>
-        public static async UniTask<SaveResult> AutoSaveAsync(SaveData data, CancellationToken cancellationToken = default)
-        {
-            var saveService = GetService<ISaveLoadService>();
-            if (saveService == null)
-                throw new InvalidOperationException("SaveLoadService is not available");
-            
-            return await saveService.AutoSaveAsync(data, cancellationToken);
-        }
-        
         /// <summary>
         /// Load the latest save
         /// </summary>

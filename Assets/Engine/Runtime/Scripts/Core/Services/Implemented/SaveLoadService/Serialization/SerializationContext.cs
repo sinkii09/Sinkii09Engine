@@ -178,7 +178,7 @@ namespace Sinkii09.Engine.Services
         /// <summary>
         /// Create context for save operation
         /// </summary>
-        public static SerializationContext ForSave(string saveId, Type dataType, bool enableCompression = true, bool enableValidation = true)
+        public static SerializationContext ForSave(string saveId, Type dataType, bool enableCompression = true, CompressionLevel compressionLevel = CompressionLevel.Balanced, bool enableValidation = true)
         {
             var context = new SerializationContext
             {
@@ -187,6 +187,7 @@ namespace Sinkii09.Engine.Services
                 Settings = new SerializationSettings
                 {
                     EnableCompression = enableCompression,
+                    CompressionLevel = compressionLevel,
                     EnableValidation = enableValidation,
                     IncludeMagicBytes = true,
                     IncludeMetadata = true

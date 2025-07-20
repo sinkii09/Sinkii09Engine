@@ -41,7 +41,7 @@ namespace Sinkii09.Engine.Services
                 // Skip compression for very small data
                 if (data.Length < MIN_COMPRESSION_SIZE)
                 {
-                    return CompressionResult.CreateSuccess(data, stopwatch.Elapsed, CompressionAlgorithm.None, 0, data.Length, data.Length);
+                    return CompressionResult.CreateSuccess(AddCompressionMarker(CompressionAlgorithm.None,data), stopwatch.Elapsed, CompressionAlgorithm.None, 0, data.Length, data.Length);
                 }
                 
                 byte[] compressedData;

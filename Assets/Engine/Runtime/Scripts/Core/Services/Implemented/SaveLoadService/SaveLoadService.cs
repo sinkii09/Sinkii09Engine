@@ -241,7 +241,7 @@ namespace Sinkii09.Engine.Services
 
                 // Create serialization context
                 var context = SerializationContext.ForSave(saveId, data.GetType(),
-                    _config.EnableCompression, _config.EnableValidation);
+                    _config.EnableCompression, _config.CompressionLevel, _config.EnableValidation);
 
                 // Serialize data
                 var serializationResult = await _serializer.SerializeAsync(data, context, cancellationToken);
@@ -498,15 +498,6 @@ namespace Sinkii09.Engine.Services
                 }
                 return false;
             }
-        }
-
-        public async UniTask<SaveResult> AutoSaveAsync(SaveData data, CancellationToken cancellationToken = default)
-        {
-            if (!_config.EnableAutoSave)
-                throw new InvalidOperationException("Auto-save is disabled in configuration");
-
-            var autoSaveId = $"autosave_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
-            return await SaveAsync(autoSaveId, data, cancellationToken);
         }
 
         public async UniTask<LoadResult<T>> LoadLatestAsync<T>(CancellationToken cancellationToken = default) where T : SaveData

@@ -19,22 +19,13 @@ namespace Sinkii09.Engine.Services
         [SerializeField] private bool _enableCaching = true;
         [SerializeField] private int _maxCacheSize = 50;
         [SerializeField] private bool _enableCompression = true;
-        [SerializeField] private int _compressionLevel = 6;
+        [SerializeField] private CompressionLevel _compressionLevel = CompressionLevel.Balanced;
         [SerializeField] private bool _enableBackgroundSaving = true;
         [SerializeField] private int _maxConcurrentOperations = 4;
         
         [Header("Security Settings")]
         [SerializeField] private SecurityConfiguration _securityConfiguration;
         [SerializeField] private bool _enableEncryption = false;
-        [SerializeField] private bool _enableIntegrityChecks = true;
-        [SerializeField] private bool _enableMagicBytes = true;
-        
-        [Header("Auto-Save Settings")]
-        [SerializeField] private bool _enableAutoSave = true;
-        [SerializeField] private float _autoSaveInterval = 300f; // 5 minutes
-        [SerializeField] private int _maxAutoSaves = 3;
-        [SerializeField] private bool _autoSaveOnSceneChange = true;
-        [SerializeField] private bool _autoSaveOnApplicationPause = true;
         
         [Header("Validation Settings")]
         [SerializeField] private bool _enableValidation = true;
@@ -63,21 +54,13 @@ namespace Sinkii09.Engine.Services
         public bool EnableCaching => _enableCaching;
         public int MaxCacheSize => _maxCacheSize;
         public bool EnableCompression => _enableCompression;
-        public int CompressionLevel => _compressionLevel;
+        public CompressionLevel CompressionLevel => _compressionLevel;
         public bool EnableBackgroundSaving => _enableBackgroundSaving;
         public int MaxConcurrentOperations => _maxConcurrentOperations;
         
         public SecurityConfiguration SecurityConfiguration => _securityConfiguration;
         public bool EnableEncryption => _enableEncryption || (_securityConfiguration?.EnableEncryption ?? false);
-        public bool EnableIntegrityChecks => _enableIntegrityChecks;
-        public bool EnableMagicBytes => _enableMagicBytes;
-        
-        public bool EnableAutoSave => _enableAutoSave;
-        public float AutoSaveInterval => _autoSaveInterval;
-        public int MaxAutoSaves => _maxAutoSaves;
-        public bool AutoSaveOnSceneChange => _autoSaveOnSceneChange;
-        public bool AutoSaveOnApplicationPause => _autoSaveOnApplicationPause;
-        
+
         public bool EnableValidation => _enableValidation;
         public bool ValidateOnLoad => _validateOnLoad;
         public bool ValidateOnSave => _validateOnSave;
@@ -113,9 +96,6 @@ namespace Sinkii09.Engine.Services
             if (_maxCacheSize <= 0)
                 errors.Add("Max cache size must be greater than 0");
             
-            if (_compressionLevel < 0 || _compressionLevel > 9)
-                errors.Add("Compression level must be between 0 and 9");
-            
             if (_maxConcurrentOperations <= 0)
                 errors.Add("Max concurrent operations must be greater than 0");
             
@@ -129,12 +109,6 @@ namespace Sinkii09.Engine.Services
                     errors.AddRange(securityErrors);
                 }
             }
-            
-            if (_autoSaveInterval <= 0)
-                errors.Add("Auto save interval must be greater than 0");
-            
-            if (_maxAutoSaves < 0)
-                errors.Add("Max auto saves cannot be negative");
             
             if (_maxRetryAttempts < 0)
                 errors.Add("Max retry attempts cannot be negative");
@@ -161,17 +135,10 @@ namespace Sinkii09.Engine.Services
             _enableCaching = true;
             _maxCacheSize = 50;
             _enableCompression = true;
-            _compressionLevel = 6;
+            _compressionLevel = CompressionLevel.Balanced;
             _enableBackgroundSaving = true;
             _maxConcurrentOperations = 4;
             _enableEncryption = false;
-            _enableIntegrityChecks = true;
-            _enableMagicBytes = true;
-            _enableAutoSave = true;
-            _autoSaveInterval = 300f;
-            _maxAutoSaves = 3;
-            _autoSaveOnSceneChange = true;
-            _autoSaveOnApplicationPause = true;
             _enableValidation = true;
             _validateOnLoad = true;
             _validateOnSave = true;
