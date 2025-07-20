@@ -22,8 +22,6 @@ namespace Sinkii09.Engine.Services
 
         UniTask<bool> ValidateSaveAsync(string saveId, CancellationToken cancellationToken = default);
 
-        UniTask<SaveResult> AutoSaveAsync(SaveData data, CancellationToken cancellationToken = default);
-
         UniTask<LoadResult<T>> LoadLatestAsync<T>(CancellationToken cancellationToken = default) where T : SaveData;
 
         UniTask<bool> CreateBackupAsync(string saveId, CancellationToken cancellationToken = default);

@@ -646,8 +646,7 @@ namespace Sinkii09.Engine.Services
                 settings = new
                 {
                     compression = context.Settings.EnableCompression,
-                    compressionLevel = (int)context.Settings.CompressionLevel,
-                    compressionAlgorithm = context.Settings.CompressionAlgorithm.ToString(),
+                    compressionLevel = context.Settings.CompressionLevel,
                     encoding = context.Settings.EncodingType
                 }
             };

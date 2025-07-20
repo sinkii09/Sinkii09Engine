@@ -71,11 +71,11 @@ namespace Sinkii09.Engine.Services
         /// <summary>
         /// Constructor with common parameters
         /// </summary>
-        public EngineServiceAttribute(ServicePriority priority, params Type[] requiredServices)
-        {
-            Priority = priority;
-            RequiredServices = requiredServices ?? Array.Empty<Type>();
-        }
+        //public EngineServiceAttribute(ServicePriority priority, params Type[] requiredServices)
+        //{
+        //    Priority = priority;
+        //    RequiredServices = requiredServices ?? Array.Empty<Type>();
+        //}
         
         /// <summary>
         /// Constructor with category and priority

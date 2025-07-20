@@ -19,6 +19,7 @@ namespace Sinkii09.Engine.Services
         public ActorService(ActorServiceConfiguration config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+
         }
 
         public UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
@@ -56,16 +57,7 @@ namespace Sinkii09.Engine.Services
         private async UniTask InitializeActorPool(CancellationToken cancellationToken)
         {
             Debug.Log($"Creating actor pool '{_config.ActorPoolName}' with {_config.InitialPoolSize} initial actors (max: {_config.MaxActors})");
-
-            // Simulate actor pool initialization
-            for (int i = 0; i < _config.InitialPoolSize; i++)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    break;
-
-                // Simulate async actor creation with spawn delay
-                await UniTask.Delay((int)(_config.ActorSpawnDelay * 1000), cancellationToken: cancellationToken);
-            }
+            await UniTask.CompletedTask;
         }
 
         private void SetupCleanupTimer()
