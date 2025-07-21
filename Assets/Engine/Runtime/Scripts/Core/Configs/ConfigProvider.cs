@@ -30,7 +30,7 @@ namespace Sinkii09.Engine.Configs
         public ConfigProvider(string resourcePath = DEFAULT_CONFIG_PATH)
         {
             _resourcePath = resourcePath;
-            LoadAllConfigurations();
+            //LoadAllConfigurations();
         }
 
         private void LoadAllConfigurations()
