@@ -45,3 +45,16 @@ ProjectSettings/EditorSettings.asset
 ProjectSettings/Layouts/
 ProjectSettings/VersionControlSettings.asset
 
+# DOTween Pro (paid asset - licensing restrictions)
+Demigiant.meta
+Assets/Plugins/Demigiant/
+Assets/DOTween*/
+*DOTween*.dll
+*DOTween*.meta
+*DOTween*.asset
+Plugins/DOTween*/
+
+# Other paid assets and third-party plugins
+Assets/AssetStoreTools/
+Assets/StreamingAssets/
+
