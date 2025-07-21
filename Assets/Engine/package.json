@@ -1,21 +1,58 @@
 {
   "name": "com.sinkii09.engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "Sinkii09 Engine",
-  "description": "Reusable core systems used across multiple projects.",
-  "unity": "2021.3",
+  "description": "A comprehensive, service-oriented game engine framework with advanced actor management, resource handling, and save/load systems. Features strongly-typed APIs, DOTween integration, and modern async/await patterns. Supports both DOTween (free) and DOTween Pro with automatic feature detection.",
+  "unity": "6000.0",
   "unityRelease": "0f1",
   "author": {
-    "name": "Sinkii09"
+    "name": "Sinkii09",
+    "email": "contact@sinkii09.dev",
+    "url": "https://github.com/sinkii09"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sinkii09/engine.git"
+  },
+  "license": "MIT",
   "dependencies": {
-
+    "com.cysharp.unitask": "2.3.3",
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
+  "optionalDependencies": {
+    "dotween": {
+      "name": "DOTween (Free or Pro)",
+      "source": "Unity Asset Store",
+      "urls": {
+        "free": "https://assetstore.unity.com/packages/tools/animation/dotween-hotween-v2-27676",
+        "pro": "https://assetstore.unity.com/packages/tools/animation/dotween-pro-32416"
+      },
+      "required": false,
+      "fallback": "Unity Animation System",
+      "features": {
+        "free": "Basic tweening, standard easing functions, sequence support",
+        "pro": "Advanced features: custom easing curves, timeline editor, visual scripting, enhanced performance"
+      },
+      "recommendation": "DOTween Pro recommended for best performance and features, but DOTween Free is fully supported"
+    }
   },
   "keywords": [
     "engine",
     "core",
     "framework",
-    "utilities",
-    "systems"
-  ]
+    "services",
+    "dependency-injection",
+    "actor-system",
+    "resource-management",
+    "save-load",
+    "async-await",
+    "dotween",
+    "visual-novel",
+    "game-engine",
+    "unity",
+    "performance",
+    "memory-management",
+    "configuration"
+  ],
+  "changelog": "CHANGELOG.md"
 }
