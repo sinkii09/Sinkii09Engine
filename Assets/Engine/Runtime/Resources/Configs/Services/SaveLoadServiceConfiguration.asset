@@ -12,12 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7e85fdc8f88f1d4d95aba27eff77952, type: 3}
   m_Name: SaveLoadServiceConfiguration
   m_EditorClassIdentifier: 
-  _version: 1
+  _version: 22
   _description: Service configuration
   _saveDirectoryPath: SaveData
   _backupDirectoryPath: SaveData/Backups
-  _enabledStorageProviders:
-  - LocalFile
+  _enabledStorageProviders: 1
   _maxSaveSlots: 10
   _maxBackupsPerSave: 5
   _enableCaching: 1
@@ -26,16 +25,8 @@ MonoBehaviour:
   _compressionLevel: 6
   _enableBackgroundSaving: 1
   _maxConcurrentOperations: 4
+  _securityConfiguration: {fileID: 11400000, guid: 51c3021a7a5240e4cb7a2a67bd360050, type: 2}
   _enableEncryption: 0
-  _encryptionAlgorithm: AES-256-GCM
-  _enableIntegrityChecks: 1
-  _enableMagicBytes: 1
-  _magicBytesSignature: 170
-  _enableAutoSave: 1
-  _autoSaveInterval: 300
-  _maxAutoSaves: 3
-  _autoSaveOnSceneChange: 1
-  _autoSaveOnApplicationPause: 1
   _enableValidation: 1
   _validateOnLoad: 1
   _validateOnSave: 1
