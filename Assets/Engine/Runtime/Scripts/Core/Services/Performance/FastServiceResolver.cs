@@ -385,7 +385,7 @@ namespace Sinkii09.Engine.Services.Performance
         public long FastResolutionCount { get; set; }
         public long FallbackResolutionCount { get; set; }
         public long CompilationTimeMs { get; set; }
-        public CacheStatistics CacheStatistics { get; set; }
+        public ServiceResolutionCacheStatistics CacheStatistics { get; set; }
         
         public double FastResolutionRatio => 
             FastResolutionCount + FallbackResolutionCount > 0 ? 

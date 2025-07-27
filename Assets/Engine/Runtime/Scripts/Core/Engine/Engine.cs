@@ -295,6 +295,17 @@ namespace Sinkii09.Engine
                 
                 if (report.Success)
                 {
+                    // Wire up ConfigProvider with ResourcePathResolver if available
+                    if (ConfigProvider is ConfigProvider configProviderImpl)
+                    {
+                        var pathResolver = GetService<IResourcePathResolver>();
+                        if (pathResolver != null)
+                        {
+                            configProviderImpl.SetResourcePathResolver(pathResolver);
+                            Debug.Log("Engine: ConfigProvider integrated with ResourcePathResolver");
+                        }
+                    }
+
                     Debug.Log($"Engine initialized successfully. {report.InitializedServices.Count} services started.");
                     foreach (var service in report.InitializedServices)
                     {

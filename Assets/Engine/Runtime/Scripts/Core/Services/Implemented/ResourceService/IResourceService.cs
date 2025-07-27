@@ -19,6 +19,13 @@ namespace Sinkii09.Engine.Services
         UniTask<Resource<T>> LoadResourceAsync<T>(string path, CancellationToken cancellationToken = default) where T : UnityEngine.Object;
 
         /// <summary>
+        /// Load resource by type and ID using ResourcePathResolver
+        /// </summary>
+        UniTask<Resource<T>> LoadResourceByIdAsync<T>(ResourceType resourceType, string resourceId, 
+            ResourceCategory category = ResourceCategory.Primary, float priority = 0.5f, 
+            CancellationToken cancellationToken = default, params PathParameter[] parameters) where T : UnityEngine.Object;
+
+        /// <summary>
         /// Load multiple resources asynchronously with cancellation support
         /// </summary>
         UniTask<IEnumerable<Resource<T>>> LoadResourcesAsync<T>(string path, CancellationToken cancellationToken = default) where T : UnityEngine.Object;
