@@ -102,6 +102,7 @@ namespace Sinkii09.Engine.Services
         private readonly ResourceServiceConfiguration _config;
         private IServiceProvider _serviceProvider;
         private readonly Dictionary<ProviderType, IResourceProvider> _providers;
+        private IResourcePathResolver _pathResolver;
         private CircuitBreakerManager _circuitBreakerManager;
         private readonly List<Action<float>> _memoryPressureCallbacks;
         private readonly object _providersLock = new object();
@@ -285,6 +286,13 @@ namespace Sinkii09.Engine.Services
                 
                 // Store service provider reference for dependency injection
                 _serviceProvider = provider;
+                
+                // Get ResourcePathResolver dependency (optional)
+                _pathResolver = provider.GetService(typeof(IResourcePathResolver)) as IResourcePathResolver;
+                if (_pathResolver != null && _config.EnableDetailedLogging)
+                {
+                    Debug.Log("ResourceService: ResourcePathResolver integration enabled");
+                }
                 
                 // Validate configuration
                 if (!_config.Validate(out var configErrors))
@@ -769,6 +777,35 @@ namespace Sinkii09.Engine.Services
         public async UniTask<Resource<T>> LoadResourceAsync<T>(string path, CancellationToken cancellationToken = default) where T : UnityEngine.Object
         {
             return await LoadResourceWithPriorityAsync<T>(path, 0.5f, cancellationToken);
+        }
+
+        /// <summary>
+        /// Load resource by type and ID using ResourcePathResolver
+        /// </summary>
+        public async UniTask<Resource<T>> LoadResourceByIdAsync<T>(ResourceType resourceType, string resourceId, 
+            ResourceCategory category = ResourceCategory.Primary, float priority = 0.5f, 
+            CancellationToken cancellationToken = default, params PathParameter[] parameters) where T : UnityEngine.Object
+        {
+            if (_pathResolver == null)
+            {
+                throw new InvalidOperationException("ResourcePathResolver is not available. Use LoadResourceAsync with explicit path instead.");
+            }
+            
+            // Resolve the actual path using ResourcePathResolver
+            var pathResult = _pathResolver.ResolveResourcePathDetailed(resourceType, resourceId, category, parameters);
+            
+            if (!pathResult.IsSuccess)
+            {
+                throw new InvalidOperationException($"Failed to resolve path for {resourceType}.{category} with ID '{resourceId}': {pathResult.ErrorMessage}");
+            }
+            
+            if (_config.EnableDetailedLogging)
+            {
+                Debug.Log($"ResourceService: Resolved path '{pathResult.ResolvedPath}' for {resourceType}.{category}.{resourceId}");
+            }
+            
+            // Load using resolved path with automatic provider detection
+            return await LoadResourceWithPriorityAsync<T>(pathResult.ResolvedPath, priority, cancellationToken);
         }
 
         /// <summary>

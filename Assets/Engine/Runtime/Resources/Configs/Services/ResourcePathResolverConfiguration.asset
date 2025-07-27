@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd596ef965c775e498446c075b7c2162, type: 3}
+  m_Name: ResourcePathResolverConfiguration
+  m_EditorClassIdentifier: 
+  _version: 300
+  _description: Service configuration
+  _defaultEnvironment: 0
+  _enablePathValidation: 1
+  _enableExistenceChecking: 0
+  _resourceRoot: 
+  _pathTemplates: []
+  _fallbackPaths: []
+  _maxCacheSize: 100
+  _cacheEntryLifetime: 0.1
+  _enableLRUEviction: 1
+  _maxResolutionTimeMs: 5
+  _enableMemoryPressureResponse: 1
+  _validateTemplatesAtStartup: 1
+  _strictValidationMode: 0
+  _logMissingResources: 1
+  _environmentOverrides: []

@@ -137,6 +137,7 @@ namespace Sinkii09.Engine.Services
         private readonly ScriptServiceConfiguration _config;
         private readonly IResourceService _resourceService;
         private readonly IServiceProvider _serviceProvider;
+        private IResourcePathResolver _pathResolver;
 
         // Core data structures
         private readonly ConcurrentDictionary<string, Script> _scriptCache;
@@ -214,6 +215,13 @@ namespace Sinkii09.Engine.Services
                 if (_resourceService == null)
                 {
                     return ServiceInitializationResult.Failed(new InvalidOperationException("ResourceService dependency is required"));
+                }
+
+                // Get ResourcePathResolver dependency
+                _pathResolver = provider.GetService(typeof(IResourcePathResolver)) as IResourcePathResolver;
+                if (_pathResolver == null)
+                {
+                    return ServiceInitializationResult.Failed(new InvalidOperationException("ResourcePathResolver dependency is required"));
                 }
 
                 // Initialize script cache
@@ -657,6 +665,18 @@ namespace Sinkii09.Engine.Services
         /// </summary>
         private string BuildScriptPath(string scriptName)
         {
+            if (_pathResolver != null)
+            {
+                // Use ResourcePathResolver for unified path resolution
+                var pathParams = new PathParameter[]
+                {
+                    new PathParameter(PathParameterNames.SCRIPT_NAME, scriptName),
+                };
+                
+                return _pathResolver.ResolveResourcePath(ResourceType.Script, scriptName, ResourceCategory.Source, pathParams);
+            }
+            
+            // Fallback to legacy path building if PathResolver is not available
             var basePath = string.IsNullOrEmpty(_config.DefaultScriptsPath) ? "Scripts" : _config.DefaultScriptsPath;
             return $"{basePath}/{scriptName}";
         }

@@ -26,11 +26,21 @@ namespace Sinkii09.Engine.Configs
 
         private readonly Dictionary<Type, Configuration> _configs = new Dictionary<Type, Configuration>();
         private readonly string _resourcePath;
+        private IResourcePathResolver _pathResolver;
 
-        public ConfigProvider(string resourcePath = DEFAULT_CONFIG_PATH)
+        public ConfigProvider(string resourcePath = DEFAULT_CONFIG_PATH, IResourcePathResolver pathResolver = null)
         {
             _resourcePath = resourcePath;
+            _pathResolver = pathResolver;
             //LoadAllConfigurations();
+        }
+
+        /// <summary>
+        /// Set the ResourcePathResolver after initialization (used by Engine when services are available)
+        /// </summary>
+        public void SetResourcePathResolver(IResourcePathResolver pathResolver)
+        {
+            _pathResolver = pathResolver;
         }
 
         private void LoadAllConfigurations()
@@ -127,7 +137,25 @@ namespace Sinkii09.Engine.Configs
 
         private Configuration LoadFromResources(Type type, string path)
         {
-            var resourcePath = $"{path}/{type.Name}";
+            string resourcePath;
+            
+            if (_pathResolver != null)
+            {
+                // Use ResourcePathResolver for unified config path resolution
+                var pathParams = new PathParameter[]
+                {
+                    new PathParameter(PathParameterNames.CONFIG_TYPE, type.Name),
+                    new PathParameter(PathParameterNames.CONFIG_NAME, type.Name)
+                };
+                
+                resourcePath = _pathResolver.ResolveResourcePath(ResourceType.Config, type.Name, ResourceCategory.Primary, pathParams);
+            }
+            else
+            {
+                // Fallback to legacy path building
+                resourcePath = $"{path}/{type.Name}";
+            }
+            
             return Resources.Load(resourcePath, type) as Configuration;
         }
 

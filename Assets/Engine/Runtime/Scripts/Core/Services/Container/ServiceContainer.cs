@@ -872,7 +872,7 @@ namespace Sinkii09.Engine.Services
         public double FastResolutionRatio { get; set; }
         public int RegisteredServices { get; set; }
         public int ResolvedSingletons { get; set; }
-        public CacheStatistics? ResolutionCacheStats { get; set; }
+        public ServiceResolutionCacheStatistics? ResolutionCacheStats { get; set; }
         public FastResolverStatistics? FastResolverStats { get; set; }
         public MetadataCacheStatistics? MetadataCacheStats { get; set; }
         public WeakReferenceStatistics? WeakReferenceStats { get; set; }
