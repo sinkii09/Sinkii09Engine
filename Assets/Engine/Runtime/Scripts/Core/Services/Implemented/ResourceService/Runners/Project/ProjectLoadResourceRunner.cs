@@ -1,7 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Sinkii09.Engine.Common.Resources;
 using System;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Sinkii09.Engine.Services
@@ -11,7 +10,7 @@ namespace Sinkii09.Engine.Services
         public Type SourceType { get; private set; }
         public Type RedirectType { get; private set; }
 
-        internal Task<T> ToSourceAsync<T>(UnityEngine.Object asset, string assetName)
+        internal UniTask<T> ToSourceAsync<T>(UnityEngine.Object asset, string assetName)
         {
             throw new NotImplementedException();
         }
