@@ -15,39 +15,72 @@ A comprehensive, service-oriented Unity game engine framework featuring advanced
 
 ## 📦 Installation
 
-### Method 1: Unity Package Manager (Recommended)
+### Step 1: Install Required Dependencies First
 
+**IMPORTANT:** Install these dependencies before installing the engine to avoid errors.
+
+#### Git Dependencies (Add via Package Manager > Add package from git URL):
+
+1. **UniTask** - Async/await support for Unity
+   ```
+   https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask
+   ```
+
+2. **R3** - Reactive Extensions for Unity
+   ```
+   https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity
+   ```
+
+3. **ZLinq** - High-performance LINQ implementation
+   ```
+   https://github.com/Cysharp/ZLinq.git?path=src/ZLinq.Unity/Assets/ZLinq.Unity
+   ```
+
+#### Asset Store Dependencies:
+
+4. **DOTween** - Animation library (Required)
+   - **Free Version:** [DOTween](https://assetstore.unity.com/packages/tools/animation/dotween-hotween-v2-27676)
+   - **Pro Version:** [DOTween Pro](https://assetstore.unity.com/packages/tools/animation/dotween-pro-32416) (Recommended)
+
+### Step 2: Install Sinkii09 Engine
+
+#### Option A: UPM Branch (Recommended)
 1. Open **Window > Package Manager**
 2. Click **+ > Add package from git URL**
-3. Enter: `https://github.com/sinkii09/engine.git`
+3. Enter:
+   ```
+   https://github.com/sinkii09/Sinkii09Engine.git#upm
+   ```
 
-### Method 2: Git Submodule
-
-```bash
-git submodule add https://github.com/sinkii09/engine.git Assets/Engine
+#### Option B: With Path Parameter
+```
+https://github.com/sinkii09/Sinkii09Engine.git?path=Assets/Engine
 ```
 
-### Method 3: Manual Download
-
-1. Download the latest release from [Releases](https://github.com/sinkii09/engine/releases)
+#### Option C: Manual Download
+1. Download from [Releases](https://github.com/sinkii09/Sinkii09Engine/releases)
 2. Extract to `Assets/Engine` in your project
 
 ## 🔧 Requirements
 
-- **Unity 2022.3+** (Unity 6 recommended)
+- **Unity 6000.0.0f1+** (Unity 6 or later)
 - **.NET Standard 2.1** or higher
 
-### Dependencies (Auto-installed via UPM)
-- **UniTask 2.3.3+** - Modern async/await patterns
-- **ZLinq** - LINQ performance optimization  
-- **R3** - Reactive Extensions for UI system
-- **Newtonsoft.Json 3.2.1+** - JSON serialization
-- **Addressables 2.2.2+** - Advanced resource management
+### Auto-Installed Dependencies
+- **Newtonsoft.Json 3.2.1** - JSON serialization
+- **Addressables 2.2.2** - Advanced resource management
 
-### Required Asset Store Dependencies
+### Manual Dependencies (Required)
+**Must be installed manually before installing the engine:**
+
+#### Git Dependencies:
+- **UniTask** - Modern async/await patterns
+- **ZLinq** - LINQ performance optimization  
+- **R3** - Reactive Extensions for Unity
+
+#### Asset Store Dependencies:
 - **DOTween** - Animation and tweening system (**REQUIRED**)
   - [DOTween Free](https://assetstore.unity.com/packages/tools/animation/dotween-hotween-v2-27676) or [DOTween Pro](https://assetstore.unity.com/packages/tools/animation/dotween-pro-32416)
-  - Must be installed manually from Unity Asset Store
 
 ### Optional Dependencies
 - **Odin Inspector** - Advanced inspector features (auto-detected)
