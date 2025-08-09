@@ -1,5 +1,11 @@
 name: Package Release
 
+# To enable Unity features, add these GitHub repository secrets:
+# UNITY_LICENSE: Contents of your .ulf license file (Personal) OR UNITY_SERIAL (Professional)
+# UNITY_EMAIL: Your Unity account email  
+# UNITY_PASSWORD: Your Unity account password
+# Then uncomment the Unity-related steps below
+
 on:
   release:
     types: [published]
@@ -35,16 +41,8 @@ jobs:
             echo "Version validated: $VERSION"
           fi
 
-      - name: Request Unity Activation File
-        id: getManualLicenseFile
-        uses: game-ci/unity-request-activation-file@v2
-
-      - name: Activate Unity License
-        uses: game-ci/unity-activate@v2
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      # Unity License is now handled automatically by unity-builder and unity-test-runner actions
+      # No separate activation step needed - just ensure UNITY_LICENSE secret is set
           
       - name: Cache Unity Library
         uses: actions/cache@v4
@@ -71,20 +69,22 @@ jobs:
           
           echo "✅ Basic package structure validated"
           
-          # Optional: Call Unity validation if license is available
-          # Uncomment when Unity secrets are properly configured:
-          # - name: Unity Package Validation
-          #   uses: game-ci/unity-builder@v4
-          #   env:
-          #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          #   with:
-          #     projectPath: .
-          #     unityVersion: ${{ env.UNITY_VERSION }}
-          #     targetPlatform: StandaloneLinux64
-          #     buildMethod: Sinkii09.Engine.Editor.PackageExporter.ValidatePackageStructure
-          #     allowDirtyBuild: true
+          # To enable Unity validation, uncomment below and set GitHub secrets:
+          # UNITY_LICENSE: Contents of your .ulf license file
+          # OR UNITY_SERIAL: Your Unity Pro serial key
+          
+      # - name: Unity Package Validation  
+      #   uses: game-ci/unity-builder@v4
+      #   env:
+      #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      #   with:
+      #     projectPath: .
+      #     unityVersion: ${{ env.UNITY_VERSION }}
+      #     targetPlatform: StandaloneLinux64
+      #     buildMethod: Sinkii09.Engine.Editor.PackageExporter.ValidatePackageStructure
+      #     allowDirtyBuild: true
 
       - name: Update Package Version
         if: github.event_name == 'workflow_dispatch'
@@ -101,18 +101,19 @@ jobs:
           
           echo "✅ Basic tests passed"
           
-          # Optional: Uncomment when Unity license is configured
-          # - name: Unity Test Runner
-          #   uses: game-ci/unity-test-runner@v4
-          #   env:
-          #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          #   with:
-          #     projectPath: .
-          #     unityVersion: ${{ env.UNITY_VERSION }}
-          #     githubToken: ${{ secrets.GITHUB_TOKEN }}
-          #     checkName: 'Engine Test Results'
+          # To enable Unity tests, uncomment below:
+          
+      # - name: Unity Test Runner
+      #   uses: game-ci/unity-test-runner@v4
+      #   env:
+      #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      #   with:
+      #     projectPath: .
+      #     unityVersion: ${{ env.UNITY_VERSION }}
+      #     githubToken: ${{ secrets.GITHUB_TOKEN }}
+      #     checkName: 'Engine Test Results'
 
       - name: Create Release Assets
         run: |
@@ -126,19 +127,20 @@ jobs:
           
           echo "✅ Release assets created"
           
-          # Optional: Uncomment when Unity secrets are configured
-          # - name: Unity Create Release Assets
-          #   uses: game-ci/unity-builder@v4
-          #   env:
-          #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          #   with:
-          #     projectPath: .
-          #     unityVersion: ${{ env.UNITY_VERSION }}
-          #     targetPlatform: StandaloneLinux64
-          #     buildMethod: Sinkii09.Engine.Editor.PackageExporter.CreateReleaseFolder
-          #     allowDirtyBuild: true
+          # To enable Unity asset creation, uncomment below:
+          
+      # - name: Unity Create Release Assets
+      #   uses: game-ci/unity-builder@v4
+      #   env:
+      #     UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      #     UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      #     UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      #   with:
+      #     projectPath: .
+      #     unityVersion: ${{ env.UNITY_VERSION }}
+      #     targetPlatform: StandaloneLinux64
+      #     buildMethod: Sinkii09.Engine.Editor.PackageExporter.CreateReleaseFolder
+      #     allowDirtyBuild: true
 
       - name: Package for Distribution
         run: |
@@ -187,9 +189,7 @@ jobs:
             Releases/
           retention-days: 30
 
-      - name: Return Unity License
-        uses: game-ci/unity-return-license@v2
-        if: always()
+      # Unity license cleanup is now handled automatically by the actions
 
   publish-upm:
     needs: validate-and-package
