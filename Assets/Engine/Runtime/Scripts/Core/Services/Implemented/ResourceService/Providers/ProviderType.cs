@@ -6,8 +6,9 @@ namespace Sinkii09.Engine.Services
     public enum ProviderType
     {
         None = 0,
-        AssetBundle = 1 << 0,
-        Resources = 1 << 1,
-        Local = 1 << 2,
+        Addressable = 1 << 0,
+        AssetBundle = 1 << 1,
+        Resources = 1 << 2,
+        Local = 1 << 3,
     }
 }
