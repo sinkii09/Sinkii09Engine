@@ -16,14 +16,34 @@
   },
   "license": "MIT",
   "dependencies": {
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
-    "com.cysharp.zlinq": "https://github.com/Cysharp/ZLinq.git?path=src/ZLinq.Unity/Assets/ZLinq.Unity",
-    "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.unity.addressables": "2.2.2",
-    "com.demigiant.dotween": "1.2.765"
+    "com.unity.addressables": "2.2.2"
   },
-  "requiredAssetStorePackages": {
+  "requiredDependencies": {
+    "unitask": {
+      "name": "UniTask",
+      "source": "Git Repository",
+      "url": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+      "installation": "Add via Package Manager > Add package from git URL",
+      "required": true,
+      "description": "Async/await support for Unity"
+    },
+    "r3": {
+      "name": "R3",
+      "source": "Git Repository", 
+      "url": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",
+      "installation": "Add via Package Manager > Add package from git URL",
+      "required": true,
+      "description": "Reactive Extensions for Unity"
+    },
+    "zlinq": {
+      "name": "ZLinq",
+      "source": "Git Repository",
+      "url": "https://github.com/Cysharp/ZLinq.git?path=src/ZLinq.Unity/Assets/ZLinq.Unity", 
+      "installation": "Add via Package Manager > Add package from git URL",
+      "required": true,
+      "description": "High-performance LINQ implementation"
+    },
     "dotween": {
       "name": "DOTween (Free or Pro)",
       "source": "Unity Asset Store",
