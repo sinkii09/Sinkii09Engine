@@ -6,7 +6,9 @@
         "UnityEditor.TestRunner",
         "Sinkii09.Engine",
         "UniTask",
-        "UniTask.DOTween"
+        "UniTask.DOTween",
+        "Unity.Addressables",
+        "Unity.Addressables.Tests"
     ],
     "includePlatforms": [],
     "excludePlatforms": [
@@ -37,7 +39,8 @@
     "overrideReferences": true,
     "precompiledReferences": [
         "nunit.framework.dll",
-        "DOTween.dll"
+        "DOTween.dll",
+        "Sirenix.OdinInspector.Attributes.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

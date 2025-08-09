@@ -559,6 +559,11 @@ namespace Sinkii09.Engine.Services
 
                 switch (providerType)
                 {
+                    case ProviderType.Addressable:
+                        // Create AddressableResourceProvider with dependency injection
+                        provider = CreateAddressableProvider();
+                        break;
+                        
                     case ProviderType.Resources:
                         // Create ProjectResourceProvider with dependency injection
                         provider = CreateProjectResourceProvider();
@@ -605,6 +610,32 @@ namespace Sinkii09.Engine.Services
             catch (Exception ex)
             {
                 Debug.LogError($"ResourceService: Failed to create provider {providerType}: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Create AddressableResourceProvider with dependency injection
+        /// </summary>
+        private IResourceProvider CreateAddressableProvider()
+        {
+            try
+            {
+                var provider = new AddressableResourceProvider();
+                
+                // Apply provider-specific configuration if available
+                ConfigureProvider(provider, ProviderType.Addressable);
+                
+                if (_config.EnableDetailedLogging)
+                {
+                    Debug.Log("ResourceService: AddressableResourceProvider created successfully");
+                }
+                
+                return provider;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"ResourceService: Failed to create AddressableResourceProvider: {ex.Message}");
                 return null;
             }
         }
