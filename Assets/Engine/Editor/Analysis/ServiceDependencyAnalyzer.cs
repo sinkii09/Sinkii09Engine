@@ -1,10 +1,11 @@
 using UnityEngine;
 using UnityEditor;
 using Sinkii09.Engine.Services;
+using Sinkii09.Engine.Editor.Core;
 using System.Text;
 using System.Linq;
 
-namespace Sinkii09.Engine.Editor
+namespace Sinkii09.Engine.Editor.Analysis
 {
     /// <summary>
     /// Editor tools for analyzing service dependencies and generating reports
@@ -17,7 +18,7 @@ namespace Sinkii09.Engine.Editor
         private bool showDetailedView = false;
         private bool showVisualization = false;
         
-        [MenuItem("Engine/Analysis/Service Dependency Analyzer", false, 300)]
+        [MenuItem("Engine/Analysis/Services/Dependency Analyzer", false, 210)]
         public static void ShowWindow()
         {
             var window = GetWindow<ServiceDependencyAnalyzer>("Dependency Analyzer");
@@ -278,7 +279,7 @@ namespace Sinkii09.Engine.Editor
     /// </summary>
     public static class ServiceDependencyMenuItems
     {
-        [MenuItem("Engine/Analysis/Quick Dependency Check", false, 301)]
+        [MenuItem("Engine/Analysis/Services/Quick Dependency Check", false, 211)]
         public static void QuickDependencyCheck()
         {
             try
@@ -309,7 +310,7 @@ namespace Sinkii09.Engine.Editor
             }
         }
         
-        [MenuItem("Engine/Analysis/Log Full Dependency Graph", false, 302)]
+        [MenuItem("Engine/Analysis/Services/Log Full Dependency Graph", false, 212)]
         public static void LogFullDependencyGraph()
         {
             try
@@ -328,7 +329,7 @@ namespace Sinkii09.Engine.Editor
             }
         }
         
-        [MenuItem("Engine/Analysis/Export Dependency Report", false, 303)]
+        [MenuItem("Engine/Analysis/Services/Export Dependency Report", false, 213)]
         public static void ExportDependencyReport()
         {
             try
