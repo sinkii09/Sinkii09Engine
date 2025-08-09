@@ -16,11 +16,14 @@
   },
   "license": "MIT",
   "dependencies": {
-    "com.cysharp.unitask": "2.3.3",
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+    "com.cysharp.zlinq": "https://github.com/Cysharp/ZLinq.git?path=src/ZLinq.Unity/Assets/ZLinq.Unity",
+    "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.unity.addressables": "2.2.2"  
+    "com.unity.addressables": "2.2.2",
+    "com.demigiant.dotween": "1.2.765"
   },
-  "optionalDependencies": {
+  "requiredAssetStorePackages": {
     "dotween": {
       "name": "DOTween (Free or Pro)",
       "source": "Unity Asset Store",
@@ -28,13 +31,14 @@
         "free": "https://assetstore.unity.com/packages/tools/animation/dotween-hotween-v2-27676",
         "pro": "https://assetstore.unity.com/packages/tools/animation/dotween-pro-32416"
       },
-      "required": false,
-      "fallback": "Unity Animation System",
+      "required": true,
+      "fallback": "None - DOTween is required for engine functionality",
       "features": {
         "free": "Basic tweening, standard easing functions, sequence support",
         "pro": "Advanced features: custom easing curves, timeline editor, visual scripting, enhanced performance"
       },
-      "recommendation": "DOTween Pro recommended for best performance and features, but DOTween Free is fully supported"
+      "recommendation": "DOTween Pro recommended for best performance and features, but DOTween Free is fully supported",
+      "installation": "Must be installed manually from Unity Asset Store"
     }
   },
   "keywords": [

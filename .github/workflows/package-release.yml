@@ -1,0 +1,178 @@
+name: Package Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.2.3)'
+        required: true
+        type: string
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Setup Unity
+        uses: game-ci/unity-setup@v2
+        with:
+          unity-version: 2022.3.f1
+          
+      - name: Cache Unity Library
+        uses: actions/cache@v3
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-
+
+      - name: Validate Package Structure
+        uses: game-ci/unity-builder@v2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          buildMethod: Sinkii09.Engine.Editor.PackageExporter.ValidatePackageStructure
+          allowDirtyBuild: true
+
+      - name: Update Package Version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' Assets/Engine/package.json
+
+      - name: Run Tests
+        uses: game-ci/unity-test-runner@v2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: 'Engine Test Results'
+
+      - name: Create Release Assets
+        uses: game-ci/unity-builder@v2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: .
+          buildMethod: Sinkii09.Engine.Editor.PackageExporter.CreateReleaseFolder
+          allowDirtyBuild: true
+
+      - name: Package for Distribution
+        run: |
+          # Create distribution package
+          mkdir -p dist
+          cp -r Assets/Engine dist/
+          
+          # Create source archive
+          tar -czf dist/sinkii09-engine-source.tar.gz Assets/Engine
+          
+          # Create documentation package
+          mkdir -p dist/docs
+          cp Assets/Engine/README.md dist/docs/
+          cp Assets/Engine/CHANGELOG.md dist/docs/
+          if [ -d "Documentation" ]; then
+            cp -r Documentation dist/docs/
+          fi
+
+      - name: Upload Release Assets
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: dist/sinkii09-engine-source.tar.gz
+          asset_name: sinkii09-engine-source.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: engine-package
+          path: |
+            dist/
+            Releases/
+          retention-days: 30
+
+  publish-upm:
+    needs: validate-and-package
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+          
+      - name: Prepare UPM Branch
+        run: |
+          # Create or update upm branch with package contents
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Create upm branch
+          git checkout -b upm || git checkout upm
+          git rm -rf . 2>/dev/null || true
+          
+          # Copy package contents
+          cp -r Assets/Engine/* .
+          
+          # Commit changes
+          git add .
+          git commit -m "UPM Package v${{ github.event.release.tag_name }}" || exit 0
+          git push origin upm --force
+
+      - name: Create UPM Tag
+        run: |
+          git tag -a "upm/v${{ github.event.release.tag_name }}" -m "UPM Package v${{ github.event.release.tag_name }}"
+          git push origin "upm/v${{ github.event.release.tag_name }}"
+
+  update-documentation:
+    needs: validate-and-package
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          
+      - name: Generate API Documentation
+        run: |
+          # Install documentation tools if needed
+          pip install -r requirements-docs.txt 2>/dev/null || true
+          
+          # Generate API docs (if you have doc generation setup)
+          echo "API documentation generation would go here"
+          
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          cname: engine.sinkii09.dev
