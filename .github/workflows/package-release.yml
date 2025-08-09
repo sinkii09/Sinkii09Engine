@@ -216,6 +216,16 @@ jobs:
           VERSION="${{ github.event.release.tag_name || github.event.inputs.version }}"
           echo "Package version: $VERSION"
           
+          # Verify Engine assets exist before proceeding
+          if [ ! -d "Assets/Engine" ]; then
+            echo "❌ Assets/Engine directory not found in repository"
+            echo "Current directory contents:"
+            ls -la
+            exit 1
+          fi
+          
+          echo "✅ Found Engine assets, proceeding with UPM branch creation..."
+          
           # Fetch all branches
           git fetch origin || true
           
@@ -226,11 +236,29 @@ jobs:
             git checkout --orphan upm
           fi
           
+          # Store Engine assets before cleaning branch  
+          echo "Backing up Engine assets..."
+          cp -r Assets/Engine /tmp/engine-package || { echo "Failed to backup Engine assets"; exit 1; }
+          
           # Clean the branch
           git rm -rf . 2>/dev/null || true
           
-          # Copy package contents
-          cp -r Assets/Engine/* . 2>/dev/null || { echo "No Engine assets found"; exit 1; }
+          # Copy package contents from backup
+          echo "Restoring Engine assets to UPM branch..."
+          cp -r /tmp/engine-package/* . || { echo "Failed to restore Engine assets from backup"; exit 1; }
+          
+          # Verify files were restored correctly
+          if [ ! -f "package.json" ]; then
+            echo "❌ package.json not found after restore"
+            echo "Current directory contents:"
+            ls -la
+            exit 1
+          fi
+          
+          echo "✅ Engine assets successfully restored to UPM branch"
+          
+          # Clean up temp directory
+          rm -rf /tmp/engine-package
           
           # Update package version if version input provided
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -f "package.json" ]; then
