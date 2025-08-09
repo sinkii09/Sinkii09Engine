@@ -1,10 +1,13 @@
 name: Package Release
 
-# To enable Unity features, add these GitHub repository secrets:
-# UNITY_LICENSE: Contents of your .ulf license file (Personal) OR UNITY_SERIAL (Professional)
-# UNITY_EMAIL: Your Unity account email  
-# UNITY_PASSWORD: Your Unity account password
-# Then uncomment the Unity-related steps below
+# Required GitHub repository secrets:
+# For Unity features (optional):
+#   UNITY_LICENSE: Contents of your .ulf license file (Personal) OR UNITY_SERIAL (Professional)
+#   UNITY_EMAIL: Your Unity account email  
+#   UNITY_PASSWORD: Your Unity account password
+# For UPM branch publishing:
+#   PAT_TOKEN: Personal Access Token with 'repo' permissions (required for branch creation)
+#   If PAT_TOKEN is not set, workflow will fall back to GITHUB_TOKEN (limited permissions)
 
 on:
   release:
@@ -18,6 +21,10 @@ on:
 
 env:
   UNITY_VERSION: 2022.3.f1
+
+permissions:
+  contents: write
+  actions: read
   
 jobs:
   validate-and-package:
@@ -199,6 +206,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
         
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -272,8 +282,24 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "UPM Package v${VERSION}" || exit 1
-            git push origin upm --force
+            git commit -m "UPM Package v${VERSION}" || { echo "Failed to commit changes"; exit 1; }
+            
+            # Try to push with error handling
+            echo "Attempting to push to UPM branch..."
+            if ! git push origin upm --force 2>&1; then
+              echo "❌ Failed to push UPM branch. This might be due to:"
+              echo "   1. Missing repository write permissions"
+              echo "   2. Branch protection rules"
+              echo "   3. Need for PAT_TOKEN secret instead of GITHUB_TOKEN"
+              echo ""
+              echo "💡 To fix this, add a Personal Access Token as 'PAT_TOKEN' secret:"
+              echo "   1. Go to GitHub Settings > Developer settings > Personal access tokens"
+              echo "   2. Generate new token with 'repo' permissions"
+              echo "   3. Add it as 'PAT_TOKEN' secret in repository settings"
+              exit 1
+            else
+              echo "✅ Successfully pushed UPM branch"
+            fi
           fi
 
       - name: Create UPM Tag
@@ -281,9 +307,21 @@ jobs:
           VERSION="${{ github.event.release.tag_name || github.event.inputs.version }}"
           UPM_TAG="upm/v${VERSION}"
           
-          # Create and push UPM tag
-          git tag -a "${UPM_TAG}" -m "UPM Package v${VERSION}" || echo "Tag already exists"
-          git push origin "${UPM_TAG}" || echo "Failed to push tag"
+          echo "Creating UPM tag: ${UPM_TAG}"
+          
+          # Create UPM tag
+          if git tag -a "${UPM_TAG}" -m "UPM Package v${VERSION}"; then
+            echo "✅ Tag created: ${UPM_TAG}"
+            
+            # Push the tag
+            if git push origin "${UPM_TAG}"; then
+              echo "✅ Tag pushed successfully: ${UPM_TAG}"
+            else
+              echo "⚠️ Failed to push tag: ${UPM_TAG} (might already exist)"
+            fi
+          else
+            echo "⚠️ Tag creation failed: ${UPM_TAG} (might already exist)"
+          fi
 
   update-documentation:
     needs: validate-and-package
