@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Linq;
 using System.Collections.Generic;
+using Sinkii09.Engine.Editor.Core;
 
 namespace Sinkii09.Engine.Editor.Dependencies
 {
@@ -16,7 +17,7 @@ namespace Sinkii09.Engine.Editor.Dependencies
         private static bool _userDismissedDialog;
         private const string DISMISSAL_PREF_KEY = "DependencyChecker_UserDismissed";
 
-        [MenuItem("Engine/Dependencies/Check Dependencies")]
+        [MenuItem("Engine/Setup/Dependencies/Check Dependencies", false, 10)]
         public static void ShowWindow()
         {
             var window = GetWindow<DependencyCheckerWindow>("Engine Dependencies");
@@ -25,7 +26,7 @@ namespace Sinkii09.Engine.Editor.Dependencies
             EditorPrefs.SetBool(DISMISSAL_PREF_KEY, false);
         }
 
-        [MenuItem("Engine/Dependencies/Quick Install Missing")]
+        [MenuItem("Engine/Setup/Dependencies/Quick Install Missing", false, 11)]
         public static void QuickInstallMissing()
         {
             var result = EditorDependencyChecker.CheckAllDependencies();
@@ -55,7 +56,7 @@ namespace Sinkii09.Engine.Editor.Dependencies
             }
         }
 
-        [MenuItem("Engine/Dependencies/Reset Startup Check")]
+        [MenuItem("Engine/Setup/Dependencies/Reset Startup Check", false, 12)]
         public static void ResetStartupCheck()
         {
             _userDismissedDialog = false;

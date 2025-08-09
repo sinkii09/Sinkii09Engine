@@ -3,7 +3,7 @@ using UnityEditor;
 using UnityEditor.ProjectWindowCallback;
 using UnityEngine;
 
-namespace Sinkii09.Engine.Editor
+namespace Sinkii09.Engine.Editor.Generators
 {
     public static class ScriptCreator
     {

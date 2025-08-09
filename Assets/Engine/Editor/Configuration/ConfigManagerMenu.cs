@@ -8,7 +8,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace Sinkii09.Engine.Editor
+namespace Sinkii09.Engine.Editor.Configuration
 {
     /// <summary>
     /// Unity menu items for easy engine configuration management with automatic service discovery

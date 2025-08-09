@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using Sinkii09.Engine.Editor.Core;
 
-namespace Sinkii09.Engine.Editor
+namespace Sinkii09.Engine.Editor.Export
 {
     /// <summary>
     /// Editor utility for exporting the Sinkii09 Engine as a UnityPackage
@@ -12,7 +13,7 @@ namespace Sinkii09.Engine.Editor
         private const string EngineFolderPath = "Assets/Engine";
         private const string ExportFileName = "Sinkii09Engine";
         
-        [MenuItem("Engine/Export/Export as UnityPackage")]
+        [MenuItem("Engine/Export/Package/Export as UnityPackage", false, 610)]
         public static void ExportAsUnityPackage()
         {
             if (!Directory.Exists(EngineFolderPath))
@@ -60,7 +61,7 @@ namespace Sinkii09.Engine.Editor
             }
         }
         
-        [MenuItem("Engine/Export/Create Release Folder")]
+        [MenuItem("Engine/Export/Project/Create Release Folder", false, 620)]
         public static void CreateReleaseFolder()
         {
             var version = GetEngineVersion();
@@ -100,7 +101,7 @@ namespace Sinkii09.Engine.Editor
             EditorUtility.RevealInFinder(Path.GetFullPath(releasePath));
         }
 
-        [MenuItem("Engine/Export/Validate Package Structure")]
+        [MenuItem("Engine/Export/Package/Validate Package Structure", false, 611)]
         public static void ValidatePackageStructure()
         {
             var issues = new System.Collections.Generic.List<string>();

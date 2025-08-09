@@ -7,7 +7,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace Sinkii09.Engine.Editor
+namespace Sinkii09.Engine.Editor.Configuration
 {
     /// <summary>
     /// Automatically creates default engine configurations when missing

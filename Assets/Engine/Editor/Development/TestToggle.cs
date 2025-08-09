@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
 
-namespace Sinkii09.Engine.Editor
+namespace Sinkii09.Engine.Editor.Development
 {
     /// <summary>  
     /// Editor utilities for toggling test-related features during development  

@@ -1,10 +1,11 @@
+using Sinkii09.Engine.Editor.Configuration;
 using Sinkii09.Engine.Extensions;
 using Sinkii09.Engine.Services;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace Sinkii09.Engine.Editor
+namespace Sinkii09.Engine.Editor.Development
 {
     /// <summary>
     /// Test script to verify configuration auto-discovery

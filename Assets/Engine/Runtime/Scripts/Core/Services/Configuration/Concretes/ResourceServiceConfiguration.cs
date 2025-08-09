@@ -12,7 +12,7 @@ namespace Sinkii09.Engine.Services
         [Header("Provider Settings")]
         [SerializeField]
         [Tooltip("Types of resource providers to enable")]
-        private ProviderType _enabledProviders = ProviderType.Resources | ProviderType.AssetBundle;
+        private ProviderType _enabledProviders = ProviderType.Addressable | ProviderType.Resources;
         
         [SerializeField]
         [Range(1, 50)]
@@ -213,7 +213,7 @@ namespace Sinkii09.Engine.Services
 
         protected override void OnResetToDefaults()
         {
-            _enabledProviders = ProviderType.Resources | ProviderType.AssetBundle;
+            _enabledProviders = ProviderType.Addressable | ProviderType.Resources;
             _maxConcurrentLoads = 10;
             _memoryPressureThreshold = 0.8f;
             _enableResourceCaching = true;

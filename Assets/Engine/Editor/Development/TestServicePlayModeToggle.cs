@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using Sinkii09.Engine.Services;
 
-namespace Sinkii09.Engine.Editor
+namespace Sinkii09.Engine.Editor.Development
 {
     /// <summary>
     /// Provides runtime controls for test services during play mode
