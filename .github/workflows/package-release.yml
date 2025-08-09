@@ -21,10 +21,12 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Setup Unity
-        uses: game-ci/unity-setup@v2
-        with:
-          unity-version: 2022.3.f1
+      - name: Activate Unity License
+        uses: game-ci/unity-activate@v2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           
       - name: Cache Unity Library
         uses: actions/cache@v4
@@ -35,13 +37,14 @@ jobs:
             Library-
 
       - name: Validate Package Structure
-        uses: game-ci/unity-builder@v2
+        uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           projectPath: .
+          unityVersion: 2022.3.f1
           buildMethod: Sinkii09.Engine.Editor.PackageExporter.ValidatePackageStructure
           allowDirtyBuild: true
 
@@ -51,24 +54,26 @@ jobs:
           sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.version }}"/' Assets/Engine/package.json
 
       - name: Run Tests
-        uses: game-ci/unity-test-runner@v2
+        uses: game-ci/unity-test-runner@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           projectPath: .
+          unityVersion: 2022.3.f1
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           checkName: 'Engine Test Results'
 
       - name: Create Release Assets
-        uses: game-ci/unity-builder@v2
+        uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           projectPath: .
+          unityVersion: 2022.3.f1
           buildMethod: Sinkii09.Engine.Editor.PackageExporter.CreateReleaseFolder
           allowDirtyBuild: true
 
@@ -108,6 +113,10 @@ jobs:
             dist/
             Releases/
           retention-days: 30
+
+      - name: Return Unity License
+        uses: game-ci/unity-return-license@v2
+        if: always()
 
   publish-upm:
     needs: validate-and-package
