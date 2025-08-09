@@ -244,36 +244,69 @@ jobs:
           # Fetch all branches
           git fetch origin || true
           
+          # Debug: Show current directory and contents
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          
+          # Verify package.json exists
+          if [ ! -f "Assets/Engine/package.json" ]; then
+            echo "❌ package.json not found in Assets/Engine"
+            exit 1
+          fi
+          
+          echo "✅ Found package.json, proceeding with UPM branch creation..."
+          
+          # Create temporary directory for backup
+          TEMP_DIR="/tmp/engine-package-$(date +%s)"
+          mkdir -p "$TEMP_DIR"
+          
+          # Store Engine assets before cleaning branch  
+          echo "Backing up Engine assets to $TEMP_DIR..."
+          cp -r Assets/Engine/* "$TEMP_DIR/" || { echo "Failed to backup Engine assets"; exit 1; }
+          
+          # Verify backup was successful
+          if [ ! -f "$TEMP_DIR/package.json" ]; then
+            echo "❌ Backup failed - package.json not found in backup"
+            exit 1
+          fi
+          
+          echo "✅ Backup successful"
+          
           # Create or switch to upm branch
           if git show-ref --verify --quiet refs/remotes/origin/upm; then
+            echo "UPM branch exists, checking out..."
             git checkout -B upm origin/upm
           else
+            echo "Creating new UPM branch..."
             git checkout --orphan upm
           fi
           
-          # Store Engine assets before cleaning branch  
-          echo "Backing up Engine assets..."
-          cp -r Assets/Engine /tmp/engine-package || { echo "Failed to backup Engine assets"; exit 1; }
-          
           # Clean the branch
+          echo "Cleaning UPM branch..."
           git rm -rf . 2>/dev/null || true
+          
+          # Remove any remaining files
+          find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} + 2>/dev/null || true
           
           # Copy package contents from backup
           echo "Restoring Engine assets to UPM branch..."
-          cp -r /tmp/engine-package/* . || { echo "Failed to restore Engine assets from backup"; exit 1; }
+          cp -r "$TEMP_DIR"/* . || { echo "Failed to restore Engine assets from backup"; exit 1; }
           
           # Verify files were restored correctly
           if [ ! -f "package.json" ]; then
             echo "❌ package.json not found after restore"
-            echo "Current directory contents:"
+            echo "Current directory contents after restore:"
             ls -la
             exit 1
           fi
           
           echo "✅ Engine assets successfully restored to UPM branch"
+          echo "UPM branch contents:"
+          ls -la
           
           # Clean up temp directory
-          rm -rf /tmp/engine-package
+          rm -rf "$TEMP_DIR"
           
           # Update package version if version input provided
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -f "package.json" ]; then
