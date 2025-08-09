@@ -18,6 +18,11 @@ on:
         description: 'Version to release (e.g., 1.2.3)'
         required: true
         type: string
+      update_docs:
+        description: 'Update documentation and deploy to GitHub Pages'
+        required: false
+        type: boolean
+        default: false
 
 env:
   UNITY_VERSION: 2022.3.f1
@@ -326,7 +331,7 @@ jobs:
   update-documentation:
     needs: validate-and-package
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.update_docs == 'true')
     
     steps:
       - name: Checkout Repository
