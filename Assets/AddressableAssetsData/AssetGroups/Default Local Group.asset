@@ -14,7 +14,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_GroupName: Default Local Group
   m_GUID: 3781d8c054c4c8346aa3726f0ebd33a4
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: 782ea0a1b0d6a08498e464cb8e7c21db
+    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/Dialog.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 89fb3e79d2afcb341aba9888faed8575
+    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/ShopScreen.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 967e038d8debb4e4ebb8bf1b2c9ca8db
+    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/BlurModal.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e3868ec2213724844b15d74cd7092b5e
+    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/MenuScreen.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ee0b3e0c073f77541ba006545787b526
+    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/SettingsScreen.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: f3c126580bfd844439ed52e12ae40213
+    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/Tooltip.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: eac997206f986f24d948b3f5f6ae47c0, type: 2}
   m_SchemaSet:

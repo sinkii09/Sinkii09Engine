@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bff613027fe902646940c40e6f0bccf1, type: 3}
+  m_Name: UIServiceConfiguration
+  m_EditorClassIdentifier: 
+  _version: 24
+  _description: Service configuration
+  _uiRootPrefab: {fileID: 0}
+  _screenRegistry: {fileID: 11400000, guid: 8a77b5629987c7541bd4e09d76bcb6b3, type: 2}
+  _initialScreen: {fileID: 0}
+  _allowStacking: 1
+  _maxStackDepth: 10
+  _maxConcurrentLoads: 3
+  _enableScreenCaching: 1
+  _maxCachedScreens: 20
+  _screenUnloadDelay: 5
+  _memoryPressureThreshold: 0.8
+  _enableMemoryCleanup: 1
+  _defaultTransitionDuration: 0.3
+  _enableTransitions: 1
+  _enableErrorRecovery: 1
+  _maxRetryAttempts: 3
+  _retryDelay: 1
+  _transitionConfiguration: {fileID: 11400000, guid: afaecc9155396d3448db7e28202660ad, type: 2}
