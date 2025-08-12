@@ -1,0 +1,2742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinkii09 Engine - UI System Complete Guide</title>
+    
+    <!-- External Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #2d3436;
+            --secondary-color: #636e72;
+            --accent-color: #00b894;
+            --success-color: #00b894;
+            --warning-color: #fdcb6e;
+            --error-color: #e17055;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #2d3436;
+            --border-color: #dee2e6;
+            --code-bg: #2d3436;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .badge.success { background-color: var(--success-color); color: white; }
+        .badge.warning { background-color: var(--warning-color); color: var(--text-color); }
+        .badge.info { background-color: #74b9ff; color: white; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .nav {
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-menu a:hover {
+            color: var(--accent-color);
+        }
+
+        .content {
+            padding: 3rem 0;
+        }
+
+        .section {
+            margin-bottom: 4rem;
+        }
+
+        .section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+            position: relative;
+        }
+
+        .section h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background-color: var(--accent-color);
+        }
+
+        .section h3 {
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            color: var(--secondary-color);
+        }
+
+        .section h4 {
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+            color: var(--text-color);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .grid {
+            display: grid;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .feature-list li::before {
+            content: '✅';
+            margin-right: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .code-block {
+            position: relative;
+            background-color: var(--code-bg);
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            background-color: rgba(255,255,255,0.1);
+            padding: 0.8rem 1.2rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #a0a0a0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #00a085;
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+
+        .diagram {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+            border: 2px solid var(--border-color);
+        }
+
+        .api-method {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--accent-color);
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .api-method h4 {
+            margin-top: 0;
+            color: var(--accent-color);
+        }
+
+        .api-params {
+            background-color: #e9ecef;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .implementation-flow {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+
+        .flow-number {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: bold;
+        }
+
+        .toc {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 1rem;
+        }
+
+        .toc li {
+            margin: 0.5rem 0;
+        }
+
+        .toc a {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .toc a:hover {
+            color: var(--accent-color);
+        }
+
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 3rem 0;
+            margin-top: 4rem;
+        }
+
+        /* Mermaid diagram styling */
+        .mermaid {
+            background-color: transparent !important;
+        }
+
+        /* Performance metrics styling */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #00a085 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            margin: 2rem 0;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 1rem 2rem;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--secondary-color);
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Accordion */
+        .accordion-item {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            background-color: #f8f9fa;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        .accordion-header:hover {
+            background-color: #e9ecef;
+        }
+
+        .accordion-content {
+            padding: 1.5rem;
+            display: none;
+        }
+
+        .accordion-content.active {
+            display: block;
+        }
+
+        .accordion-icon {
+            transition: transform 0.3s;
+        }
+
+        .accordion-item.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Warning/Info boxes */
+        .info-box {
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            border-left: 4px solid;
+        }
+
+        .info-box.warning {
+            background-color: #fff3cd;
+            border-color: var(--warning-color);
+            color: #856404;
+        }
+
+        .info-box.info {
+            background-color: #d1ecf1;
+            border-color: #74b9ff;
+            color: #0c5460;
+        }
+
+        .info-box.success {
+            background-color: #d4edda;
+            border-color: var(--success-color);
+            color: #155724;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comparison-table th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .header .subtitle { font-size: 1rem; }
+            .nav-menu { flex-direction: column; gap: 1rem; }
+            .container { padding: 0 1rem; }
+            .tab-buttons { flex-direction: column; }
+            .tab-button { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>🎮 Sinkii09 Engine</h1>
+            <p class="subtitle">UI System Complete Technical Guide</p>
+            <div class="badges">
+                <span class="badge success">✅ Production Ready</span>
+                <span class="badge info">📊 Type-Safe</span>
+                <span class="badge warning">🚀 High Performance</span>
+                <span class="badge success">🔧 Service-Oriented</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container">
+            <div class="nav-content">
+                <div class="nav-brand">
+                    <strong>UI System Guide</strong>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#architecture">Architecture</a></li>
+                    <li><a href="#api">API Reference</a></li>
+                    <li><a href="#examples">Examples</a></li>
+                    <li><a href="#implementation">Implementation</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="content">
+        <div class="container">
+            
+            <!-- Table of Contents -->
+            <div class="toc">
+                <h3>📋 Table of Contents</h3>
+                <ul>
+                    <li><a href="#overview">1. System Overview</a></li>
+                    <li><a href="#architecture">2. Architecture Deep Dive</a>
+                        <ul>
+                            <li><a href="#core-components">2.1 Core Components</a></li>
+                            <li><a href="#service-integration">2.2 Service Integration</a></li>
+                            <li><a href="#data-flow">2.3 Data Flow</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#api">3. Complete API Reference</a>
+                        <ul>
+                            <li><a href="#iuiservice">3.1 IUIService Interface</a></li>
+                            <li><a href="#navigation-api">3.2 Navigation API</a></li>
+                            <li><a href="#screen-lifecycle">3.3 Screen Lifecycle</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="#examples">4. Usage Examples</a></li>
+                    <li><a href="#implementation">5. Implementation Details</a></li>
+                    <li><a href="#performance">6. Performance & Optimization</a></li>
+                </ul>
+            </div>
+
+            <!-- System Overview -->
+            <section id="overview" class="section">
+                <h2>🎯 System Overview</h2>
+                
+                <div class="card">
+                    <p><strong>The Sinkii09 Engine UI System</strong> is a production-ready, type-safe UGUI management system built with modern Unity development practices. It provides a complete solution for game UI management with zero hardcoded strings, automatic screen registration, and seamless service integration.</p>
+                </div>
+
+                <!-- Current Status -->
+                <h3>📊 Current Implementation Status</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-icon">✅</span>
+                        <div>
+                            <strong>Core Foundation</strong><br>
+                            <small>100% Complete - Production Ready</small>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">✅</span>
+                        <div>
+                            <strong>Stack Management</strong><br>
+                            <small>Advanced Navigation Support</small>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">✅</span>
+                        <div>
+                            <strong>Modal System</strong><br>
+                            <small>Simplified Backdrop Implementation</small>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">✅</span>
+                        <div>
+                            <strong>Transitions</strong><br>
+                            <small>DOTween-Powered Animations</small>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">🔧</span>
+                        <div>
+                            <strong>Resource Loading</strong><br>
+                            <small>Basic Implementation (Addressable Fix Needed)</small>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-icon">✅</span>
+                        <div>
+                            <strong>Test Coverage</strong><br>
+                            <small>Comprehensive Testing Infrastructure</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Features -->
+                <h3>🚀 Key Features & Benefits</h3>
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h4>🛡️ Type Safety</h4>
+                        <ul class="feature-list">
+                            <li>Zero hardcoded strings</li>
+                            <li>Enum-based screen identification</li>
+                            <li>Compile-time error checking</li>
+                            <li>Full IDE autocomplete support</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>🔄 Auto-Registration</h4>
+                        <ul class="feature-list">
+                            <li>Automatic screen discovery</li>
+                            <li>ScriptableObject-based configuration</li>
+                            <li>No manual registration required</li>
+                            <li>Runtime and editor support</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>🎮 Advanced Navigation</h4>
+                        <ul class="feature-list">
+                            <li>Stack-based navigation</li>
+                            <li>Modal/overlay support</li>
+                            <li>Navigation breadcrumbs</li>
+                            <li>Fluent API for complex flows</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>⚡ High Performance</h4>
+                        <ul class="feature-list">
+                            <li>Service-oriented architecture</li>
+                            <li>Efficient resource management</li>
+                            <li>DOTween integration</li>
+                            <li>Memory optimization</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Performance Metrics -->
+                <h3>📈 Performance Metrics</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">&lt;100ms</div>
+                        <div class="metric-label">Screen Load Time</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">&lt;50MB</div>
+                        <div class="metric-label">Memory Usage</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">60 FPS</div>
+                        <div class="metric-label">Target Frame Rate</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">25+</div>
+                        <div class="metric-label">Core Files</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Architecture Deep Dive -->
+            <section id="architecture" class="section">
+                <h2>🏗️ Architecture Deep Dive</h2>
+
+                <!-- System Architecture Diagram -->
+                <div class="diagram">
+                    <h3>System Architecture Overview</h3>
+                    <div class="mermaid">
+                        graph TB
+                            subgraph "Game Engine Layer"
+                                Engine[Sinkii09 Engine]
+                                ServiceContainer[Service Container]
+                            end
+                            
+                            subgraph "UI Service Layer"
+                                UIService[UIService<br/>IEngineService]
+                                UIConfig[UIServiceConfiguration]
+                                UIRegistry[UIScreenRegistry]
+                            end
+                            
+                            subgraph "Core Components"
+                                ScreenManager[UIScreenManager]
+                                ModalManager[UIModalManager]
+                                TransitionManager[UITransitionManager]
+                                CacheManager[UIScreenCacheManager]
+                                NavigationManager[UINavigationManager]
+                                PoolManager[UIInstancePoolManager]
+                            end
+                            
+                            subgraph "Navigation System"
+                                Stack[UIScreenStack]
+                                Builder[UINavigationBuilder]
+                                Context[UIScreenContext]
+                            end
+                            
+                            subgraph "Screen Layer"
+                                UIScreen[UIScreen Base Class]
+                                ScreenAsset[UIScreenAsset]
+                                DisplayConfig[UIDisplayConfig]
+                            end
+                            
+                            subgraph "Unity Integration"
+                                GameObject[Game Objects]
+                                Canvas[Canvas System]
+                                Prefabs[Screen Prefabs]
+                            end
+                            
+                            Engine --> ServiceContainer
+                            ServiceContainer --> UIService
+                            UIService --> UIConfig
+                            UIService --> UIRegistry
+                            
+                            UIService --> ScreenManager
+                            UIService --> ModalManager
+                            UIService --> TransitionManager
+                            UIService --> CacheManager
+                            UIService --> NavigationManager
+                            UIService --> PoolManager
+                            
+                            NavigationManager --> Stack
+                            NavigationManager --> Builder
+                            NavigationManager --> Context
+                            
+                            ScreenManager --> UIScreen
+                            UIScreen --> ScreenAsset
+                            UIScreen --> DisplayConfig
+                            
+                            UIScreen --> GameObject
+                            GameObject --> Canvas
+                            ScreenAsset --> Prefabs
+                            
+                            classDef serviceClass fill:#00b894,stroke:#333,stroke-width:2px,color:#fff
+                            classDef coreClass fill:#74b9ff,stroke:#333,stroke-width:2px,color:#fff
+                            classDef screenClass fill:#fdcb6e,stroke:#333,stroke-width:2px,color:#333
+                            classDef unityClass fill:#e17055,stroke:#333,stroke-width:2px,color:#fff
+                            
+                            class UIService,UIConfig,UIRegistry serviceClass
+                            class ScreenManager,ModalManager,TransitionManager,CacheManager,NavigationManager,PoolManager coreClass
+                            class UIScreen,ScreenAsset,DisplayConfig,Stack,Builder,Context screenClass
+                            class GameObject,Canvas,Prefabs unityClass
+                    </div>
+                </div>
+
+                <!-- Core Components -->
+                <div id="core-components">
+                    <h3>🔧 Core Components</h3>
+                    
+                    <div class="tabs">
+                        <div class="tab-buttons">
+                            <button class="tab-button active" onclick="showTab('ui-service-tab')">UIService</button>
+                            <button class="tab-button" onclick="showTab('components-tab')">Component Managers</button>
+                            <button class="tab-button" onclick="showTab('navigation-tab')">Navigation System</button>
+                            <button class="tab-button" onclick="showTab('screen-tab')">Screen Architecture</button>
+                        </div>
+                        
+                        <div id="ui-service-tab" class="tab-content active">
+                            <div class="card">
+                                <h4>UIService - Main Service Controller</h4>
+                                <p>The central hub that orchestrates all UI operations through a component-based architecture.</p>
+                                
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span>UIService.cs - Core Implementation</span>
+                                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    </div>
+                                    <pre><code class="language-csharp">[EngineService(ServiceCategory.Core, ServicePriority.High, 
+    Description = "Component-based UI service with improved architecture")]
+[ServiceConfiguration(typeof(UIServiceConfiguration))]
+public class UIService : IUIService, IUIServiceContext
+{
+    private readonly UIServiceConfiguration _config;
+    private readonly IResourceService _resourceService;
+    private readonly UIScreenRegistry _screenRegistry;
+    private readonly Dictionary&lt;Type, IUIComponent&gt; _components;
+    
+    // Component-based delegation for better maintainability
+    public async UniTask ShowAsync(UIScreenType screenType, 
+        UIScreenContext context = null, 
+        UIDisplayConfig displayConfig = null, 
+        CancellationToken cancellationToken = default)
+    {
+        var screenAsset = _screenRegistry.GetAsset(screenType);
+        var navManager = GetComponent&lt;UINavigationManager&gt;();
+        await navManager.ShowScreenAsync(screenAsset, context, displayConfig, cancellationToken);
+    }
+    
+    public IUINavigationBuilder Navigate() => new UINavigationBuilder(this);
+}</code></pre>
+                                </div>
+                                
+                                <div class="info-box info">
+                                    <strong>Key Design Decision:</strong> The UIService delegates all operations to specialized component managers, following single responsibility principle and improving maintainability.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="components-tab" class="tab-content">
+                            <div class="card">
+                                <h4>Component Managers - Specialized Responsibilities</h4>
+                                
+                                <div class="accordion-item">
+                                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                                        <span><strong>UINavigationManager</strong> - Navigation & Stack Control</span>
+                                        <span class="accordion-icon">▼</span>
+                                    </div>
+                                    <div class="accordion-content">
+                                        <p>Manages the navigation stack, screen transitions, and routing logic.</p>
+                                        <div class="code-block">
+                                            <div class="code-header">
+                                                <span>Navigation Manager Responsibilities</span>
+                                            </div>
+                                            <pre><code class="language-csharp">public class UINavigationManager : IUIComponent
+{
+    private readonly UIScreenStack _stack;
+    
+    public async UniTask ShowScreenAsync(UIScreenAsset screenAsset, 
+        UIScreenContext context, UIDisplayConfig displayConfig, 
+        CancellationToken cancellationToken)
+    {
+        var screen = await LoadScreenAsync(screenAsset, cancellationToken);
+        await ApplyTransitionsAsync(screen, displayConfig, cancellationToken);
+        _stack.Push(screen);
+        
+        ScreenShown?.OnNext(screenAsset);
+    }
+}</code></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                                        <span><strong>UIModalManager</strong> - Modal & Overlay Logic</span>
+                                        <span class="accordion-icon">▼</span>
+                                    </div>
+                                    <div class="accordion-content">
+                                        <p>Handles modal dialogs, overlay screens, and backdrop management.</p>
+                                        <div class="code-block">
+                                            <div class="code-header">
+                                                <span>Modal Manager Features</span>
+                                            </div>
+                                            <pre><code class="language-csharp">public class UIModalManager : IUIComponent
+{
+    public async UniTask ShowModalAsync(UIScreen screen, UIDisplayConfig config)
+    {
+        // Create backdrop with interaction blocking
+        var backdrop = await CreateBackdropAsync(config);
+        
+        // Setup modal canvas sorting
+        SetupModalSorting(screen, backdrop);
+        
+        // Handle backdrop behavior (Dimmed/None/Custom)
+        ConfigureBackdrop(backdrop, config);
+    }
+}</code></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                                        <span><strong>UITransitionManager</strong> - Animation System</span>
+                                        <span class="accordion-icon">▼</span>
+                                    </div>
+                                    <div class="accordion-content">
+                                        <p>DOTween-powered transition system with caching and performance optimization.</p>
+                                        <div class="code-block">
+                                            <div class="code-header">
+                                                <span>Transition System Architecture</span>
+                                            </div>
+                                            <pre><code class="language-csharp">public class UITransitionManagerComponent : IUIComponent
+{
+    private readonly Dictionary&lt;TransitionType, IUITransition&gt; _transitions;
+    
+    public async UniTask ExecuteTransitionAsync(UIScreen screen, 
+        TransitionType type, float duration, CancellationToken cancellationToken)
+    {
+        var transition = GetOrCreateTransition(type);
+        await transition.ExecuteAsync(screen, duration, cancellationToken);
+    }
+    
+    // Supported transition types: Fade, Slide, Scale, Push
+    private IUITransition GetOrCreateTransition(TransitionType type)
+    {
+        if (!_transitions.ContainsKey(type))
+        {
+            _transitions[type] = type switch
+            {
+                TransitionType.Fade => new FadeTransition(),
+                TransitionType.SlideLeft => new SlideTransition(SlideDirection.Left),
+                TransitionType.ScaleUp => new ScaleTransition(ScaleMode.Up),
+                TransitionType.PushLeft => new PushTransition(PushDirection.Left),
+                _ => new FadeTransition()
+            };
+        }
+        return _transitions[type];
+    }
+}</code></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="accordion-item">
+                                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                                        <span><strong>UIScreenCacheManager</strong> - Performance Optimization</span>
+                                        <span class="accordion-icon">▼</span>
+                                    </div>
+                                    <div class="accordion-content">
+                                        <p>LRU caching system for loaded screens with memory pressure response.</p>
+                                        <div class="code-block">
+                                            <div class="code-header">
+                                                <span>Caching Strategy</span>
+                                            </div>
+                                            <pre><code class="language-csharp">public class UIScreenCacheManager : IUIComponent, IMemoryPressureResponder
+{
+    private readonly LRUCache&lt;UIScreenType, UIScreen&gt; _screenCache;
+    
+    public void RespondToMemoryPressure(float pressureLevel)
+    {
+        if (pressureLevel > 0.8f)
+        {
+            // Aggressive cleanup - remove 50% of cached screens
+            _screenCache.RemoveOldest(_screenCache.Count / 2);
+        }
+        else if (pressureLevel > 0.6f)
+        {
+            // Moderate cleanup - remove 25% of cached screens  
+            _screenCache.RemoveOldest(_screenCache.Count / 4);
+        }
+    }
+}</code></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="navigation-tab" class="tab-content">
+                            <div class="card">
+                                <h4>Navigation System - Advanced Stack Management</h4>
+                                
+                                <div class="diagram">
+                                    <h5>Navigation Flow Diagram</h5>
+                                    <div class="mermaid">
+                                        sequenceDiagram
+                                            participant Game
+                                            participant UIService
+                                            participant NavigationBuilder
+                                            participant NavigationManager
+                                            participant UIScreenStack
+                                            participant Screen
+                                            
+                                            Game->>UIService: Navigate().To(MainMenu).Execute()
+                                            UIService->>NavigationBuilder: Create Builder
+                                            NavigationBuilder->>NavigationManager: ShowScreenAsync()
+                                            NavigationManager->>UIScreenStack: Push(screen)
+                                            UIScreenStack->>Screen: OnShow()
+                                            Screen-->>Game: Screen Visible
+                                            
+                                            Note over Game,Screen: Advanced Navigation Patterns
+                                            Game->>UIService: Navigate().To(Settings).AsModal().Execute()
+                                            UIService->>NavigationManager: ShowModalAsync()
+                                            NavigationManager->>UIScreenStack: PushModal(screen)
+                                            
+                                            Game->>UIService: PopAsync()
+                                            UIService->>NavigationManager: PopAsync()
+                                            NavigationManager->>UIScreenStack: Pop()
+                                            UIScreenStack->>Screen: OnHide()
+                                    </div>
+                                </div>
+                                
+                                <h5>Stack Management Features</h5>
+                                <div class="grid grid-2">
+                                    <div class="api-method">
+                                        <h4>Stack Operations</h4>
+                                        <div class="api-params">
+                                            <strong>Basic:</strong> Push, Pop, Clear<br>
+                                            <strong>Advanced:</strong> PopTo, PopToRoot, Replace<br>
+                                            <strong>Monitoring:</strong> Breadcrumbs, Depth Tracking
+                                        </div>
+                                    </div>
+                                    <div class="api-method">
+                                        <h4>Navigation Safety</h4>
+                                        <div class="api-params">
+                                            <strong>Protection:</strong> Stack overflow prevention<br>
+                                            <strong>Validation:</strong> Circular dependency detection<br>
+                                            <strong>Recovery:</strong> Automatic error handling
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="screen-tab" class="tab-content">
+                            <div class="card">
+                                <h4>Screen Architecture - Type-Safe Screen Management</h4>
+                                
+                                <div class="diagram">
+                                    <h5>Screen Lifecycle & Configuration</h5>
+                                    <div class="mermaid">
+                                        graph LR
+                                            subgraph "Screen Definition"
+                                                ScreenAsset[UIScreenAsset<br/>ScriptableObject]
+                                                ScreenType[UIScreenType<br/>Enum]
+                                                DisplayConfig[UIDisplayConfig<br/>Modal/Overlay Settings]
+                                            end
+                                            
+                                            subgraph "Screen Instance"
+                                                UIScreen[UIScreen<br/>MonoBehaviour]
+                                                Canvas[Canvas Component]
+                                                UIElements[UI Elements]
+                                            end
+                                            
+                                            subgraph "Screen Lifecycle"
+                                                OnShow[OnShow&#40;context&#41;]
+                                                OnHide[OnHide&#40;&#41;]
+                                                OnDestroy[OnDestroy&#40;&#41;]
+                                            end
+                                            
+                                            ScreenAsset --> ScreenType
+                                            ScreenAsset --> DisplayConfig
+                                            ScreenAsset --> UIScreen
+                                            UIScreen --> Canvas
+                                            UIScreen --> UIElements
+                                            UIScreen --> OnShow
+                                            OnShow --> OnHide
+                                            OnHide --> OnDestroy
+                                            
+                                            classDef configClass fill:#fdcb6e,stroke:#333,stroke-width:2px
+                                            classDef instanceClass fill:#74b9ff,stroke:#333,stroke-width:2px,color:#fff
+                                            classDef lifecycleClass fill:#00b894,stroke:#333,stroke-width:2px,color:#fff
+                                            
+                                            class ScreenAsset,ScreenType,DisplayConfig configClass
+                                            class UIScreen,Canvas,UIElements instanceClass
+                                            class OnShow,OnHide,OnDestroy lifecycleClass
+                                    </div>
+                                </div>
+                                
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span>UIScreen Base Class - Simple but Powerful</span>
+                                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    </div>
+                                    <pre><code class="language-csharp">/// &lt;summary&gt;
+/// Base class for all UI screens with simple lifecycle
+/// &lt;/summary&gt;
+[RequireComponent(typeof(Canvas))]
+public abstract class UIScreen : MonoBehaviour
+{
+    [Header("Screen Configuration")]
+    [SerializeField] private UIScreenAsset _screenAsset;
+    [SerializeField] private UIDisplayConfig _displayConfig;
+    
+    public UIScreenAsset ScreenAsset { get; internal set; }
+    public UIDisplayConfig DisplayConfig { get; internal set; }
+    public bool IsActive { get; private set; }
+    public Canvas Canvas { get; private set; }
+    
+    // Simple lifecycle - only 4 methods to override
+    protected virtual void OnShow(UIScreenContext context) { }
+    protected virtual void OnHide() { }
+    protected virtual void OnDestroy() { }
+    public virtual bool OnBackPressed() => true; // Return false to consume back press
+    
+    // Internal lifecycle management
+    internal async UniTask ShowAsync(UIScreenContext context)
+    {
+        IsActive = true;
+        gameObject.SetActive(true);
+        OnShow(context);
+    }
+    
+    internal async UniTask HideAsync()
+    {
+        OnHide();
+        IsActive = false;
+        gameObject.SetActive(false);
+    }
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Complete API Reference -->
+            <section id="api" class="section">
+                <h2>📚 Complete API Reference</h2>
+                
+                <div id="iuiservice">
+                    <h3>🔌 IUIService Interface</h3>
+                    <div class="card">
+                        <p>The main interface for all UI operations, providing a clean and consistent API.</p>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>IUIService.cs - Complete Interface</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code class="language-csharp">public interface IUIService : IEngineService
+{
+    #region Core Navigation
+    /// &lt;summary&gt;
+    /// Show a screen with basic configuration
+    /// &lt;/summary&gt;
+    UniTask ShowAsync(UIScreenType screenType, CancellationToken cancellationToken = default);
+    
+    /// &lt;summary&gt;
+    /// Show a screen with context data
+    /// &lt;/summary&gt;
+    UniTask ShowAsync(UIScreenType screenType, UIScreenContext context, CancellationToken cancellationToken = default);
+    
+    /// &lt;summary&gt;
+    /// Show a screen with full configuration (modal, transitions, etc.)
+    /// &lt;/summary&gt;
+    UniTask ShowAsync(UIScreenType screenType, UIScreenContext context, UIDisplayConfig displayConfig, CancellationToken cancellationToken = default);
+    
+    /// &lt;summary&gt;
+    /// Hide a specific screen type
+    /// &lt;/summary&gt;
+    UniTask HideAsync(UIScreenType screenType, CancellationToken cancellationToken = default);
+    
+    #endregion
+    
+    #region Advanced Navigation
+    /// &lt;summary&gt;
+    /// Pop the top screen from the navigation stack
+    /// &lt;/summary&gt;
+    UniTask PopAsync(CancellationToken cancellationToken = default);
+    
+    /// &lt;summary&gt;
+    /// Pop all screens until reaching the specified screen type
+    /// &lt;/summary&gt;
+    UniTask PopToAsync(UIScreenType screenType, CancellationToken cancellationToken = default);
+    
+    /// &lt;summary&gt;
+    /// Replace the current screen with a new one
+    /// &lt;/summary&gt;
+    UniTask ReplaceAsync(UIScreenType screenType, UIScreenContext context = null, UIDisplayConfig displayConfig = null, CancellationToken cancellationToken = default);
+    
+    /// &lt;summary&gt;
+    /// Clear all screens from the navigation stack
+    /// &lt;/summary&gt;
+    UniTask ClearAsync(CancellationToken cancellationToken = default);
+    
+    #endregion
+    
+    #region Fluent Navigation API
+    /// &lt;summary&gt;
+    /// Create a fluent navigation builder for complex operations
+    /// &lt;/summary&gt;
+    IUINavigationBuilder Navigate();
+    
+    #endregion
+    
+    #region State Query
+    /// &lt;summary&gt;
+    /// Get the currently active screen
+    /// &lt;/summary&gt;
+    UIScreen GetActiveScreen();
+    
+    /// &lt;summary&gt;
+    /// Get the type of the currently active screen
+    /// &lt;/summary&gt;
+    UIScreenType GetActiveScreenType();
+    
+    /// &lt;summary&gt;
+    /// Check if a specific screen type is currently active
+    /// &lt;/summary&gt;
+    bool IsScreenActive(UIScreenType screenType);
+    
+    /// &lt;summary&gt;
+    /// Get navigation breadcrumbs for debugging
+    /// &lt;/summary&gt;
+    IReadOnlyList&lt;string&gt; GetNavigationBreadcrumbs();
+    
+    /// &lt;summary&gt;
+    /// Get current navigation stack depth
+    /// &lt;/summary&gt;
+    int GetStackDepth();
+    
+    /// &lt;summary&gt;
+    /// Get maximum allowed stack depth
+    /// &lt;/summary&gt;
+    int GetMaxStackDepth();
+    
+    #endregion
+    
+    #region Reactive Events
+    /// &lt;summary&gt;
+    /// Observable stream of screen show events
+    /// &lt;/summary&gt;
+    Observable&lt;UIScreenAsset&gt; ScreenShown { get; }
+    
+    /// &lt;summary&gt;
+    /// Observable stream of screen hide events
+    /// &lt;/summary&gt;
+    Observable&lt;UIScreenAsset&gt; ScreenHidden { get; }
+    
+    #endregion
+    
+    #region Performance & Memory
+    /// &lt;summary&gt;
+    /// Get memory and performance statistics
+    /// &lt;/summary&gt;
+    (int cachedScreens, int totalPooledInstances, int totalActiveInstances, 
+     double cacheEfficiency, double poolEfficiency) GetMemoryStats();
+    
+    /// &lt;summary&gt;
+    /// Get object pool statistics for a specific screen type
+    /// &lt;/summary&gt;
+    (int available, int active, int totalCreated, double efficiency) GetPoolStats(UIScreenType screenType);
+    
+    /// &lt;summary&gt;
+    /// Respond to memory pressure by cleaning up cached resources
+    /// &lt;/summary&gt;
+    void RespondToMemoryPressure(float pressureLevel);
+    
+    #endregion
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="navigation-api">
+                    <h3>🧭 Fluent Navigation API</h3>
+                    <div class="card">
+                        <p>The Navigation Builder provides a fluent API for complex navigation scenarios with method chaining.</p>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>UINavigationBuilder - Fluent Interface</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code class="language-csharp">public interface IUINavigationBuilder
+{
+    #region Target Selection
+    IUINavigationBuilder To(UIScreenType screenType);
+    IUINavigationBuilder ToAsset(UIScreenAsset screenAsset);
+    #endregion
+    
+    #region Data & Context
+    IUINavigationBuilder WithData(object data);
+    IUINavigationBuilder WithContext(UIScreenContext context);
+    #endregion
+    
+    #region Display Modes
+    IUINavigationBuilder AsModal();
+    IUINavigationBuilder AsOverlay();
+    IUINavigationBuilder WithDisplayConfig(UIDisplayConfig config);
+    #endregion
+    
+    #region Transitions
+    IUINavigationBuilder WithTransition(TransitionType transitionType);
+    IUINavigationBuilder WithInTransition(TransitionType transitionType);
+    IUINavigationBuilder WithOutTransition(TransitionType transitionType);
+    IUINavigationBuilder WithTransitionDuration(float duration);
+    #endregion
+    
+    #region Navigation Actions
+    IUINavigationBuilder Push(); // Default - adds to stack
+    IUINavigationBuilder Replace(); // Replaces current screen
+    IUINavigationBuilder ClearAndShow(); // Clears stack then shows
+    #endregion
+    
+    #region Execution
+    UniTask ExecuteAsync(CancellationToken cancellationToken = default);
+    #endregion
+}</code></pre>
+                        </div>
+                        
+                        <h4>📋 Navigation Builder Usage Examples</h4>
+                        <div class="grid grid-2">
+                            <div class="api-method">
+                                <h4>Simple Navigation</h4>
+                                <div class="code-block">
+                                    <pre><code class="language-csharp">// Basic screen navigation
+await uiService.Navigate()
+    .To(UIScreenType.MainMenu)
+    .ExecuteAsync();
+
+// With transition animation  
+await uiService.Navigate()
+    .To(UIScreenType.Settings)
+    .WithTransition(TransitionType.SlideLeft)
+    .ExecuteAsync();</code></pre>
+                                </div>
+                            </div>
+                            <div class="api-method">
+                                <h4>Modal Dialogs</h4>
+                                <div class="code-block">
+                                    <pre><code class="language-csharp">// Modal dialog with data
+await uiService.Navigate()
+    .To(UIScreenType.ConfirmDialog)
+    .WithData(confirmationData)
+    .AsModal()
+    .WithTransition(TransitionType.ScaleUp)
+    .ExecuteAsync();</code></pre>
+                                </div>
+                            </div>
+                            <div class="api-method">
+                                <h4>Complex Navigation</h4>
+                                <div class="code-block">
+                                    <pre><code class="language-csharp">// Advanced navigation with custom config
+await uiService.Navigate()
+    .To(UIScreenType.GameplayHUD)
+    .WithContext(gameContext)
+    .AsOverlay()
+    .WithInTransition(TransitionType.Fade)
+    .WithOutTransition(TransitionType.SlideDown)
+    .WithTransitionDuration(0.5f)
+    .Replace()
+    .ExecuteAsync();</code></pre>
+                                </div>
+                            </div>
+                            <div class="api-method">
+                                <h4>Stack Management</h4>
+                                <div class="code-block">
+                                    <pre><code class="language-csharp">// Clear stack and show new screen
+await uiService.Navigate()
+    .To(UIScreenType.MainMenu)
+    .ClearAndShow()
+    .WithTransition(TransitionType.Fade)
+    .ExecuteAsync();</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="screen-lifecycle">
+                    <h3>🔄 Screen Lifecycle Management</h3>
+                    <div class="card">
+                        <div class="diagram">
+                            <h4>Complete Screen Lifecycle Flow</h4>
+                            <div class="mermaid">
+                                stateDiagram-v2
+                                    [*] --> Created: Screen Instantiated
+                                    Created --> Initializing: UIService.ShowAsync()
+                                    
+                                    state Initializing {
+                                        [*] --> LoadingAssets: Load Screen Assets
+                                        LoadingAssets --> ConfiguringCanvas: Setup Canvas & Sorting
+                                        ConfiguringCanvas --> ApplyingTransition: Apply In-Transition
+                                        ApplyingTransition --> [*]: Ready to Show
+                                    }
+                                    
+                                    Initializing --> Active: OnShow(context)
+                                    
+                                    state Active {
+                                        [*] --> Visible: GameObject.SetActive(true)
+                                        Visible --> InteractionEnabled: Canvas & Raycaster Active
+                                        InteractionEnabled --> Visible: User Interaction
+                                        
+                                        Visible --> ModalState: If Modal
+                                        state ModalState {
+                                            BackdropCreated --> InteractionBlocked: Block Background
+                                            InteractionBlocked --> EscapeHandling: Handle ESC/Back
+                                        }
+                                    }
+                                    
+                                    Active --> Hiding: UIService.HideAsync()
+                                    
+                                    state Hiding {
+                                        [*] --> OnHideCalled: OnHide() Called
+                                        OnHideCalled --> OutTransition: Apply Out-Transition
+                                        OutTransition --> DeactivateGameObject: SetActive(false)
+                                        DeactivateGameObject --> [*]: Hidden
+                                    }
+                                    
+                                    Hiding --> Cached: If Caching Enabled
+                                    Hiding --> Destroyed: If No Caching
+                                    
+                                    Cached --> Active: Reshow from Cache
+                                    Cached --> Destroyed: Memory Pressure/Cleanup
+                                    
+                                    Destroyed --> [*]: OnDestroy() & Cleanup
+                            </div>
+                        </div>
+                        
+                        <h4>📊 Lifecycle Method Details</h4>
+                        <div class="accordion-item">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span><strong>OnShow(UIScreenContext context)</strong> - Screen Activation</span>
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="code-block">
+                                    <pre><code class="language-csharp">protected override void OnShow(UIScreenContext context)
+{
+    // Called when screen becomes active
+    // - GameObject is already SetActive(true)
+    // - Canvas sorting order is configured
+    // - In-transition has been applied
+    
+    // Example implementation:
+    if (context?.Data is MainMenuData menuData)
+    {
+        playerNameText.text = menuData.PlayerName;
+        levelText.text = $"Level {menuData.Level}";
+    }
+    
+    // Subscribe to events
+    playButton.onClick.AddListener(OnPlayClicked);
+    settingsButton.onClick.AddListener(OnSettingsClicked);
+    
+    // Start any animations or loading
+    StartCoroutine(LoadPlayerStats());
+}</code></pre>
+                                </div>
+                                <div class="info-box info">
+                                    <strong>When Called:</strong> After GameObject activation, canvas setup, and in-transition completion.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span><strong>OnHide()</strong> - Screen Deactivation</span>
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="code-block">
+                                    <pre><code class="language-csharp">protected override void OnHide()
+{
+    // Called when screen is being hidden
+    // - GameObject is still active during this call
+    // - Out-transition will be applied after this method
+    // - Use this for cleanup and state saving
+    
+    // Example implementation:
+    // Unsubscribe from events
+    playButton.onClick.RemoveListener(OnPlayClicked);
+    settingsButton.onClick.RemoveListener(OnSettingsClicked);
+    
+    // Save any user input or state
+    SavePlayerSettings();
+    
+    // Stop any ongoing operations
+    StopAllCoroutines();
+    
+    // Clean up temporary resources
+    if (tempTexture != null)
+    {
+        DestroyImmediate(tempTexture);
+        tempTexture = null;
+    }
+}</code></pre>
+                                </div>
+                                <div class="info-box warning">
+                                    <strong>Important:</strong> GameObject.SetActive(false) happens AFTER OnHide() completes.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <div class="accordion-header" onclick="toggleAccordion(this)">
+                                <span><strong>OnBackPressed()</strong> - Back Button Handling</span>
+                                <span class="accordion-icon">▼</span>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="code-block">
+                                    <pre><code class="language-csharp">public override bool OnBackPressed()
+{
+    // Handle back button (ESC key, Android back, etc.)
+    // Return true to allow default back navigation
+    // Return false to consume the back press
+    
+    if (hasUnsavedChanges)
+    {
+        // Show confirmation dialog
+        ShowUnsavedChangesDialog();
+        return false; // Consume back press, don't navigate
+    }
+    
+    if (isInEditMode)
+    {
+        // Exit edit mode instead of navigating back
+        ExitEditMode();
+        return false; // Consume back press
+    }
+    
+    // Allow normal back navigation
+    return true;
+}</code></pre>
+                                </div>
+                                <div class="info-box success">
+                                    <strong>Use Cases:</strong> Confirmation dialogs, unsaved changes, multi-step forms, edit modes.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Usage Examples -->
+            <section id="examples" class="section">
+                <h2>💡 Real-World Usage Examples</h2>
+                
+                <div class="implementation-flow">
+                    <h3>🎮 Complete Game UI Implementation Example</h3>
+                    <p>Step-by-step guide to implementing a complete game UI system.</p>
+                    
+                    <div class="flow-step">
+                        <div class="flow-number">1</div>
+                        <div>
+                            <strong>Create Screen Enums & Assets</strong>
+                            <p>Define your screens and create ScriptableObject assets for type safety.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="flow-number">2</div>
+                        <div>
+                            <strong>Implement Screen Classes</strong>
+                            <p>Create MonoBehaviour classes inheriting from UIScreen.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="flow-number">3</div>
+                        <div>
+                            <strong>Configure Service & Registry</strong>
+                            <p>Set up UIServiceConfiguration and UIScreenRegistry assets.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="flow-number">4</div>
+                        <div>
+                            <strong>Use Navigation API</strong>
+                            <p>Implement game logic using the fluent navigation API.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tabs">
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="showTab('game-menu-tab')">Game Menu System</button>
+                        <button class="tab-button" onclick="showTab('dialog-system-tab')">Dialog System</button>
+                        <button class="tab-button" onclick="showTab('hud-system-tab')">HUD & Overlays</button>
+                        <button class="tab-button" onclick="showTab('settings-tab')">Settings Screen</button>
+                    </div>
+                    
+                    <div id="game-menu-tab" class="tab-content active">
+                        <div class="card">
+                            <h4>🎮 Complete Game Menu System</h4>
+                            
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span>1. Define Screen Types (Auto-Generated)</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                </div>
+                                <pre><code class="language-csharp">// AUTO-GENERATED - Assets/Engine/Runtime/Scripts/Core/Services/Implemented/UIService/Core/UIScreenType.cs
+public enum UIScreenType
+{
+    None = 0,
+    
+    // Core screens (1-9)
+    MainMenu = 1,
+    Settings = 2,
+    
+    // Gameplay screens (10-19) 
+    GameplayHUD = 10,
+    PauseMenu = 11,
+    
+    // Dialog screens (20-29)
+    ConfirmDialog = 20,
+    ErrorDialog = 21,
+    
+    // Popup screens (40-49)
+    Tooltip = 40
+}</code></pre>
+                            </div>
+                            
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span>2. Main Menu Screen Implementation</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                </div>
+                                <pre><code class="language-csharp">public class MainMenuScreen : UIScreen
+{
+    [Header("UI References")]
+    [SerializeField] private Button playButton;
+    [SerializeField] private Button settingsButton;
+    [SerializeField] private Button quitButton;
+    [SerializeField] private Text playerNameText;
+    [SerializeField] private Text levelText;
+    
+    private IUIService uiService;
+    private ISaveLoadService saveService;
+    
+    protected override void Awake()
+    {
+        base.Awake();
+        uiService = Engine.GetService&lt;IUIService&gt;();
+        saveService = Engine.GetService&lt;ISaveLoadService&gt;();
+    }
+    
+    protected override void OnShow(UIScreenContext context)
+    {
+        // Setup UI based on context data
+        if (context?.Data is PlayerData playerData)
+        {
+            playerNameText.text = playerData.Name;
+            levelText.text = $"Level {playerData.Level}";
+        }
+        
+        // Subscribe to button events
+        playButton.onClick.AddListener(OnPlayClicked);
+        settingsButton.onClick.AddListener(OnSettingsClicked);
+        quitButton.onClick.AddListener(OnQuitClicked);
+        
+        // Start background animations
+        StartCoroutine(BackgroundAnimationLoop());
+    }
+    
+    protected override void OnHide()
+    {
+        // Cleanup
+        playButton.onClick.RemoveAllListeners();
+        settingsButton.onClick.RemoveAllListeners();
+        quitButton.onClick.RemoveAllListeners();
+        StopAllCoroutines();
+    }
+    
+    private async void OnPlayClicked()
+    {
+        // Show loading screen, then transition to gameplay
+        await uiService.Navigate()
+            .To(UIScreenType.GameplayHUD)
+            .WithTransition(TransitionType.Fade)
+            .Replace()
+            .ExecuteAsync();
+    }
+    
+    private async void OnSettingsClicked()
+    {
+        // Show settings as modal overlay
+        await uiService.Navigate()
+            .To(UIScreenType.Settings)
+            .AsModal()
+            .WithTransition(TransitionType.SlideUp)
+            .ExecuteAsync();
+    }
+    
+    private async void OnQuitClicked()
+    {
+        // Show confirmation dialog
+        var confirmed = await ShowConfirmationDialog("Quit Game", "Are you sure you want to quit?");
+        if (confirmed)
+        {
+            Application.Quit();
+        }
+    }
+    
+    private async UniTask&lt;bool&gt; ShowConfirmationDialog(string title, string message)
+    {
+        var dialogContext = new UIScreenContext
+        {
+            Data = new ConfirmDialogData { Title = title, Message = message }
+        };
+        
+        await uiService.Navigate()
+            .To(UIScreenType.ConfirmDialog)
+            .WithContext(dialogContext)
+            .AsModal()
+            .WithTransition(TransitionType.ScaleUp)
+            .ExecuteAsync();
+            
+        // Wait for dialog result (would be implemented via events/callbacks)
+        // This is a simplified example
+        return false;
+    }
+}</code></pre>
+                            </div>
+                            
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span>3. Game Controller Integration</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                </div>
+                                <pre><code class="language-csharp">public class GameController : MonoBehaviour
+{
+    private IUIService uiService;
+    
+    private async void Start()
+    {
+        // Get UI service
+        uiService = Engine.GetService&lt;IUIService&gt;();
+        
+        // Show initial screen with player data
+        var playerData = await LoadPlayerData();
+        var context = new UIScreenContext { Data = playerData };
+        
+        await uiService.Navigate()
+            .To(UIScreenType.MainMenu)
+            .WithContext(context)
+            .WithTransition(TransitionType.Fade)
+            .ExecuteAsync();
+    }
+    
+    private void Update()
+    {
+        // Handle global back button (ESC, Android back)
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            HandleBackPressed();
+        }
+    }
+    
+    private async void HandleBackPressed()
+    {
+        var currentScreen = uiService.GetActiveScreen();
+        if (currentScreen != null && !currentScreen.OnBackPressed())
+        {
+            // Screen consumed the back press
+            return;
+        }
+        
+        // Default back navigation
+        if (uiService.GetStackDepth() > 1)
+        {
+            await uiService.PopAsync();
+        }
+        else
+        {
+            // At root, show quit confirmation
+            await ShowQuitConfirmation();
+        }
+    }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="dialog-system-tab" class="tab-content">
+                        <div class="card">
+                            <h4>💬 Dynamic Dialog System</h4>
+                            
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span>Confirmation Dialog Implementation</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                </div>
+                                <pre><code class="language-csharp">public class ConfirmDialogScreen : UIScreen
+{
+    [Header("Dialog UI")]
+    [SerializeField] private Text titleText;
+    [SerializeField] private Text messageText;
+    [SerializeField] private Button confirmButton;
+    [SerializeField] private Button cancelButton;
+    [SerializeField] private Button closeButton;
+    
+    public event System.Action&lt;bool&gt; DialogResult;
+    
+    protected override void OnShow(UIScreenContext context)
+    {
+        if (context?.Data is ConfirmDialogData dialogData)
+        {
+            titleText.text = dialogData.Title;
+            messageText.text = dialogData.Message;
+            confirmButton.GetComponentInChildren&lt;Text&gt;().text = dialogData.ConfirmText ?? "OK";
+            cancelButton.GetComponentInChildren&lt;Text&gt;().text = dialogData.CancelText ?? "Cancel";
+        }
+        
+        confirmButton.onClick.AddListener(() => CloseDialog(true));
+        cancelButton.onClick.AddListener(() => CloseDialog(false));
+        closeButton.onClick.AddListener(() => CloseDialog(false));
+    }
+    
+    public override bool OnBackPressed()
+    {
+        // Treat back press as cancel
+        CloseDialog(false);
+        return false; // Consume back press
+    }
+    
+    private async void CloseDialog(bool confirmed)
+    {
+        DialogResult?.Invoke(confirmed);
+        
+        var uiService = Engine.GetService&lt;IUIService&gt;();
+        await uiService.HideAsync(UIScreenType.ConfirmDialog);
+    }
+}
+
+// Dialog data structure
+[System.Serializable]
+public class ConfirmDialogData
+{
+    public string Title;
+    public string Message;
+    public string ConfirmText;
+    public string CancelText;
+}</code></pre>
+                            </div>
+                            
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span>Dialog Helper Utility</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                </div>
+                                <pre><code class="language-csharp">/// &lt;summary&gt;
+/// Utility class for showing common dialogs
+/// &lt;/summary&gt;
+public static class DialogHelper
+{
+    public static async UniTask&lt;bool&gt; ShowConfirmationAsync(string title, string message, 
+        string confirmText = "OK", string cancelText = "Cancel")
+    {
+        var uiService = Engine.GetService&lt;IUIService&gt;();
+        var taskCompletionSource = new UniTaskCompletionSource&lt;bool&gt;();
+        
+        var dialogData = new ConfirmDialogData
+        {
+            Title = title,
+            Message = message,
+            ConfirmText = confirmText,
+            CancelText = cancelText
+        };
+        
+        var context = new UIScreenContext { Data = dialogData };
+        
+        await uiService.Navigate()
+            .To(UIScreenType.ConfirmDialog)
+            .WithContext(context)
+            .AsModal()
+            .WithTransition(TransitionType.ScaleUp)
+            .ExecuteAsync();
+            
+        // Subscribe to dialog result
+        var screen = uiService.GetActiveScreen() as ConfirmDialogScreen;
+        screen.DialogResult += result =>
+        {
+            taskCompletionSource.TrySetResult(result);
+        };
+        
+        return await taskCompletionSource.Task;
+    }
+    
+    public static async UniTask ShowErrorAsync(string title, string message)
+    {
+        await ShowConfirmationAsync(title, message, "OK", null);
+    }
+    
+    public static async UniTask ShowInfoAsync(string title, string message)
+    {
+        await ShowConfirmationAsync(title, message, "OK", null);
+    }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="hud-system-tab" class="tab-content">
+                        <div class="card">
+                            <h4>📊 HUD & Overlay System</h4>
+                            
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span>Gameplay HUD Implementation</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                </div>
+                                <pre><code class="language-csharp">public class GameplayHUDScreen : UIScreen
+{
+    [Header("HUD Elements")]
+    [SerializeField] private Text healthText;
+    [SerializeField] private Text scoreText;
+    [SerializeField] private Text timeText;
+    [SerializeField] private Button pauseButton;
+    [SerializeField] private Button inventoryButton;
+    
+    private GameplayData gameplayData;
+    private IUIService uiService;
+    
+    protected override void OnShow(UIScreenContext context)
+    {
+        uiService = Engine.GetService&lt;IUIService&gt;();
+        
+        if (context?.Data is GameplayData data)
+        {
+            gameplayData = data;
+        }
+        
+        pauseButton.onClick.AddListener(OnPauseClicked);
+        inventoryButton.onClick.AddListener(OnInventoryClicked);
+        
+        // Start real-time UI updates
+        StartCoroutine(UpdateHUDLoop());
+    }
+    
+    private System.Collections.IEnumerator UpdateHUDLoop()
+    {
+        while (IsActive)
+        {
+            if (gameplayData != null)
+            {
+                healthText.text = $"Health: {gameplayData.Health}/{gameplayData.MaxHealth}";
+                scoreText.text = $"Score: {gameplayData.Score:N0}";
+                timeText.text = $"Time: {FormatTime(gameplayData.ElapsedTime)}";
+            }
+            
+            yield return new WaitForSeconds(0.1f); // 10 FPS update rate
+        }
+    }
+    
+    private async void OnPauseClicked()
+    {
+        // Show pause menu as modal overlay
+        await uiService.Navigate()
+            .To(UIScreenType.PauseMenu)
+            .WithData(gameplayData)
+            .AsModal()
+            .WithTransition(TransitionType.SlideDown)
+            .ExecuteAsync();
+    }
+    
+    private async void OnInventoryClicked()
+    {
+        // Show inventory as overlay (non-blocking)
+        await uiService.Navigate()
+            .To(UIScreenType.Inventory)
+            .WithData(gameplayData.PlayerData)
+            .AsOverlay()
+            .WithTransition(TransitionType.SlideLeft)
+            .ExecuteAsync();
+    }
+    
+    private string FormatTime(float seconds)
+    {
+        int minutes = (int)(seconds / 60);
+        int secs = (int)(seconds % 60);
+        return $"{minutes:00}:{secs:00}";
+    }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="settings-tab" class="tab-content">
+                        <div class="card">
+                            <h4>⚙️ Settings Screen with Save Integration</h4>
+                            
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span>Settings Screen with Persistence</span>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                </div>
+                                <pre><code class="language-csharp">public class SettingsScreen : UIScreen
+{
+    [Header("Settings UI")]
+    [SerializeField] private Slider masterVolumeSlider;
+    [SerializeField] private Slider musicVolumeSlider;
+    [SerializeField] private Slider sfxVolumeSlider;
+    [SerializeField] private Toggle fullscreenToggle;
+    [SerializeField] private Dropdown resolutionDropdown;
+    [SerializeField] private Button saveButton;
+    [SerializeField] private Button cancelButton;
+    [SerializeField] private Button resetButton;
+    
+    private GameSettings originalSettings;
+    private GameSettings currentSettings;
+    private ISaveLoadService saveLoadService;
+    
+    protected override async void OnShow(UIScreenContext context)
+    {
+        saveLoadService = Engine.GetService&lt;ISaveLoadService&gt;();
+        
+        // Load current settings
+        await LoadCurrentSettings();
+        
+        // Setup UI
+        SetupUI();
+        
+        // Subscribe to events
+        saveButton.onClick.AddListener(OnSaveClicked);
+        cancelButton.onClick.AddListener(OnCancelClicked);
+        resetButton.onClick.AddListener(OnResetClicked);
+        
+        // Subscribe to value changes
+        masterVolumeSlider.onValueChanged.AddListener(OnMasterVolumeChanged);
+        musicVolumeSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
+        sfxVolumeSlider.onValueChanged.AddListener(OnSFXVolumeChanged);
+        fullscreenToggle.onValueChanged.AddListener(OnFullscreenChanged);
+        resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
+    }
+    
+    private async UniTask LoadCurrentSettings()
+    {
+        var result = await saveLoadService.LoadAsync&lt;GameSettings&gt;("game_settings");
+        if (result.IsSuccess)
+        {
+            originalSettings = result.Data;
+            currentSettings = result.Data.Clone();
+        }
+        else
+        {
+            // Use default settings
+            originalSettings = GameSettings.Default;
+            currentSettings = GameSettings.Default.Clone();
+        }
+    }
+    
+    private void SetupUI()
+    {
+        masterVolumeSlider.value = currentSettings.MasterVolume;
+        musicVolumeSlider.value = currentSettings.MusicVolume;
+        sfxVolumeSlider.value = currentSettings.SFXVolume;
+        fullscreenToggle.isOn = currentSettings.Fullscreen;
+        
+        // Populate resolution dropdown
+        resolutionDropdown.options.Clear();
+        for (int i = 0; i &lt; Screen.resolutions.Length; i++)
+        {
+            var res = Screen.resolutions[i];
+            resolutionDropdown.options.Add(new Dropdown.OptionData($"{res.width}x{res.height}"));
+            
+            if (res.width == currentSettings.ResolutionWidth && 
+                res.height == currentSettings.ResolutionHeight)
+            {
+                resolutionDropdown.value = i;
+            }
+        }
+    }
+    
+    private async void OnSaveClicked()
+    {
+        // Apply settings to game
+        ApplySettingsToGame(currentSettings);
+        
+        // Save to disk
+        await saveLoadService.SaveAsync("game_settings", currentSettings);
+        
+        // Close settings screen
+        var uiService = Engine.GetService&lt;IUIService&gt;();
+        await uiService.HideAsync(UIScreenType.Settings);
+    }
+    
+    private async void OnCancelClicked()
+    {
+        // Revert to original settings
+        ApplySettingsToGame(originalSettings);
+        
+        // Close without saving
+        var uiService = Engine.GetService&lt;IUIService&gt;();
+        await uiService.HideAsync(UIScreenType.Settings);
+    }
+    
+    private async void OnResetClicked()
+    {
+        // Show confirmation
+        var confirmed = await DialogHelper.ShowConfirmationAsync(
+            "Reset Settings", 
+            "This will reset all settings to default values. Continue?");
+            
+        if (confirmed)
+        {
+            currentSettings = GameSettings.Default.Clone();
+            SetupUI();
+            ApplySettingsToGame(currentSettings);
+        }
+    }
+    
+    public override bool OnBackPressed()
+    {
+        // Check for unsaved changes
+        if (!currentSettings.Equals(originalSettings))
+        {
+            ShowUnsavedChangesDialog();
+            return false; // Consume back press
+        }
+        
+        return true; // Allow normal back navigation
+    }
+    
+    private async void ShowUnsavedChangesDialog()
+    {
+        var result = await DialogHelper.ShowConfirmationAsync(
+            "Unsaved Changes", 
+            "You have unsaved changes. Save before closing?",
+            "Save", "Discard");
+            
+        if (result)
+        {
+            OnSaveClicked();
+        }
+        else
+        {
+            OnCancelClicked();
+        }
+    }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Implementation Details -->
+            <section id="implementation" class="section">
+                <h2>🔧 Implementation Details & Technical Decisions</h2>
+                
+                <!-- Blur System Decision -->
+                <div class="card">
+                    <h3>🎨 Blur System Simplification (2025-01-11)</h3>
+                    
+                    <div class="info-box warning">
+                        <strong>Important Design Decision:</strong> The original complex blur implementation was simplified to a placeholder due to architectural complexity and maintenance concerns.
+                    </div>
+                    
+                    <div class="comparison-table">
+                        <table class="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>Aspect</th>
+                                    <th>Original Complex Implementation</th>
+                                    <th>Current Simplified Implementation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Architecture</strong></td>
+                                    <td>UIBackgroundCapture, UIBlurEffect, shader dependencies, render texture management</td>
+                                    <td>Simple UIBlurEffect with semi-transparent overlay</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Performance</strong></td>
+                                    <td>Heavy GPU operations, multiple render passes, memory intensive</td>
+                                    <td>Minimal performance impact, single Color change</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Dependencies</strong></td>
+                                    <td>Complex object finding, Unity version compatibility issues</td>
+                                    <td>Zero external dependencies, self-contained</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Maintenance</strong></td>
+                                    <td>High complexity, multiple failure points, difficult debugging</td>
+                                    <td>Simple, reliable, easy to understand and modify</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Visual Result</strong></td>
+                                    <td>True background blur effect</td>
+                                    <td>Semi-transparent dark overlay (Color(0,0,0,0.3f))</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>API Compatibility</strong></td>
+                                    <td>Same interface</td>
+                                    <td>Identical interface - no breaking changes</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>Current UIBlurEffect Implementation</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">/// &lt;summary&gt;
+/// Simple placeholder blur effect for modal backdrops
+/// TODO: Implement proper blur effect when needed
+/// &lt;/summary&gt;
+[RequireComponent(typeof(Image))]
+public class UIBlurEffect : MonoBehaviour
+{
+    private Image _image;
+    
+    public bool IsBlurring { get; private set; }
+    public event Action&lt;bool&gt; BlurStateChanged;
+
+    private void Awake()
+    {
+        _image = GetComponent&lt;Image&gt;();
+    }
+
+    /// &lt;summary&gt;
+    /// Enable blur effect (placeholder - shows semi-transparent overlay)
+    /// &lt;/summary&gt;
+    public void EnableBlur(float duration = 0.3f)
+    {
+        if (IsBlurring) return;
+        
+        _image.color = new Color(0, 0, 0, 0.3f);
+        IsBlurring = true;
+        BlurStateChanged?.Invoke(true);
+    }
+    
+    /// &lt;summary&gt;
+    /// Disable blur effect (placeholder - hides overlay)
+    /// &lt;/summary&gt;
+    public void DisableBlur(float duration = 0.3f)
+    {
+        if (!IsBlurring) return;
+        
+        _image.color = Color.clear;
+        IsBlurring = false;
+        BlurStateChanged?.Invoke(false);
+    }
+
+    /// &lt;summary&gt;
+    /// Set blur intensity (placeholder - adjusts overlay opacity)
+    /// &lt;/summary&gt;
+    public void SetBlurIntensity(float intensity)
+    {
+        intensity = Mathf.Clamp01(intensity);
+        _image.color = new Color(0, 0, 0, intensity * 0.3f);
+    }
+}</code></pre>
+                    </div>
+                    
+                    <div class="info-box success">
+                        <strong>Benefits of Simplification:</strong>
+                        <ul style="margin-top: 0.5rem;">
+                            <li>✅ Zero external dependencies or complex object finding</li>
+                            <li>✅ Consistent behavior across Unity versions</li>
+                            <li>✅ Minimal performance impact</li>
+                            <li>✅ Easy to understand and maintain</li>
+                            <li>✅ Same API - can be upgraded later without breaking changes</li>
+                            <li>✅ Follows KISS principle - focus on core functionality</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Service Integration -->
+                <div class="card">
+                    <h3>🏗️ Service Architecture & Integration</h3>
+                    
+                    <div class="diagram">
+                        <h4>Service Dependency Graph</h4>
+                        <div class="mermaid">
+                            graph TB
+                                subgraph "Engine Layer"
+                                    Engine[Sinkii09 Engine]
+                                    ServiceContainer[Service Container<br/>Dependency Injection]
+                                end
+                                
+                                subgraph "Required Services"
+                                    ResourceService[IResourceService<br/>Required]
+                                    PathResolver[IResourcePathResolver<br/>Optional]
+                                    SaveLoadService[ISaveLoadService<br/>Optional]
+                                end
+                                
+                                subgraph "UI Service Layer"
+                                    UIService[UIService<br/>IEngineService]
+                                    UIConfig[UIServiceConfiguration<br/>ScriptableObject]
+                                end
+                                
+                                subgraph "Component System"
+                                    ScreenManager[UIScreenManager]
+                                    ModalManager[UIModalManager]
+                                    TransitionManager[UITransitionManager]
+                                    NavigationManager[UINavigationManager]
+                                    CacheManager[UIScreenCacheManager]
+                                    PoolManager[UIInstancePoolManager]
+                                end
+                                
+                                Engine --> ServiceContainer
+                                ServiceContainer --> UIService
+                                ResourceService --> UIService
+                                PathResolver -.-> UIService
+                                SaveLoadService -.-> UIService
+                                UIService --> UIConfig
+                                
+                                UIService --> ScreenManager
+                                UIService --> ModalManager  
+                                UIService --> TransitionManager
+                                UIService --> NavigationManager
+                                UIService --> CacheManager
+                                UIService --> PoolManager
+                                
+                                classDef engineClass fill:#2d3436,stroke:#333,stroke-width:2px,color:#fff
+                                classDef requiredClass fill:#00b894,stroke:#333,stroke-width:2px,color:#fff
+                                classDef optionalClass fill:#fdcb6e,stroke:#333,stroke-width:1px,stroke-dasharray: 5 5,color:#333
+                                classDef uiClass fill:#74b9ff,stroke:#333,stroke-width:2px,color:#fff
+                                classDef componentClass fill:#a29bfe,stroke:#333,stroke-width:2px,color:#fff
+                                
+                                class Engine,ServiceContainer engineClass
+                                class ResourceService requiredClass
+                                class PathResolver,SaveLoadService optionalClass
+                                class UIService,UIConfig uiClass
+                                class ScreenManager,ModalManager,TransitionManager,NavigationManager,CacheManager,PoolManager componentClass
+                        </div>
+                    </div>
+                    
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>UIService Registration & Configuration</span>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        </div>
+                        <pre><code class="language-csharp">[EngineService(ServiceCategory.Core, ServicePriority.High, 
+    Description = "Component-based UI service with improved architecture")]
+[ServiceConfiguration(typeof(UIServiceConfiguration))]
+public class UIService : IUIService, IUIServiceContext
+{
+    // Constructor injection follows Engine pattern
+    public UIService(UIServiceConfiguration config, IResourceService resourceService)
+    {
+        _config = config ?? throw new ArgumentNullException(nameof(config));
+        _resourceService = resourceService ?? throw new ArgumentNullException(nameof(resourceService));
+        _screenRegistry = _config.ScreenRegistry ?? throw new ArgumentNullException(nameof(_config.ScreenRegistry));
+    }
+    
+    // Standard Engine service lifecycle
+    public async UniTask&lt;ServiceInitializationResult&gt; InitializeAsync(
+        IServiceProvider provider, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await CreateUIRootAsync(cancellationToken);
+            await InitializeComponentsAsync(cancellationToken);
+            _screenRegistry.Initialize();
+            SetupCleanupHandlers();
+            
+            return ServiceInitializationResult.Success();
+        }
+        catch (Exception ex)
+        {
+            return ServiceInitializationResult.Failed(ex);
+        }
+    }
+}</code></pre>
+                    </div>
+                </div>
+                
+                <!-- Performance Optimization -->
+                <div id="performance" class="section">
+                    <h3>⚡ Performance & Memory Management</h3>
+                    
+                    <div class="grid grid-2">
+                        <div class="card">
+                            <h4>🗂️ Screen Caching System</h4>
+                            <div class="code-block">
+                                <pre><code class="language-csharp">public class UIScreenCacheManager : IUIComponent, IMemoryPressureResponder
+{
+    private readonly LRUCache&lt;UIScreenType, UIScreen&gt; _cache;
+    private int _cacheHits = 0;
+    private int _cacheMisses = 0;
+    
+    public double HitRatio => _cacheHits + _cacheMisses > 0 ? 
+        (double)_cacheHits / (_cacheHits + _cacheMisses) : 0.0;
+    
+    public void RespondToMemoryPressure(float pressureLevel)
+    {
+        var itemsToRemove = pressureLevel switch
+        {
+            > 0.8f => _cache.Count / 2,    // Aggressive cleanup
+            > 0.6f => _cache.Count / 4,    // Moderate cleanup  
+            > 0.4f => _cache.Count / 8,    // Light cleanup
+            _ => 0
+        };
+        
+        if (itemsToRemove > 0)
+        {
+            _cache.RemoveOldest(itemsToRemove);
+            Debug.Log($"[UIScreenCache] Cleaned {itemsToRemove} screens due to memory pressure");
+        }
+    }
+}</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h4>🎭 Object Pooling</h4>
+                            <div class="code-block">
+                                <pre><code class="language-csharp">public class UIInstancePoolManager : IUIComponent
+{
+    private readonly Dictionary&lt;UIScreenType, ObjectPool&lt;UIScreen&gt;&gt; _pools;
+    
+    public (int available, int active, int totalCreated, double efficiency) 
+        GetStats(UIScreenType screenType)
+    {
+        if (_pools.TryGetValue(screenType, out var pool))
+        {
+            return (pool.Available, pool.Active, pool.TotalCreated, pool.Efficiency);
+        }
+        return (0, 0, 0, 0.0);
+    }
+    
+    public UIScreen GetOrCreate(UIScreenType screenType)
+    {
+        if (!_pools.TryGetValue(screenType, out var pool))
+        {
+            pool = CreatePool(screenType);
+            _pools[screenType] = pool;
+        }
+        
+        return pool.Get();
+    }
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>📊 Performance Monitoring</h4>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>Real-time Performance Metrics</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code class="language-csharp">public (int cachedScreens, int totalPooledInstances, int totalActiveInstances, 
+         double cacheEfficiency, double poolEfficiency) GetMemoryStats()
+{
+    var cacheManager = GetComponent&lt;UIScreenCacheManager&gt;();
+    var poolManager = GetComponent&lt;UIInstancePoolManager&gt;();
+    
+    var cacheCount = cacheManager?.Count ?? 0;
+    var cacheEfficiency = cacheManager?.HitRatio ?? 0.0;
+    
+    var (totalAvailable, totalActive, _, poolEfficiency) = poolManager?.GetOverallStats() ?? (0, 0, 0, 0.0);
+    
+    return (cacheCount, totalAvailable, totalActive, cacheEfficiency, poolEfficiency);
+}
+
+// Usage in game
+private void ShowPerformanceStats()
+{
+    var stats = uiService.GetMemoryStats();
+    Debug.Log($"UI Performance - Cached: {stats.cachedScreens}, " +
+              $"Pooled: {stats.totalPooledInstances}, Active: {stats.totalActiveInstances}, " +
+              $"Cache Hit Rate: {stats.cacheEfficiency:P1}, Pool Efficiency: {stats.poolEfficiency:P1}");
+}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- File Structure -->
+            <section class="section">
+                <h2>📁 Complete File Structure</h2>
+                
+                <div class="card">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span>UI System File Organization</span>
+                        </div>
+                        <pre><code>Assets/Engine/Runtime/Scripts/Core/Services/Implemented/UIService/
+├── Core/
+│   ├── IUIService.cs                    # Main service interface
+│   ├── UIService.cs                     # Service implementation
+│   ├── UIScreen.cs                      # Base screen class
+│   ├── UIScreenAttribute.cs             # Screen marking attribute
+│   ├── UIScreenContext.cs               # Context data container
+│   ├── UIScreenRegistry.cs              # Screen registry system
+│   ├── UIScreenType.cs                  # Auto-generated screen enum
+│   ├── UIDisplayMode.cs                 # Display mode enum
+│   └── UIModalBackdrop.cs               # Modal backdrop component
+├── Configuration/
+│   ├── UIServiceConfiguration.cs        # Service configuration
+│   ├── UIScreenAsset.cs                 # Screen asset definition
+│   ├── UIDisplayConfig.cs               # Display configuration
+│   └── UITransitionConfiguration.cs     # Transition settings
+├── Components/
+│   ├── IUIComponent.cs                  # Component interface
+│   ├── UIScreenCacheManager.cs          # Screen caching
+│   ├── UIInstancePoolManager.cs         # Object pooling
+│   ├── UIModalManager.cs                # Modal management
+│   ├── UIScreenManager.cs               # Screen lifecycle
+│   ├── UINavigationManager.cs           # Navigation control
+│   ├── UITransitionManagerComponent.cs  # Animation system
+│   └── UIBlurEffect.cs                  # Blur effect (simplified)
+├── Navigation/
+│   ├── IUINavigationBuilder.cs          # Fluent API interface
+│   ├── UINavigationBuilder.cs           # Navigation builder
+│   └── TransitionType.cs                # Transition types
+├── Stack/
+│   └── UIScreenStack.cs                 # Stack management
+├── Transitions/
+│   ├── IUITransition.cs                 # Transition interface
+│   ├── BaseUITransition.cs              # Base transition
+│   ├── FadeTransition.cs                # Fade animation
+│   ├── SlideTransition.cs               # Slide animation
+│   ├── ScaleTransition.cs               # Scale animation
+│   ├── PushTransition.cs                # Push animation
+│   └── UITransitionManager.cs           # Transition coordination
+└── Utilities/
+    └── DOTweenCleanupHelper.cs          # DOTween cleanup
+
+Assets/Engine/Editor/UI/
+├── UIScreenAssetEditor.cs               # Custom screen asset editor
+├── UITransitionConfigurationEditor.cs   # Transition config editor
+└── UIScreenRegistryEditor.cs            # Registry editor (planned)
+
+Assets/Engine/Resources/Configs/Services/
+└── UIServiceConfiguration.asset         # Service configuration
+
+Assets/Engine/Resources/Configs/UI/
+├── UIScreenRegistry.asset               # Screen registry
+├── UITransitionConfiguration.asset      # Transition settings
+└── ScreenAssets/
+    ├── MenuScreen.asset                 # Screen definitions
+    ├── Settings.asset
+    ├── Dialog.asset
+    ├── Shop.asset
+    └── Tooltip.asset
+
+Assets/Engine/Tests/UI/
+├── UINavigationTest.cs                  # Navigation testing
+├── SimpleUITest.cs                      # Quick testing
+└── BlurBackdropTest.cs                  # Blur testing (legacy)
+
+Assets/Game/Scripts/UI/                  # Example implementations
+├── MainMenuScreen.cs
+├── SettingsScreen.cs
+├── DialogScreen.cs
+├── ShopScreen.cs
+└── TooltipScreen.cs</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Summary -->
+            <section class="section">
+                <h2>🎉 Summary & Next Steps</h2>
+                
+                <div class="implementation-flow">
+                    <h3>🚀 Production Ready Status</h3>
+                    <p>The Sinkii09 Engine UI System has achieved production-ready status with comprehensive features and robust architecture.</p>
+                    
+                    <div class="flow-step">
+                        <div class="flow-number">✅</div>
+                        <div>
+                            <strong>Core Foundation Complete</strong>
+                            <p>Type-safe navigation, auto-registration, service integration - all production ready.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="flow-number">✅</div>
+                        <div>
+                            <strong>Advanced Features Implemented</strong>
+                            <p>Stack management, modal system, DOTween animations, fluent API - fully functional.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="flow-number">🔄</div>
+                        <div>
+                            <strong>Simplified Blur System</strong>
+                            <p>Placeholder implementation chosen over complex architecture - focuses on reliability.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-step">
+                        <div class="flow-number">📊</div>
+                        <div>
+                            <strong>Comprehensive Testing</strong>
+                            <p>Test infrastructure covers all core scenarios with debugging tools and performance monitoring.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-2">
+                    <div class="card">
+                        <h4>🎯 Ready for Use</h4>
+                        <ul class="feature-list">
+                            <li>Game menu systems</li>
+                            <li>Modal dialogs and confirmations</li>
+                            <li>Settings and configuration screens</li>
+                            <li>HUD and overlay systems</li>
+                            <li>Inventory and shop interfaces</li>
+                            <li>Complex navigation flows</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>🚀 Future Enhancements</h4>
+                        <ul class="feature-list">
+                            <li>Full blur effect implementation</li>
+                            <li>Data binding system</li>
+                            <li>Responsive design support</li>
+                            <li>Advanced animation system</li>
+                            <li>UI testing automation</li>
+                            <li>Performance profiler integration</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="info-box success">
+                    <strong>🎉 Achievement Unlocked:</strong> The Sinkii09 Engine UI System has exceeded initial expectations with a production-ready implementation that balances power, simplicity, and maintainability. The system demonstrates adherence to KISS principles while providing advanced capabilities for modern game development.
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Sinkii09 Engine - UI System Complete Guide</p>
+            <p>Production-Ready • Type-Safe • Service-Oriented • KISS Compliant</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#00b894',
+                primaryTextColor: '#2d3436',
+                primaryBorderColor: '#636e72',
+                lineColor: '#636e72',
+                secondaryColor: '#74b9ff',
+                tertiaryColor: '#fdcb6e'
+            }
+        });
+
+        // Tab functionality
+        function showTab(tabId) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => button.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabId).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        // Accordion functionality
+        function toggleAccordion(element) {
+            const accordionItem = element.parentElement;
+            const content = accordionItem.querySelector('.accordion-content');
+            
+            accordionItem.classList.toggle('active');
+            
+            if (content.style.display === 'block') {
+                content.style.display = 'none';
+            } else {
+                content.style.display = 'block';
+            }
+        }
+
+        // Copy code functionality
+        function copyCode(button) {
+            const codeBlock = button.parentElement.nextElementSibling;
+            const code = codeBlock.textContent;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.style.backgroundColor = '#00b894';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '';
+                }, 2000);
+            });
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Highlight current section in navigation
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.nav-menu a');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (scrollY >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
