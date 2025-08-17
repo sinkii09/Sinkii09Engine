@@ -191,5 +191,47 @@ namespace Sinkii09.Engine.Services
                 return new List<IResourceLocation>();
             }
         }
+
+        /// <summary>
+        /// Load multiple resources by Addressable label
+        /// </summary>
+        public async UniTask<IEnumerable<T>> LoadAssetsByLabelAsync<T>(string label) where T : UnityEngine.Object
+        {
+            try
+            {
+                var handle = Addressables.LoadAssetsAsync<T>(label, null);
+                var assets = await handle.ToUniTask();
+                
+                // Store handle for cleanup
+                lock (_handlesLock)
+                {
+                    _activeHandles[$"label_{label}"] = handle;
+                }
+                
+                return assets;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"AddressableResourceProvider: Failed to load assets for label {label}: {ex.Message}");
+                return new List<T>();
+            }
+        }
+
+        /// <summary>
+        /// Load a single resource by Addressable label (first match)
+        /// </summary>
+        public async UniTask<T> LoadAssetByLabelAsync<T>(string label) where T : UnityEngine.Object
+        {
+            try
+            {
+                var assets = await LoadAssetsByLabelAsync<T>(label);
+                return assets.FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"AddressableResourceProvider: Failed to load asset for label {label}: {ex.Message}");
+                return null;
+            }
+        }
     }
 }

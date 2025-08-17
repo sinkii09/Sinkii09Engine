@@ -12,14 +12,138 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd596ef965c775e498446c075b7c2162, type: 3}
   m_Name: ResourcePathResolverConfiguration
   m_EditorClassIdentifier: 
-  _version: 300
+  _version: 368
   _description: Service configuration
   _defaultEnvironment: 0
   _enablePathValidation: 1
   _enableExistenceChecking: 0
-  _resourceRoot: 
-  _pathTemplates: []
-  _fallbackPaths: []
+  _resourceRoot: Assets/Engine/Runtime/Resources_moved
+  _pathTemplates:
+  - ResourceType: 0
+    Category: 0
+    Priority: 2
+    Template: Actors/{actorType}/{actorId}
+    Description: 
+  - ResourceType: 0
+    Category: 10
+    Priority: 2
+    Template: Actors/Character/{actorId}/Sprites/{addressableKey}.png
+    Description: 
+  - ResourceType: 0
+    Category: 11
+    Priority: 2
+    Template: Actors/{actorType}/Animations/{actorId}/{animationType}
+    Description: 
+  - ResourceType: 0
+    Category: 12
+    Priority: 2
+    Template: Actors/{actorType}/Audio/{actorId}/{audioType}
+    Description: 
+  - ResourceType: 0
+    Category: 13
+    Priority: 2
+    Template: Actors/{actorType}/Metadata/{actorId}
+    Description: 
+  - ResourceType: 0
+    Category: 16
+    Priority: 2
+    Template: Actors/{actorType}/Textures/{actorId}/{appearance}
+    Description: 
+  - ResourceType: 0
+    Category: 14
+    Priority: 2
+    Template: Actors/{actorType}/Effects/{actorId}/{effectType}
+    Description: 
+  - ResourceType: 0
+    Category: 15
+    Priority: 2
+    Template: Actors/{actorType}/Music/{actorId}/{trackName}
+    Description: 
+  - ResourceType: 1
+    Category: 18
+    Priority: 2
+    Template: Scripts/{scriptName}.script
+    Description: 
+  - ResourceType: 1
+    Category: 17
+    Priority: 2
+    Template: Scripts/Compiled/{scriptName}.bytes
+    Description: 
+  - ResourceType: 1
+    Category: 13
+    Priority: 1
+    Template: Scripts/Metadata/{scriptName}.meta
+    Description: 
+  - ResourceType: 2
+    Category: 15
+    Priority: 2
+    Template: Audio/Music/{category}/{trackName}
+    Description: 
+  - ResourceType: 2
+    Category: 0
+    Priority: 2
+    Template: Audio/SFX/{category}/{soundName}
+    Description: 
+  - ResourceType: 3
+    Category: 0
+    Priority: 2
+    Template: UI/{category}/{elementName}
+    Description: 
+  - ResourceType: 5
+    Category: 0
+    Priority: 2
+    Template: Prefabs/{actorType}/{actorType}ActorPrefab
+    Description: 
+  - ResourceType: 9
+    Category: 0
+    Priority: 2
+    Template: Configs/{configType}/{configName}
+    Description: 
+  _fallbackPaths:
+  - ResourceType: 0
+    Category: 10
+    Priority: 0
+    FallbackTemplate: Actors/Default/Sprites/MissingSprite
+  - ResourceType: 0
+    Category: 12
+    Priority: 0
+    FallbackTemplate: Actors/Default/Audio/MissingAudio
+  - ResourceType: 0
+    Category: 16
+    Priority: 0
+    FallbackTemplate: Actors/Default/Textures/MissingTexture
+  - ResourceType: 0
+    Category: 14
+    Priority: 0
+    FallbackTemplate: Actors/Default/Effects/MissingEffect
+  - ResourceType: 0
+    Category: 11
+    Priority: 0
+    FallbackTemplate: Actors/Default/Animations/MissingAnimation
+  - ResourceType: 1
+    Category: 18
+    Priority: 0
+    FallbackTemplate: Scripts/Default/EmptyScript.script
+  - ResourceType: 2
+    Category: 0
+    Priority: 0
+    FallbackTemplate: Audio/Default/Silence
+  - ResourceType: 2
+    Category: 15
+    Priority: 0
+    FallbackTemplate: Audio/Default/DefaultMusic
+  - ResourceType: 3
+    Category: 0
+    Priority: 0
+    FallbackTemplate: UI/Default/MissingUI
+  - ResourceType: 5
+    Category: 0
+    Priority: 0
+    FallbackTemplate: Prefabs/Default/DefaultPrefab
+  - ResourceType: 9
+    Category: 0
+    Priority: 0
+    FallbackTemplate: Configs/Default/DefaultConfig
   _maxCacheSize: 100
   _cacheEntryLifetime: 0.1
   _enableLRUEviction: 1

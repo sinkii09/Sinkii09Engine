@@ -15,33 +15,88 @@ MonoBehaviour:
   m_GroupName: Default Local Group
   m_GUID: 3781d8c054c4c8346aa3726f0ebd33a4
   m_SerializeEntries:
+  - m_GUID: 0e3b42e248c508b4a8805549befe0f86
+    m_Address: char_aria_depressed_standing_00
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1b4dc68470a73c24281f79515b53f2b8
+    m_Address: char_aria_excited_standing_00
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 24ecc17cfffa76a43ba5f27ddc1aacc2
+    m_Address: char_aria_embarrassed_standing_00
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 673901eef17e10b4392f5a4de2dd109a
+    m_Address: char_aria_worried_sitting_00
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 782ea0a1b0d6a08498e464cb8e7c21db
-    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/Dialog.prefab
+    m_Address: Dialog
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 89fb3e79d2afcb341aba9888faed8575
-    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/ShopScreen.prefab
+    m_Address: ShopScreen
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 967e038d8debb4e4ebb8bf1b2c9ca8db
-    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/BlurModal.prefab
+    m_Address: BlurModal
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: afe29ef498f0582459a26efd51e1f468
+    m_Address: char_aria_shy_standing_00
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c0eba1d8c56d4fb41b4a33478e5b555e
+    m_Address: char_aria_swooning_standing_00
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: dccb76ce606a47241bf4759d67e14f14
+    m_Address: char_aria_sad_staning_00
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e3868ec2213724844b15d74cd7092b5e
-    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/MenuScreen.prefab
+    m_Address: MenuScreen
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e7a1013c337df2e4ba21f338bc989f9b
+    m_Address: char_aria_disappointed_standing_00
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eb32228605d3e6a499c06338bdaeb819
+    m_Address: char_aria_joy_standing_00
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ec56fa023efd883488b0374bfd67ae69
+    m_Address: char_aria_smiling_standing_00
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ee0b3e0c073f77541ba006545787b526
-    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/SettingsScreen.prefab
+    m_Address: SettingsScreen
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f3c126580bfd844439ed52e12ae40213
-    m_Address: Assets/Engine/Runtime/Resources_moved/Configs/UI/Screens/Tooltip.prefab
+    m_Address: Tooltip
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ff2d7e8bff50fbc4c82fab561d12b955
+    m_Address: char_aria_happy_standing_00
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

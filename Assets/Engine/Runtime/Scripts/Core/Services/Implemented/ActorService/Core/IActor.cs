@@ -7,7 +7,7 @@ using DG.Tweening; // DOTween integration
 namespace Sinkii09.Engine.Services
 {
     /// <summary>
-    /// Core interface for all actors in the engine with strongly-typed properties and DOTween integration
+    /// Base non-generic interface for polymorphic collections and service management
     /// </summary>
     public interface IActor : IDisposable
     {
@@ -31,9 +31,6 @@ namespace Sinkii09.Engine.Services
         float Alpha { get; set; }
         int SortingOrder { get; set; }
         
-        // Generic appearance - specialized actors override with specific types
-        object Appearance { get; set; }
-        
         // Resource Management
         bool IsLoaded { get; }
         float LoadProgress { get; }
@@ -43,6 +40,10 @@ namespace Sinkii09.Engine.Services
         // Unity Integration
         GameObject GameObject { get; }
         Transform Transform { get; }
+        
+        // Generic appearance access for polymorphic scenarios
+        IAppearance GetAppearance();
+        UniTask SetAppearanceAsync(IAppearance appearance, float duration = 1.0f, CancellationToken cancellationToken = default);
         
         // Events
         event Action<IActor> OnLoaded;
@@ -104,10 +105,6 @@ namespace Sinkii09.Engine.Services
         /// </summary>
         UniTask ChangeTintColorAsync(Color color, float duration, Ease ease = Ease.OutQuad, CancellationToken cancellationToken = default);
         
-        /// <summary>
-        /// Changes appearance (implementation varies by actor type)
-        /// </summary>
-        UniTask ChangeAppearanceAsync(object appearance, float duration = 0f, CancellationToken cancellationToken = default);
         
         /// <summary>
         /// Plays a complex animation sequence
@@ -155,46 +152,59 @@ namespace Sinkii09.Engine.Services
     }
     
     /// <summary>
+    /// Generic actor interface with strongly-typed appearance
+    /// </summary>
+    /// <typeparam name="TAppearance">The strongly-typed appearance type</typeparam>
+    public interface IActor<TAppearance> : IActor 
+        where TAppearance : struct, IAppearance
+    {
+        /// <summary>
+        /// Strongly-typed appearance property
+        /// </summary>
+        TAppearance Appearance { get; set; }
+        
+        /// <summary>
+        /// Changes appearance with type safety
+        /// </summary>
+        UniTask ChangeAppearanceAsync(TAppearance newAppearance, float duration = 1.0f, CancellationToken cancellationToken = default);
+    }
+    
+    /// <summary>
     /// Specialized interface for character actors with character-specific features
     /// </summary>
-    public interface ICharacterActor : IActor
+    public interface ICharacterActor : IActor<CharacterAppearance>
     {
-        // Override with strongly-typed appearance
-        new CharacterAppearance Appearance { get; set; }
         
         // Character-specific properties
         CharacterLookDirection LookDirection { get; set; }
         Color CharacterColor { get; set; }
         string CurrentEmotion { get; set; }
         
-        // Character-specific animation methods
-        UniTask ChangeAppearanceAsync(CharacterAppearance appearance, float duration = 1.0f, CancellationToken cancellationToken = default);
-        UniTask ChangeExpressionAsync(CharacterExpression expression, float duration = 0.5f, CancellationToken cancellationToken = default);
+        // Character-specific animation methods (ChangeAppearanceAsync inherited from IActor<CharacterAppearance>)
+        UniTask ChangeExpressionAsync(CharacterEmotion emotion, float duration = 0.5f, CancellationToken cancellationToken = default);
         UniTask ChangePoseAsync(CharacterPose pose, float duration = 1.0f, CancellationToken cancellationToken = default);
         UniTask ChangeLookDirectionAsync(CharacterLookDirection direction, float duration = 0.5f, CancellationToken cancellationToken = default);
         UniTask ChangeOutfitAsync(int outfitId, float duration = 1.0f, CancellationToken cancellationToken = default);
         
         // Character interaction methods
         UniTask SpeakAsync(string message, CancellationToken cancellationToken = default);
-        UniTask EmoteAsync(CharacterExpression expression, float duration = 2.0f, CancellationToken cancellationToken = default);
-        UniTask ReactAsync(string reactionType, float intensity = 1.0f, CancellationToken cancellationToken = default);
+        UniTask EmoteAsync(CharacterEmotion emotion, float duration = 2.0f, CancellationToken cancellationToken = default);
+        UniTask ReactAsync(CharacterEmotion emotion, float intensity = 1.0f, CancellationToken cancellationToken = default);
+        UniTask ReactAsync(CharacterReactionType reactionType, CharacterEmotion emotion, float intensity = 1.0f, CancellationToken cancellationToken = default);
     }
     
     /// <summary>
     /// Specialized interface for background actors with scene management features
     /// </summary>
-    public interface IBackgroundActor : IActor
+    public interface IBackgroundActor : IActor<BackgroundAppearance>
     {
-        // Override with strongly-typed appearance
-        new BackgroundAppearance Appearance { get; set; }
         
         // Background-specific properties
         SceneTransitionType TransitionType { get; set; }
         float ParallaxFactor { get; set; }
         bool IsMainBackground { get; set; }
         
-        // Background-specific animation methods
-        UniTask ChangeAppearanceAsync(BackgroundAppearance appearance, float duration = 2.0f, CancellationToken cancellationToken = default);
+        // Background-specific animation methods (ChangeAppearanceAsync inherited from IActor<BackgroundAppearance>)
         UniTask ChangeLocationAsync(SceneLocation location, int variantId = 0, float duration = 2.0f, CancellationToken cancellationToken = default);
         UniTask TransitionToAsync(BackgroundAppearance newBackground, SceneTransitionType transition, float duration = 2.0f, CancellationToken cancellationToken = default);
         

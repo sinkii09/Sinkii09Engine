@@ -173,13 +173,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 959547229}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 227542d19c5782b40a0c7a5b95301f61, type: 3}
+  m_Script: {fileID: 11500000, guid: ea9c5e45907f50745bb2d141d41700f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _modalScreenType: 40
-  _showModalKey: 109
-  _showBlurModalKey: 98
-  _hideModalKey: 27
+  testActorId: Aria
+  testEmotion: 1
+  testPose: 0
+  testLookDirection: 0
 --- !u!1 &1289883193
 GameObject:
   m_ObjectHideFlags: 0
@@ -286,7 +286,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 5
+  orthographic size: 10
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2

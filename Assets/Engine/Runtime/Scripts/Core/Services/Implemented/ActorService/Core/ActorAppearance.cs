@@ -1,19 +1,44 @@
 using System;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 
 namespace Sinkii09.Engine.Services
 {
     /// <summary>
+    /// Base appearance interface for polymorphic support and addressable integration
+    /// </summary>
+    public interface IAppearance
+    {
+        /// <summary>
+        /// Gets the addressable key for this appearance
+        /// </summary>
+        string GetAddressableKey(string actorId);
+        
+        /// <summary>
+        /// Gets addressable labels for batch loading
+        /// </summary>
+        string[] GetAddressableLabels();
+        
+        /// <summary>
+        /// Gets path parameters for ResourcePathResolver integration
+        /// </summary>
+        PathParameter[] GetPathParameters(string actorId);
+    }
+    /// <summary>
     /// Composite appearance structure for character actors with automatic resource path generation
     /// </summary>
     [Serializable]
-    public struct CharacterAppearance : IEquatable<CharacterAppearance>
+    public struct CharacterAppearance : IAppearance, IEquatable<CharacterAppearance>
     {
-        [SerializeField] private CharacterExpression _expression;
+        [SerializeField] private CharacterEmotion _expression;
         [SerializeField] private CharacterPose _pose;
         [SerializeField] private int _outfitId;
         
-        public CharacterExpression Expression
+        // Addressable integration - optional for backward compatibility
+        [SerializeField] private AssetReference _spriteReference;
+        [SerializeField] private string _addressableKey;
+        
+        public CharacterEmotion Expression
         {
             get => _expression;
             set => _expression = value;
@@ -32,54 +57,134 @@ namespace Sinkii09.Engine.Services
         }
         
         /// <summary>
+        /// Addressable asset reference for direct loading (optional)
+        /// </summary>
+        public AssetReference SpriteReference
+        {
+            get => _spriteReference;
+            set => _spriteReference = value;
+        }
+        
+        /// <summary>
+        /// Custom addressable key override (optional)
+        /// </summary>
+        public string AddressableKey
+        {
+            get => _addressableKey;
+            set => _addressableKey = value;
+        }
+        
+        /// <summary>
         /// Creates a new character appearance
         /// </summary>
-        public CharacterAppearance(CharacterExpression expression, CharacterPose pose = CharacterPose.Standing, int outfitId = 0)
+        public CharacterAppearance(CharacterEmotion expression, CharacterPose pose = CharacterPose.Standing, int outfitId = 0)
         {
             _expression = expression;
             _pose = pose;
             _outfitId = Mathf.Max(0, outfitId);
+            _spriteReference = null;
+            _addressableKey = string.Empty;
+        }
+        
+        /// <summary>
+        /// Creates appearance with addressable reference
+        /// </summary>
+        public CharacterAppearance(CharacterEmotion expression, CharacterPose pose, int outfitId, AssetReference spriteReference, string addressableKey = null)
+        {
+            _expression = expression;
+            _pose = pose;
+            _outfitId = Mathf.Max(0, outfitId);
+            _spriteReference = spriteReference;
+            _addressableKey = addressableKey ?? string.Empty;
         }
         
         /// <summary>
         /// Convenient factory method for creating appearances
         /// </summary>
-        public static CharacterAppearance Create(CharacterExpression expression, CharacterPose pose = CharacterPose.Standing, int outfit = 0)
+        public static CharacterAppearance Create(CharacterEmotion expression, CharacterPose pose = CharacterPose.Standing, int outfit = 0)
             => new(expression, pose, outfit);
         
         /// <summary>
-        /// Generates standardized resource path for this appearance
+        /// Gets addressable key using standardized naming convention
         /// </summary>
         /// <param name="characterName">Name of the character</param>
-        /// <param name="basePath">Base resource path (default: "Characters")</param>
-        /// <returns>Full resource path</returns>
-        public string GetResourcePath(string characterName, string basePath = "Characters")
+        /// <returns>Addressable key for asset loading</returns>
+        public string GetAddressableKey(string characterName)
         {
             if (string.IsNullOrEmpty(characterName))
                 throw new ArgumentException("Character name cannot be null or empty", nameof(characterName));
             
-            return $"{basePath}/{characterName}/{_expression}_{_pose}_{_outfitId:D2}";
+            // Use custom key if provided, otherwise generate standard key
+            if (!string.IsNullOrEmpty(_addressableKey))
+                return _addressableKey;
+                
+            return $"char_{characterName.ToLower()}_{_expression.ToString().ToLower()}_{_pose.ToString().ToLower()}_{_outfitId:D2}";
         }
         
         /// <summary>
-        /// Gets alternative resource paths for fallback loading
+        /// Gets character label for batch loading
         /// </summary>
-        public string[] GetFallbackPaths(string characterName, string basePath = "Characters")
+        /// <param name="characterName">Name of the character</param>
+        /// <returns>Addressable label for character assets</returns>
+        public string GetCharacterLabel(string characterName)
+        {
+            if (string.IsNullOrEmpty(characterName))
+                throw new ArgumentException("Character name cannot be null or empty", nameof(characterName));
+                
+            return $"character_{characterName.ToLower()}";
+        }
+        
+        /// <summary>
+        /// Gets expression label for batch loading common expressions
+        /// </summary>
+        /// <returns>Addressable label for expression assets</returns>
+        public string GetExpressionLabel()
+        {
+            return $"expression_{_expression.ToString().ToLower()}";
+        }
+        
+        /// <summary>
+        /// Gets all addressable labels for this appearance (IAppearance implementation)
+        /// </summary>
+        /// <returns>Array of addressable labels for batch loading</returns>
+        public string[] GetAddressableLabels()
         {
             return new[]
             {
-                GetResourcePath(characterName, basePath),
-                $"{basePath}/{characterName}/{_expression}_{CharacterPose.Standing}_{_outfitId:D2}", // Fallback to standing pose
-                $"{basePath}/{characterName}/{CharacterExpression.Neutral}_{_pose}_{_outfitId:D2}", // Fallback to neutral expression
-                $"{basePath}/{characterName}/{CharacterExpression.Neutral}_{CharacterPose.Standing}_00", // Default appearance
-                $"{basePath}/Default/Default_Appearance" // Ultimate fallback
+                $"expression_{_expression.ToString().ToLower()}",
+                $"pose_{_pose.ToString().ToLower()}",
+                $"outfit_{_outfitId:D2}"
             };
         }
         
         /// <summary>
+        /// Gets path parameters for ResourcePathResolver integration (IAppearance implementation)
+        /// </summary>
+        /// <param name="actorId">Actor identifier</param>
+        /// <returns>Array of path parameters for template substitution</returns>
+        public PathParameter[] GetPathParameters(string actorId)
+        {
+            return new PathParameter[]
+            {
+                new(PathParameterNames.ACTOR_TYPE, "Character"),
+                new(PathParameterNames.ACTOR_ID, actorId),
+                new(PathParameterNames.CHARACTER_NAME, actorId),
+                new(PathParameterNames.APPEARANCE, $"{_expression}_{_pose}_{_outfitId:D2}"),
+                new(PathParameterNames.EXPRESSION, _expression.ToString()),
+                new(PathParameterNames.POSE, _pose.ToString()),
+                new(PathParameterNames.OUTFIT, _outfitId.ToString("D2")),
+                new(PathParameterNames.DEFAULT_EXPRESSION, CharacterEmotion.Neutral.ToString()),
+                new(PathParameterNames.DEFAULT_POSE, CharacterPose.Standing.ToString()),
+                new(PathParameterNames.DEFAULT_OUTFIT, "00"),
+                new(PathParameterNames.ADDRESSABLES_KEY, GetAddressableKey(actorId))
+            };
+        }
+        
+        
+        /// <summary>
         /// Creates appearance with different expression
         /// </summary>
-        public CharacterAppearance WithExpression(CharacterExpression expression)
+        public CharacterAppearance WithExpression(CharacterEmotion expression)
             => new(expression, _pose, _outfitId);
         
         /// <summary>
@@ -114,17 +219,17 @@ namespace Sinkii09.Engine.Services
             => $"{_expression}_{_pose}_Outfit{_outfitId:D2}";
         
         // Predefined common appearances for convenience
-        public static readonly CharacterAppearance Default = new(CharacterExpression.Neutral, CharacterPose.Standing, 0);
-        public static readonly CharacterAppearance Happy = new(CharacterExpression.Happy, CharacterPose.Standing, 0);
-        public static readonly CharacterAppearance Sad = new(CharacterExpression.Sad, CharacterPose.Standing, 0);
-        public static readonly CharacterAppearance Surprised = new(CharacterExpression.Surprised, CharacterPose.Standing, 0);
+        public static readonly CharacterAppearance Default = new(CharacterEmotion.Neutral, CharacterPose.Standing, 0);
+        public static readonly CharacterAppearance Happy = new(CharacterEmotion.Happy, CharacterPose.Standing, 0);
+        public static readonly CharacterAppearance Sad = new(CharacterEmotion.Sad, CharacterPose.Standing, 0);
+        public static readonly CharacterAppearance Surprised = new(CharacterEmotion.Surprised, CharacterPose.Standing, 0);
     }
     
     /// <summary>
     /// Composite appearance structure for background actors with automatic resource path generation
     /// </summary>
     [Serializable]
-    public struct BackgroundAppearance : IEquatable<BackgroundAppearance>
+    public struct BackgroundAppearance : IAppearance, IEquatable<BackgroundAppearance>
     {
         [SerializeField] private BackgroundType _type;
         [SerializeField] private SceneLocation _location;
@@ -165,28 +270,50 @@ namespace Sinkii09.Engine.Services
             => new(type, location, variant);
         
         /// <summary>
-        /// Generates standardized resource path for this background
+        /// Gets addressable key using standardized naming convention (IAppearance implementation)
         /// </summary>
-        /// <param name="basePath">Base resource path (default: "Backgrounds")</param>
-        /// <returns>Full resource path</returns>
-        public string GetResourcePath(string basePath = "Backgrounds")
+        /// <param name="actorId">Actor ID (not used for backgrounds but required by interface)</param>
+        /// <returns>Addressable key for background asset loading</returns>
+        public string GetAddressableKey(string actorId)
         {
-            return $"{basePath}/{_type}/{_location}_{_variantId:D2}";
+            return $"bg_{_type.ToString().ToLower()}_{_location.ToString().ToLower()}_{_variantId:D2}";
         }
         
         /// <summary>
-        /// Gets alternative resource paths for fallback loading
+        /// Gets all addressable labels for this background (IAppearance implementation)
         /// </summary>
-        public string[] GetFallbackPaths(string basePath = "Backgrounds")
+        /// <returns>Array of addressable labels for batch loading</returns>
+        public string[] GetAddressableLabels()
         {
             return new[]
             {
-                GetResourcePath(basePath),
-                $"{basePath}/{_type}/{_location}_00", // Fallback to variant 0
-                $"{basePath}/Scene/{_location}_00", // Fallback to Scene type
-                $"{basePath}/Default/Default_Background" // Ultimate fallback
+                $"background_{_type.ToString().ToLower()}",
+                $"location_{_location.ToString().ToLower()}"
             };
         }
+        
+        /// <summary>
+        /// Gets path parameters for ResourcePathResolver integration (IAppearance implementation)
+        /// </summary>
+        /// <param name="actorId">Actor ID (not used for backgrounds but required by interface)</param>
+        /// <returns>Array of path parameters for template substitution</returns>
+        public PathParameter[] GetPathParameters(string actorId)
+        {
+            return new PathParameter[]
+            {
+                new(PathParameterNames.ACTOR_TYPE, "Background"),
+                new(PathParameterNames.ACTOR_ID, actorId),
+                new(PathParameterNames.BACKGROUND_TYPE, _type.ToString()),
+                new(PathParameterNames.LOCATION, _location.ToString()),
+                new(PathParameterNames.VARIANT, _variantId.ToString("D2")),
+                new(PathParameterNames.APPEARANCE, $"{_type}_{_location}_{_variantId:D2}"),
+                new(PathParameterNames.DEFAULT_LOCATION, SceneLocation.Classroom.ToString()),
+                new(PathParameterNames.DEFAULT_VARIANT, "00"),
+                new(PathParameterNames.DEFAULT_TRANSITION, "Fade"),
+                new(PathParameterNames.ADDRESSABLES_KEY, GetAddressableKey(actorId))
+            };
+        }
+        
         
         /// <summary>
         /// Creates background with different type
@@ -226,6 +353,7 @@ namespace Sinkii09.Engine.Services
             => $"{_type}_{_location}_V{_variantId:D2}";
         
         // Predefined common backgrounds for convenience
+        public static readonly BackgroundAppearance Default = new(BackgroundType.Scene, SceneLocation.Classroom, 0);
         public static readonly BackgroundAppearance DefaultClassroom = new(BackgroundType.Scene, SceneLocation.Classroom, 0);
         public static readonly BackgroundAppearance DefaultLibrary = new(BackgroundType.Scene, SceneLocation.Library, 0);
         public static readonly BackgroundAppearance DefaultPark = new(BackgroundType.Environment, SceneLocation.Park, 0);
@@ -236,7 +364,7 @@ namespace Sinkii09.Engine.Services
     /// Generic appearance data for other actor types
     /// </summary>
     [Serializable]
-    public struct GenericAppearance : IEquatable<GenericAppearance>
+    public struct GenericAppearance : IAppearance, IEquatable<GenericAppearance>
     {
         [SerializeField] private string _appearanceId;
         [SerializeField] private int _variantId;
@@ -259,10 +387,47 @@ namespace Sinkii09.Engine.Services
             _variantId = Mathf.Max(0, variantId);
         }
         
-        public string GetResourcePath(ActorType actorType, string basePath = "Actors")
+        /// <summary>
+        /// Gets addressable key using standardized naming convention (IAppearance implementation)
+        /// </summary>
+        /// <param name="actorId">Actor ID for addressable key generation</param>
+        /// <returns>Addressable key for generic asset loading</returns>
+        public string GetAddressableKey(string actorId)
         {
-            return $"{basePath}/{actorType.Name}/{_appearanceId}_{_variantId:D2}";
+            return $"generic_{actorId.ToLower()}_{_appearanceId.ToLower()}_{_variantId:D2}";
         }
+        
+        /// <summary>
+        /// Gets all addressable labels for this generic appearance (IAppearance implementation)
+        /// </summary>
+        /// <returns>Array of addressable labels for batch loading</returns>
+        public string[] GetAddressableLabels()
+        {
+            return new[]
+            {
+                $"generic_{_appearanceId.ToLower()}",
+                $"variant_{_variantId:D2}"
+            };
+        }
+        
+        /// <summary>
+        /// Gets path parameters for ResourcePathResolver integration (IAppearance implementation)
+        /// </summary>
+        /// <param name="actorId">Actor ID for path parameter generation</param>
+        /// <returns>Array of path parameters for template substitution</returns>
+        public PathParameter[] GetPathParameters(string actorId)
+        {
+            return new PathParameter[]
+            {
+                new(PathParameterNames.ACTOR_TYPE, "Generic"),
+                new(PathParameterNames.ACTOR_ID, actorId),
+                new(PathParameterNames.APPEARANCE_ID, _appearanceId),
+                new(PathParameterNames.VARIANT, _variantId.ToString("D2")),
+                new(PathParameterNames.APPEARANCE, $"{_appearanceId}_{_variantId:D2}"),
+                new(PathParameterNames.DISPLAY_NAME, actorId)
+            };
+        }
+        
         
         public bool Equals(GenericAppearance other)
             => _appearanceId == other._appearanceId && _variantId == other._variantId;

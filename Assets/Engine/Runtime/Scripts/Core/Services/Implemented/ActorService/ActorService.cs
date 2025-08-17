@@ -17,41 +17,25 @@ namespace Sinkii09.Engine.Services
     [ServiceConfiguration(typeof(ActorServiceConfiguration))]
     public class ActorService : IActorService
     {
-        // === Configuration and Dependencies ===
+        #region Dependencies
         
         private readonly ActorServiceConfiguration _config;
         private IResourceService _resourceService;
+        private IActorRegistry _registry;
+        private IActorFactory _factory;
+        private ISceneManager _sceneManager;
+        private IActorMonitor _monitor;
         
-        // === Thread-Safe Actor Registry ===
+        #endregion
         
-        private readonly ConcurrentDictionary<string, IActor> _actors = new();
-        private readonly ConcurrentDictionary<string, ICharacterActor> _characterActors = new();
-        private readonly ConcurrentDictionary<string, IBackgroundActor> _backgroundActors = new();
-        
-        // === State Management ===
-        
-        private ServiceState _serviceState = ServiceState.Uninitialized;
-        private IBackgroundActor _mainBackground;
-        private readonly object _stateLock = new();
-        
-        // === Performance and Resource Management ===
-        
-        private readonly SemaphoreSlim _loadingSemaphore;
-        private readonly ConcurrentDictionary<string, CancellationTokenSource> _loadingOperations = new();
-        private readonly Timer _performanceTimer;
-        private readonly Timer _cleanupTimer;
-        
-        // === Cancellation and Lifecycle ===
+        #region Service State
         
         private CancellationTokenSource _serviceCts;
         private bool _disposed = false;
         
-        // === Statistics and Monitoring ===
+        #endregion
         
-        private ActorServiceStatistics _statistics = new();
-        private DateTime _serviceStartTime;
-        
-        // === Events ===
+        #region Events
         
         public event Action<IActor> OnActorCreated;
         public event Action<string> OnActorDestroyed;
@@ -60,49 +44,27 @@ namespace Sinkii09.Engine.Services
         public event Action<IBackgroundActor> OnMainBackgroundChanged;
         public event Action<string, float> OnActorLoadProgressChanged;
         
-        // === Properties ===
+        #endregion
         
-        public ServiceState State
-        {
-            get
-            {
-                lock (_stateLock)
-                {
-                    return _serviceState;
-                }
-            }
-            private set
-            {
-                lock (_stateLock)
-                {
-                    _serviceState = value;
-                }
-            }
-        }
+        #region Properties
         
-        public IReadOnlyCollection<IActor> AllActors => _actors.Values.ToList().AsReadOnly();
-        public IReadOnlyCollection<ICharacterActor> CharacterActors => _characterActors.Values.ToList().AsReadOnly();
-        public IReadOnlyCollection<IBackgroundActor> BackgroundActors => _backgroundActors.Values.ToList().AsReadOnly();
         
-        public int ActorCount => _actors.Count;
-        public int LoadingActorsCount => _loadingOperations.Count;
+        public IReadOnlyCollection<IActor> AllActors => _registry?.AllActors ?? new List<IActor>().AsReadOnly();
+        public IReadOnlyCollection<ICharacterActor> CharacterActors => _registry?.CharacterActors ?? new List<ICharacterActor>().AsReadOnly();
+        public IReadOnlyCollection<IBackgroundActor> BackgroundActors => _registry?.BackgroundActors ?? new List<IBackgroundActor>().AsReadOnly();
+        public int ActorCount => _registry?.ActorCount ?? 0;
+        public int LoadingActorsCount => _factory?.GetStatistics()?.PendingCreations ?? 0;
         
-        // === Constructor and Service Lifecycle ===
+        #endregion
+        
+        #region Constructor and Service Lifecycle
         
         public ActorService(ActorServiceConfiguration config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            
             _serviceCts = new CancellationTokenSource();
-            _loadingSemaphore = new SemaphoreSlim(_config.MaxConcurrentLoads, _config.MaxConcurrentLoads);
             
-            // Initialize timers
-            _performanceTimer = new Timer(UpdatePerformanceStatistics, null, Timeout.Infinite, Timeout.Infinite);
-            _cleanupTimer = new Timer(PerformCleanup, null, Timeout.Infinite, Timeout.Infinite);
-            
-            _serviceStartTime = DateTime.Now;
-            
-            Debug.Log($"[ActorService] Initialized with max {_config.MaxActors} actors, {_config.MaxConcurrentLoads} concurrent loads");
+            Debug.Log($"[ActorService] Facade initialized - will delegate to specialized services");
         }
         
         public async UniTask<ServiceInitializationResult> InitializeAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
@@ -111,37 +73,22 @@ namespace Sinkii09.Engine.Services
             {
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _serviceCts.Token);
                 
-                // Get resource service dependency
                 _resourceService = Engine.GetService<IResourceService>();
                 
-                // Initialize actor pool
-                await InitializeActorPool(linkedCts.Token);
+                _registry = new ActorRegistry();
+                _factory = new ActorFactory(_registry, _resourceService, _config);
+                _sceneManager = new SceneManager(_registry, _resourceService, _config);
+                _monitor = new ActorMonitor(_registry, _factory, _sceneManager, _config);
                 
-                // Initialize performance monitoring
-                if (_config.EnablePerformanceMonitoring)
-                {
-                    StartPerformanceMonitoring();
-                }
+                SubscribeToServiceEvents();
                 
-                // Initialize cleanup timer
-                StartCleanupTimer();
-                
-                // Preload common resources if enabled
-                if (_config.PreloadCommonResources)
-                {
-                    await PreloadCommonResourcesAsync(linkedCts.Token);
-                }
-                
-                State = ServiceState.Running;
-                
+                Debug.Log("[ActorService] Facade initialization completed - all services ready");
+                await UniTask.Yield();
                 return ServiceInitializationResult.Success();
-            }
-            catch (OperationCanceledException e)
-            {
-                return ServiceInitializationResult.Failed(e);
             }
             catch (Exception ex)
             {
+                Debug.LogError($"[ActorService] Initialization failed: {ex.Message}");
                 return ServiceInitializationResult.Failed(ex);
             }
         }
@@ -150,512 +97,349 @@ namespace Sinkii09.Engine.Services
         {
             try
             {
-                // Stop timers
-                StopPerformanceMonitoring();
-                StopCleanupTimer();
+                _monitor?.Dispose();
                 
-                // Destroy all actors
-                await DestroyAllActorsAsync(cancellationToken);
+                if (_sceneManager != null)
+                {
+                    await _sceneManager.ClearSceneAsync(cancellationToken);
+                }
                 
-                // Cancel all operations
-                _serviceCts.Cancel();
+                _serviceCts?.Cancel();
                 
-                State = ServiceState.Shutdown;
-                Debug.Log("[ActorService] Service shutdown completed");
-                
+                Debug.Log("[ActorService] Facade shutdown completed");
                 return ServiceShutdownResult.Success();
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[ActorService] Service shutdown failed: {ex.Message}");
+                Debug.LogError($"[ActorService] Shutdown failed: {ex.Message}");
                 return ServiceShutdownResult.Failed(ex);
             }
         }
         
         public UniTask<ServiceHealthStatus> HealthCheckAsync(CancellationToken cancellationToken = default)
         {
+            var isHealthy = !_disposed && 
+                           _registry != null && 
+                           _factory != null && 
+                           _sceneManager != null && 
+                           _monitor != null;
+                           
             var status = new ServiceHealthStatus
             {
-                IsHealthy = State == ServiceState.Running,
-                StatusMessage = State == ServiceState.Running ? "ActorService is running smoothly" : $"ActorService is unhealthy"
+                IsHealthy = isHealthy,
+                StatusMessage = isHealthy ? "ActorService facade is healthy" : "ActorService facade has issues"
             };
-
+            
             return UniTask.FromResult(status);
         }
         
-        // === Actor Creation (Simplified Implementation) ===
+        #endregion
+        
+        #region Actor Creation - Delegate to Factory
         
         public async UniTask<ICharacterActor> CreateCharacterActorAsync(string id, CharacterAppearance appearance, Vector3 position = default, CancellationToken cancellationToken = default)
         {
-            ValidateOperationPermitted();
-            ValidateActorId(id);
-            
-            if (ActorCount >= _config.MaxActors)
-                throw new InvalidOperationException($"Cannot create actor: Maximum actor limit ({_config.MaxActors}) reached");
-            
-            try
-            {
-                await _loadingSemaphore.WaitAsync(cancellationToken);
-                
-                // Create a placeholder character actor for now
-                // In a real implementation, this would create the actual character actor
-                Debug.Log($"[ActorService] Creating character actor: {id}");
-                
-                // For this demo, we'll return null and log - implement actual creation logic
-                throw new NotImplementedException("Character actor creation not yet implemented - Phase 3 task");
-            }
-            finally
-            {
-                _loadingSemaphore.Release();
-            }
+            ValidateService();
+            return await _factory.CreateCharacterActorAsync(id, appearance, position, cancellationToken);
         }
         
         public async UniTask<IBackgroundActor> CreateBackgroundActorAsync(string id, BackgroundAppearance appearance, Vector3 position = default, CancellationToken cancellationToken = default)
         {
-            ValidateOperationPermitted();
-            ValidateActorId(id);
-            
-            if (ActorCount >= _config.MaxActors)
-                throw new InvalidOperationException($"Cannot create actor: Maximum actor limit ({_config.MaxActors}) reached");
-            
-            try
-            {
-                await _loadingSemaphore.WaitAsync(cancellationToken);
-                
-                Debug.Log($"[ActorService] Creating background actor: {id}");
-                
-                // For this demo, we'll return null and log - implement actual creation logic
-                throw new NotImplementedException("Background actor creation not yet implemented - Phase 3 task");
-            }
-            finally
-            {
-                _loadingSemaphore.Release();
-            }
+            ValidateService();
+            return await _factory.CreateBackgroundActorAsync(id, appearance, position, cancellationToken);
         }
         
         public async UniTask<T> CreateCustomActorAsync<T>(string id, GameObject prefab, Vector3 position = default, CancellationToken cancellationToken = default) where T : class, IActor
         {
-            ValidateOperationPermitted();
-            ValidateActorId(id);
-            
-            if (prefab == null)
-                throw new ArgumentNullException(nameof(prefab));
-            
-            if (ActorCount >= _config.MaxActors)
-                throw new InvalidOperationException($"Cannot create actor: Maximum actor limit ({_config.MaxActors}) reached");
-            
-            try
-            {
-                await _loadingSemaphore.WaitAsync(cancellationToken);
-                
-                Debug.Log($"[ActorService] Creating custom actor: {id}");
-                
-                // For this demo, we'll return null and log - implement actual creation logic
-                throw new NotImplementedException("Custom actor creation not yet implemented - Phase 3 task");
-            }
-            finally
-            {
-                _loadingSemaphore.Release();
-            }
+            ValidateService();
+            return await _factory.CreateCustomActorAsync<T>(id, prefab, position, cancellationToken);
         }
         
-        // === Basic Registry Operations (Simplified) ===
+        #endregion
+        
+        #region Actor Registry - Delegate to Registry
         
         public bool RegisterActor(IActor actor)
         {
-            if (actor == null)
-                throw new ArgumentNullException(nameof(actor));
-            
-            ValidateOperationPermitted();
-            
-            if (ActorCount >= _config.MaxActors)
-            {
-                Debug.LogWarning($"[ActorService] Cannot register actor: Maximum limit reached ({_config.MaxActors})");
-                return false;
-            }
-            
-            return RegisterActorInternal(actor);
+            ValidateService();
+            return _registry.RegisterActor(actor);
         }
         
         public bool UnregisterActor(string actorId)
         {
-            if (string.IsNullOrEmpty(actorId))
-                return false;
-            
-            return UnregisterActorInternal(actorId);
+            ValidateService();
+            return _registry.UnregisterActor(actorId);
         }
-        
-        // === Actor Lookup ===
         
         public IActor GetActor(string id)
         {
-            if (string.IsNullOrEmpty(id))
-                return null;
-            
-            _actors.TryGetValue(id, out var actor);
-            return actor;
+            return _registry?.GetActor(id);
         }
         
         public ICharacterActor GetCharacterActor(string id)
         {
-            if (string.IsNullOrEmpty(id))
-                return null;
-            
-            _characterActors.TryGetValue(id, out var actor);
-            return actor;
+            return _registry?.GetCharacterActor(id);
         }
         
         public IBackgroundActor GetBackgroundActor(string id)
         {
-            if (string.IsNullOrEmpty(id))
-                return null;
-            
-            _backgroundActors.TryGetValue(id, out var actor);
-            return actor;
+            return _registry?.GetBackgroundActor(id);
         }
         
         public T GetActor<T>(string id) where T : class, IActor
         {
-            return GetActor(id) as T;
+            return _registry?.GetActor<T>(id);
         }
         
         public bool TryGetActor(string id, out IActor actor)
         {
             actor = null;
-            return !string.IsNullOrEmpty(id) && _actors.TryGetValue(id, out actor);
+            return _registry?.TryGetActor(id, out actor) ?? false;
         }
         
         public bool TryGetCharacterActor(string id, out ICharacterActor actor)
         {
             actor = null;
-            return !string.IsNullOrEmpty(id) && _characterActors.TryGetValue(id, out actor);
+            return _registry?.TryGetCharacterActor(id, out actor) ?? false;
         }
         
         public bool TryGetBackgroundActor(string id, out IBackgroundActor actor)
         {
             actor = null;
-            return !string.IsNullOrEmpty(id) && _backgroundActors.TryGetValue(id, out actor);
+            return _registry?.TryGetBackgroundActor(id, out actor) ?? false;
         }
         
         public IReadOnlyCollection<T> GetActorsOfType<T>() where T : class, IActor
         {
-            return _actors.Values.OfType<T>().ToList().AsReadOnly();
+            return _registry?.GetActorsOfType<T>() ?? new List<T>().AsReadOnly();
         }
         
         public bool HasActor(string id)
         {
-            return !string.IsNullOrEmpty(id) && _actors.ContainsKey(id);
+            return _registry?.HasActor(id) ?? false;
         }
         
         public string[] GetActorIds()
         {
-            return _actors.Keys.ToArray();
+            return _registry?.GetActorIds() ?? new string[0];
         }
         
-        // === Placeholder Methods (To be implemented in Phase 3) ===
+        #endregion
         
-        public UniTask LoadActorResourcesAsync(string actorId, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask LoadAllActorResourcesAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask UnloadActorResourcesAsync(string actorId, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask UnloadAllActorResourcesAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask DestroyActorAsync(string actorId, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public async UniTask DestroyAllActorsAsync(CancellationToken cancellationToken = default) { await UniTask.CompletedTask; }
-        public UniTask RefreshAllActorsAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask SetMainBackgroundAsync(string backgroundId, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public IBackgroundActor GetMainBackground() => _mainBackground;
-        public UniTask ClearSceneAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask PreloadSceneActorsAsync(string[] actorIds, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask ShowActorAsync(string actorId, float duration = 1.0f, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask HideActorAsync(string actorId, float duration = 1.0f, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask ShowAllActorsAsync(float duration = 1.0f, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public UniTask HideAllActorsAsync(float duration = 1.0f, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
-        public Dictionary<string, ActorState> GetAllActorStates() => new();
-        public UniTask ApplyAllActorStatesAsync(Dictionary<string, ActorState> states, float duration = 0f, CancellationToken cancellationToken = default) => throw new NotImplementedException("Phase 3 implementation");
+        #region Scene Operations - Delegate to SceneManager
+        
+        public async UniTask SetMainBackgroundAsync(string backgroundId, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.SetMainBackgroundAsync(backgroundId, cancellationToken);
+        }
+        
+        public IBackgroundActor GetMainBackground()
+        {
+            return _sceneManager?.GetMainBackground();
+        }
+        
+        public async UniTask ClearSceneAsync(CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.ClearSceneAsync(cancellationToken);
+        }
+        
+        public async UniTask PreloadSceneActorsAsync(string[] actorIds, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.PreloadSceneActorsAsync(actorIds, cancellationToken);
+        }
+        
+        public async UniTask ShowActorAsync(string actorId, float duration = 1.0f, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.ShowActorAsync(actorId, duration, cancellationToken);
+        }
+        
+        public async UniTask HideActorAsync(string actorId, float duration = 1.0f, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.HideActorAsync(actorId, duration, cancellationToken);
+        }
+        
+        public async UniTask ShowAllActorsAsync(float duration = 1.0f, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.ShowAllActorsAsync(duration, cancellationToken);
+        }
+        
+        public async UniTask HideAllActorsAsync(float duration = 1.0f, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.HideAllActorsAsync(duration, cancellationToken);
+        }
+        
+        public Dictionary<string, ActorState> GetAllActorStates()
+        {
+            return _sceneManager?.GetAllActorStates() ?? new Dictionary<string, ActorState>();
+        }
+        
+        public async UniTask ApplyAllActorStatesAsync(Dictionary<string, ActorState> states, float duration = 0f, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.ApplyAllActorStatesAsync(states, duration, cancellationToken);
+        }
+        
+        public async UniTask LoadActorResourcesAsync(string actorId, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.LoadActorResourcesAsync(actorId, cancellationToken);
+        }
+        
+        public async UniTask LoadAllActorResourcesAsync(CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.LoadAllActorResourcesAsync(cancellationToken);
+        }
+        
+        public async UniTask UnloadActorResourcesAsync(string actorId, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.UnloadActorResourcesAsync(actorId, cancellationToken);
+        }
+        
+        public async UniTask UnloadAllActorResourcesAsync(CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.UnloadAllActorResourcesAsync(cancellationToken);
+        }
+        
+        public async UniTask DestroyActorAsync(string actorId, CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.DestroyActorAsync(actorId, cancellationToken);
+        }
+        
+        public async UniTask DestroyAllActorsAsync(CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.DestroyAllActorsAsync(cancellationToken);
+        }
+        
+        public async UniTask RefreshAllActorsAsync(CancellationToken cancellationToken = default)
+        {
+            ValidateService();
+            await _sceneManager.LoadAllActorResourcesAsync(cancellationToken);
+        }
+        
+        #endregion
+        
+        #region Animation Control - Delegate to Monitor
         
         public void StopAllAnimations()
         {
-            foreach (var actor in _actors.Values)
-            {
-                actor.StopAllAnimations();
-            }
-            Debug.Log($"[ActorService] Stopped all animations for {ActorCount} actors");
+            _monitor?.StopAllAnimations();
         }
         
         public void PauseAllAnimations()
         {
-            DG.Tweening.DOTween.PauseAll();
-            Debug.Log("[ActorService] Paused all animations");
+            _monitor?.PauseAllAnimations();
         }
         
         public void ResumeAllAnimations()
         {
-            DG.Tweening.DOTween.PlayAll();
-            Debug.Log("[ActorService] Resumed all animations");
+            _monitor?.ResumeAllAnimations();
         }
         
         public void SetGlobalAnimationSpeed(float speedMultiplier)
         {
-            DG.Tweening.DOTween.timeScale = Mathf.Max(0f, speedMultiplier);
-            Debug.Log($"[ActorService] Set global animation speed: {speedMultiplier:F2}x");
+            _monitor?.SetGlobalAnimationSpeed(speedMultiplier);
         }
         
-        // === Utility and Debug ===
+        #endregion
+        
+        #region Statistics and Validation - Delegate to Monitor
         
         public Dictionary<string, string[]> ValidateAllActors()
         {
-            var validationResults = new Dictionary<string, string[]>();
-            
-            foreach (var kvp in _actors)
-            {
-                if (kvp.Value.ValidateConfiguration(out var errors))
-                    continue;
-                
-                validationResults[kvp.Key] = errors;
-            }
-            
-            return validationResults;
+            return _monitor?.ValidateAllActors() ?? new Dictionary<string, string[]>();
         }
         
         public ActorServiceStatistics GetStatistics()
         {
-            UpdateStatistics();
-            return _statistics;
+            return _monitor?.GetStatistics() ?? new ActorServiceStatistics();
         }
         
         public string GetDebugInfo()
         {
-            var info = new System.Text.StringBuilder();
-            info.AppendLine("=== ActorService Debug Info ===");
-            info.AppendLine($"Service State: {State}");
-            info.AppendLine($"Total Actors: {ActorCount}");
-            info.AppendLine($"Character Actors: {_characterActors.Count}");
-            info.AppendLine($"Background Actors: {_backgroundActors.Count}");
-            info.AppendLine($"Loading Operations: {LoadingActorsCount}");
-            info.AppendLine($"Main Background: {(_mainBackground?.Id ?? "None")}");
-            info.AppendLine($"Service Uptime: {DateTime.Now - _serviceStartTime:hh\\:mm\\:ss}");
-            
-            return info.ToString();
+            return _monitor?.GetDebugInfo() ?? "[ActorService] Monitor not available";
         }
         
         public void Configure(int maxConcurrentLoads, bool enableActorPooling, bool enablePerformanceMonitoring)
         {
-            Debug.Log($"[ActorService] Runtime configuration update requested: " +
-                      $"MaxLoads={maxConcurrentLoads}, Pooling={enableActorPooling}, Monitoring={enablePerformanceMonitoring}");
+            _monitor?.Configure(true, enablePerformanceMonitoring, 5.0f);
+            Debug.Log($"[ActorService] Configuration updated through monitor");
         }
         
-        // === Private Implementation Methods ===
+        #endregion
         
-        private async UniTask InitializeActorPool(CancellationToken cancellationToken)
-        {
-            Debug.Log($"[ActorService] Creating actor pool '{_config.ActorPoolName}' with {_config.InitialPoolSize} initial actors (max: {_config.MaxActors})");
-            await UniTask.CompletedTask;
-        }
+        #region Private Methods
         
-        private bool RegisterActorInternal(IActor actor)
+        private void SubscribeToServiceEvents()
         {
-            if (actor == null || string.IsNullOrEmpty(actor.Id))
-                return false;
-            
-            // Register in main collection
-            if (!_actors.TryAdd(actor.Id, actor))
+            if (_registry is ActorRegistry registry)
             {
-                Debug.LogWarning($"[ActorService] Actor with ID '{actor.Id}' already exists");
-                return false;
+                registry.OnActorRegistered += (actor) => OnActorCreated?.Invoke(actor);
+                registry.OnActorUnregistered += (actorId) => OnActorDestroyed?.Invoke(actorId);
             }
             
-            // Register in specialized collections
-            if (actor is ICharacterActor characterActor)
-                _characterActors.TryAdd(actor.Id, characterActor);
-            else if (actor is IBackgroundActor backgroundActor)
-                _backgroundActors.TryAdd(actor.Id, backgroundActor);
-            
-            // Subscribe to actor events
-            actor.OnError += OnActorErrorInternal;
-            actor.OnVisibilityChanged += OnActorVisibilityChangedInternal;
-            
-            Debug.Log($"[ActorService] Registered actor: {actor.Id} ({actor.GetType().Name})");
-            return true;
-        }
-        
-        private bool UnregisterActorInternal(string actorId)
-        {
-            if (string.IsNullOrEmpty(actorId))
-                return false;
-            
-            // Get the actor before removing
-            if (!_actors.TryGetValue(actorId, out var actor))
-                return false;
-            
-            // Unsubscribe from events
-            actor.OnError -= OnActorErrorInternal;
-            actor.OnVisibilityChanged -= OnActorVisibilityChangedInternal;
-            
-            // Remove from collections
-            _actors.TryRemove(actorId, out _);
-            _characterActors.TryRemove(actorId, out _);
-            _backgroundActors.TryRemove(actorId, out _);
-            
-            // Clear main background if it was this actor
-            if (_mainBackground?.Id == actorId)
-                _mainBackground = null;
-            
-            Debug.Log($"[ActorService] Unregistered actor: {actorId}");
-            return true;
-        }
-        
-        private async UniTask PreloadCommonResourcesAsync(CancellationToken cancellationToken)
-        {
-            try
+            if (_sceneManager != null)
             {
-                Debug.Log("[ActorService] Preloading common resources...");
-                await UniTask.DelayFrame(1, cancellationToken: cancellationToken);
-                Debug.Log("[ActorService] Common resources preloaded");
+                _sceneManager.OnMainBackgroundChanged += (background) => OnMainBackgroundChanged?.Invoke(background);
             }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"[ActorService] Failed to preload common resources: {ex.Message}");
-            }
-        }
-        
-        private void StartPerformanceMonitoring()
-        {
-            if (_config.EnablePerformanceMonitoring)
-            {
-                var interval = TimeSpan.FromMilliseconds(1000);
-                _performanceTimer.Change(interval, interval);
-            }
-        }
-        
-        private void StopPerformanceMonitoring()
-        {
-            _performanceTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        }
-        
-        private void StartCleanupTimer()
-        {
-            var interval = TimeSpan.FromSeconds(_config.CleanupInterval);
-            _cleanupTimer.Change(interval, interval);
-        }
-        
-        private void StopCleanupTimer()
-        {
-            _cleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        }
-        
-        private void UpdatePerformanceStatistics(object state)
-        {
-            if (_disposed)
-                return;
             
-            try
+            if (_monitor != null)
             {
-                UpdateStatistics();
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[ActorService] Error updating performance statistics: {ex.Message}");
-            }
-        }
-        
-        private void UpdateStatistics()
-        {
-            _statistics.TotalActors = ActorCount;
-            _statistics.LoadingActors = LoadingActorsCount;
-            _statistics.CharacterActors = _characterActors.Count;
-            _statistics.BackgroundActors = _backgroundActors.Count;
-            _statistics.CustomActors = ActorCount - _characterActors.Count - _backgroundActors.Count;
-            
-            _statistics.LoadedActors = _actors.Values.Count(a => a.IsLoaded);
-            _statistics.ErrorActors = _actors.Values.Count(a => a.HasError);
-            
-            _statistics.ActiveAnimations = 0;
-            _statistics.GlobalAnimationSpeed = DG.Tweening.DOTween.timeScale;
-            
-            _statistics.LastUpdateTime = DateTime.Now;
-            _statistics.PerformanceMonitoringEnabled = _config.EnablePerformanceMonitoring;
-        }
-        
-        private void PerformCleanup(object state)
-        {
-            if (_disposed)
-                return;
-            
-            try
-            {
-                if (_config.EnableDistanceBasedCleanup)
+                _monitor.OnValidationErrorDetected += (actorId, errors) => 
                 {
-                    Debug.Log("[ActorService] Performing distance-based cleanup...");
-                }
+                    var actor = _registry?.GetActor(actorId);
+                    if (actor != null)
+                    {
+                        OnActorError?.Invoke(actor, string.Join(", ", errors));
+                    }
+                };
             }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[ActorService] Error during cleanup: {ex.Message}");
-            }
         }
         
-        private void OnActorErrorInternal(IActor actor, string error)
-        {
-            OnActorError?.Invoke(actor, error);
-        }
-        
-        private void OnActorVisibilityChangedInternal(IActor actor, bool visible)
-        {
-            OnActorVisibilityChanged?.Invoke(actor, visible);
-        }
-        
-        private void ValidateOperationPermitted()
+        private void ValidateService()
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(ActorService));
-            
-            if (Engine.Initialized)
-                throw new InvalidOperationException($"Actor service is not ready (current state: {State})");
+                
+            if (_registry == null || _factory == null || _sceneManager == null || _monitor == null)
+                throw new InvalidOperationException("ActorService is not properly initialized");
         }
         
-        private void ValidateActorId(string id)
-        {
-            if (string.IsNullOrEmpty(id))
-                throw new ArgumentException("Actor ID cannot be null or empty", nameof(id));
-            
-            if (HasActor(id))
-                throw new ArgumentException($"Actor with ID '{id}' already exists", nameof(id));
-        }
+        #endregion
         
-        // === IDisposable Implementation ===
+        #region IDisposable Implementation
         
         public void Dispose()
         {
             if (_disposed)
                 return;
-            
+                
             try
             {
                 _serviceCts?.Cancel();
-                
-                StopPerformanceMonitoring();
-                StopCleanupTimer();
-                
-                _performanceTimer?.Dispose();
-                _cleanupTimer?.Dispose();
-                _loadingSemaphore?.Dispose();
-                
-                // Cancel all loading operations
-                foreach (var cts in _loadingOperations.Values)
-                {
-                    cts.Cancel();
-                    cts.Dispose();
-                }
-                _loadingOperations.Clear();
-                
+                _monitor?.Dispose();
                 _serviceCts?.Dispose();
                 _disposed = true;
                 
-                Debug.Log("[ActorService] Service disposed");
+                Debug.Log("[ActorService] Facade disposed");
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[ActorService] Error during disposal: {ex.Message}");
             }
         }
+        
+        #endregion
     }
 }

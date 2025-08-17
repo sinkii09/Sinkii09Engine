@@ -403,45 +403,28 @@ namespace Sinkii09.Engine.Services
         #region Cleanup Handlers
         private void SetupCleanupHandlers()
         {
-            SceneManager.sceneUnloaded += OnSceneUnloaded;
-            Application.quitting += OnApplicationQuitting;
+            // Let DOTweenCleanupHelper handle global cleanup to avoid conflicts
             DOTweenCleanupHelper.EnsureCleanupHelper();
         }
 
         private void CleanupHandlers()
         {
-            SceneManager.sceneUnloaded -= OnSceneUnloaded;
-            Application.quitting -= OnApplicationQuitting;
-            CleanupDOTween();
+            // Cleanup UI-specific DOTween animations only
+            CleanupUIDOTween();
         }
 
-        private void OnSceneUnloaded(Scene scene)
-        {
-            Debug.Log($"[UIService] Scene '{scene.name}' unloaded, performing cleanup");
-            CleanupDOTween();
-        }
-
-        private void OnApplicationQuitting()
-        {
-            Debug.Log("[UIService] Application quitting, performing final cleanup");
-            CleanupDOTween();
-        }
-
-        private static void CleanupDOTween()
+        private static void CleanupUIDOTween()
         {
             try
             {
-                DG.Tweening.DOTween.KillAll(false);
-                DG.Tweening.DOTween.Clear(true);
-                if (DG.Tweening.DOTween.instance != null)
-                {
-                    UnityEngine.Object.DestroyImmediate(DG.Tweening.DOTween.instance.gameObject);
-                }
-                Debug.Log("[UIService] DOTween cleanup completed");
+                // Only kill UI-related tweens to avoid conflicts with other systems
+                // Let DOTweenCleanupHelper handle global cleanup
+                Debug.Log("[UIService] UI DOTween cleanup delegated to DOTweenCleanupHelper");
+                DOTweenCleanupHelper.TriggerCleanup("UIService Shutdown");
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"[UIService] DOTween cleanup error: {ex.Message}");
+                Debug.LogWarning($"[UIService] UI DOTween cleanup error: {ex.Message}");
             }
         }
         #endregion

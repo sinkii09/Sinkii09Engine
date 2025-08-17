@@ -12,7 +12,8 @@ namespace Sinkii09.Engine.Services
         public const string ID = "id";
         public const string ENVIRONMENT = "environment";
         public const string RESOURCE_ROOT = "resourceRoot";
-        
+        public const string ADDRESSABLES_KEY = "addressableKey";
+
         // Character-specific parameters
         public const string EXPRESSION = "expression";
         public const string POSE = "pose";
@@ -21,6 +22,12 @@ namespace Sinkii09.Engine.Services
         public const string DEFAULT_EXPRESSION = "defaultExpression";
         public const string DEFAULT_POSE = "defaultPose";
         public const string DEFAULT_OUTFIT = "defaultOutfit";
+        
+        // Layered character parameters
+        public const string LAYER_PATH = "layerPath";
+        public const string LAYER_TYPE = "layerType";
+        public const string LAYER_NAME = "layerName";
+        public const string COMPOSITION_EXPRESSION = "compositionExpression";
         
         // Background-specific parameters
         public const string LOCATION = "location";

@@ -261,7 +261,10 @@ namespace Sinkii09.Engine.Services
             {
                 // Actor templates - organized by resource type first, then category
                 new PathTemplateEntry(ResourceType.Actor, ResourceCategory.Primary, "Actors/{actorType}/{actorId}", PathPriority.High),
-                new PathTemplateEntry(ResourceType.Actor, ResourceCategory.Sprites, "Actors/{actorType}/Sprites/{actorId}/{appearance}", PathPriority.High),
+                new PathTemplateEntry(ResourceType.Actor, ResourceCategory.Sprites, "Actors/{actorType}/{actorId}/Sprites/{addressableKey}", PathPriority.High),
+                
+                // Layered character templates for layer-based loading
+                new PathTemplateEntry(ResourceType.Actor, ResourceCategory.Primary, "Actors/Characters/{characterName}/{layerPath}", PathPriority.High),
                 new PathTemplateEntry(ResourceType.Actor, ResourceCategory.Animations, "Actors/{actorType}/Animations/{actorId}/{animationType}", PathPriority.High),
                 new PathTemplateEntry(ResourceType.Actor, ResourceCategory.Audio, "Actors/{actorType}/Audio/{actorId}/{audioType}", PathPriority.High),
                 new PathTemplateEntry(ResourceType.Actor, ResourceCategory.Metadata, "Actors/{actorType}/Metadata/{actorId}", PathPriority.High),

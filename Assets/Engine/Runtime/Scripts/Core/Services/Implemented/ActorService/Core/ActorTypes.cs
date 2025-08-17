@@ -143,24 +143,65 @@ namespace Sinkii09.Engine.Services
     }
     
     /// <summary>
-    /// Character-specific enums for strongly-typed appearance management
+    /// Unified character emotion system for expressions and emotional reactions
+    /// This enum replaces both CharacterExpression and CharacterReaction to eliminate redundancy
     /// </summary>
-    public enum CharacterExpression
+    public enum CharacterEmotion
     {
+        // Base emotions (0-19)
         Neutral = 0,
         Happy = 1,
         Sad = 2,
         Angry = 3,
-        Surprised = 4,
+        Fear = 4,
         Confused = 5,
-        Embarrassed = 6,
-        Determined = 7,
-        Excited = 8,
-        Worried = 9,
-        Thinking = 10,
-        Smiling = 11
+        Excited = 6,
+        Thinking = 7,
+        Embarrassed = 8,
+        Shy = 9,
+
+        // Expression-specific emotions (20-39)
+        Surprised = 20,
+        Determined = 21,
+        Worried = 22,
+        Smiling = 23,
+        Bored = 24,
+        Disgust = 25,
+        
+        // Reaction-specific emotions (40-59)
+        Joy = 40,           // More intense than Happy
+        Disappointed = 41,  // More specific than Sad
+        Love = 42,
+        Shock = 43,         // Sudden surprise
+        Panic = 44,         // Intense fear
+        Rage = 45,          // Intense anger
+        Bliss = 46,         // Intense happiness
+        Despair = 47,        // Intense sadness
+        Swooning = 48,      // Overwhelmed by emotion
     }
     
+    /// <summary>
+    /// Physical reaction types for body animations that don't correspond to facial expressions
+    /// Used when you want body movement without changing facial expression
+    /// </summary>
+    public enum CharacterReactionType
+    {
+        // Physical reactions only (no facial expression change)
+        Stumble,        // Physical imbalance
+        Shiver,         // Cold or fear physical response
+        Bounce,         // Excited physical movement  
+        Shake,          // Trembling movement
+        Shrink,         // Shy/small physical response
+        Puff,           // Pride/confidence expansion
+        Spin,           // Dizzy/confusion spin
+        Jump,           // Sudden upward movement
+        Duck,           // Quick downward movement
+        
+        // Use facial emotion for body movement
+        EmotionBased    // Body animation matches the facial emotion
+    }
+
+
     public enum CharacterPose
     {
         Standing = 0,
@@ -232,7 +273,16 @@ namespace Sinkii09.Engine.Services
         Abstract = 202,
         Dream = 203
     }
-    
+    public enum CharacterPosition
+    {
+        Left = 0,
+        Center = 1,
+        Right = 2,
+        Top = 3,
+        Bottom = 4,
+        FarLeft = 5,
+        FarRight = 6,
+    }
     public enum SceneTransitionType
     {
         None = 0,

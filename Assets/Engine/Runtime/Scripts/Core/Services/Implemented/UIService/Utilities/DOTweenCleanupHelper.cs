@@ -40,9 +40,8 @@ namespace Sinkii09.Engine.Services
             _instance = this;
             DontDestroyOnLoad(gameObject);
 
-            // Subscribe to application events
+            // Subscribe to application events  
             Application.quitting += OnApplicationQuitting;
-            SceneManager.sceneUnloaded += OnSceneUnloaded;
         }
 
         private void OnApplicationQuitting()
@@ -50,14 +49,6 @@ namespace Sinkii09.Engine.Services
             PerformCleanup("Application Quit");
         }
 
-        private void OnSceneUnloaded(Scene scene)
-        {
-            // Only cleanup on main scene changes, not additive scene unloads
-            if (SceneManager.sceneCount <= 1)
-            {
-                PerformCleanup($"Scene '{scene.name}' Unloaded");
-            }
-        }
 
         private void OnDestroy()
         {
@@ -65,7 +56,6 @@ namespace Sinkii09.Engine.Services
             
             // Unsubscribe from events
             Application.quitting -= OnApplicationQuitting;
-            SceneManager.sceneUnloaded -= OnSceneUnloaded;
         }
 
         private void PerformCleanup(string reason)
@@ -76,24 +66,20 @@ namespace Sinkii09.Engine.Services
             {
                 Debug.Log($"[DOTweenCleanupHelper] Performing DOTween cleanup: {reason}");
 
-                // Kill all active tweens
-                DG.Tweening.DOTween.KillAll(false);
-                
-                // Clear all tweens and pools
-                DG.Tweening.DOTween.Clear(true);
-                
-                // Cleanup DOTween instance if it exists
+                // Kill all active tweens safely
                 if (DG.Tweening.DOTween.instance != null)
                 {
-                    DestroyImmediate(DG.Tweening.DOTween.instance.gameObject);
+                    DG.Tweening.DOTween.KillAll(false);
+                    DG.Tweening.DOTween.Clear(true);
                 }
-
+                
                 _hasCleanedUp = true;
                 Debug.Log("[DOTweenCleanupHelper] DOTween cleanup completed successfully");
             }
             catch (System.Exception ex)
             {
                 Debug.LogWarning($"[DOTweenCleanupHelper] DOTween cleanup encountered an issue: {ex.Message}");
+                _hasCleanedUp = true; // Mark as cleaned even if failed to prevent retry loops
             }
         }
 

@@ -12,7 +12,7 @@ namespace Sinkii09.Engine.Editor.Generators
     /// <summary>
     /// Auto-generates UIScreenType enum and UIScreenRegistry from UIScreenAssets
     /// </summary>
-    [InitializeOnLoad]
+    //[InitializeOnLoad]
     public static class UIEnumGenerator
     {
         private const string ENUM_FILE_PATH = "Assets/Engine/Runtime/Scripts/Core/Services/Implemented/UIService/Core/UIScreenType.cs";

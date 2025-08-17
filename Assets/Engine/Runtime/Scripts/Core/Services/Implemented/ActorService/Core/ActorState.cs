@@ -277,9 +277,9 @@ namespace Sinkii09.Engine.Services
         [SerializeField] private string _currentEmotion = string.Empty;
         
         // Type-safe properties with enum conversion
-        public CharacterExpression Expression
+        public CharacterEmotion Expression
         {
-            get => (CharacterExpression)_expressionValue;
+            get => (CharacterEmotion)_expressionValue;
             set => _expressionValue = (int)value;
         }
         
