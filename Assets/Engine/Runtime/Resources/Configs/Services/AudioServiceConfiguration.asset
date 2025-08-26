@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485440638f44d5448afb227c83362978, type: 3}
+  m_Name: AudioServiceConfiguration
+  m_EditorClassIdentifier: 
+  _version: 5
+  _description: Service configuration
+  _maxConcurrentSources: 32
+  _enableAudioStreaming: 1
+  _defaultFadeDuration: 1
+  _supportedCategories: 000000000100000002000000030000000400000005000000
+  _audioClipCacheSize: 50
+  _preloadCriticalAudio: 1
+  _streamingMemoryThreshold: 10
+  _audioResourceBasePath: Audio
+  _resourceUnloadDelay: 10
+  _masterAudioMixer: {fileID: 24100000, guid: 6ba60eeca2492aa4983d87d6ce70d8f2, type: 2}
+  _musicBusName: Music
+  _sfxBusName: SFX
+  _voiceBusName: Voice
+  _ambientBusName: Ambient
+  _uiBusName: UI
+  _systemBusName: System
+  _enableDynamicRange: 1
+  _defaultSnapshotName: Default
+  _enableSpatialAudio: 1
+  _maxAudioDistance: 50
+  _defaultRolloffMode: 0
+  _enable3DOcclusion: 1
+  _occlusionLayerMask:
+    serializedVersion: 2
+    m_Bits: 55
+  _dopplerLevel: 1
+  _enableAudioPooling: 1
+  _audioSourcePoolSize: 20
+  _memoryPressureThreshold: 0.8
+  _enableAsyncAudioLoading: 1
+  _maxConcurrentLoads: 5
+  _enableLipSync: 0
+  _autoGenerateSubtitles: 0
+  _voiceAudioDucking: 0.3
+  _characterVoiceBasePath: Audio/Voice/Characters
+  _voicePriorityMultiplier: 2
+  _enableMusicPlaylists: 1
+  _enableMusicCrossfade: 1
+  _defaultCrossfadeDuration: 3
+  _musicLoopByDefault: 1
+  _musicBasePath: Audio/Music
+  _defaultMusicVolume: 0.8
+  _enableSFXPooling: 1
+  _maxSimultaneousSFX: 10
+  _enableSFXPriority: 1
+  _sfxBasePath: Audio/SFX
+  _defaultSFXVolume: 1
+  _enableAmbientLayers: 1
+  _maxAmbientLayers: 5
+  _ambientAutoLoop: 1
+  _ambientBasePath: Audio/Ambient
+  _defaultAmbientVolume: 0.6
+  _enableAudioDebugger: 1
+  _logAudioOperations: 0
+  _showAudioGizmos: 1
+  _enableAudioProfiling: 0
+  _validateAudioOnStartup: 1
