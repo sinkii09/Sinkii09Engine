@@ -175,7 +175,37 @@ namespace Sinkii09.Engine.Services
 
             // Set up automatic unload timer
             var unloadInterval = TimeSpan.FromSeconds(_config.UnloadUnusedResourcesInterval);
-            _unloadTimer = new Timer(async _ => await UnloadUnusedResourcesAsync(), null, unloadInterval, unloadInterval);
+            _unloadTimer = new Timer(async _ => 
+            {
+                if (!Application.isPlaying)
+                    return;
+                
+#if UNITY_EDITOR
+                // Lightweight editor cleanup - just log activity
+                try
+                {
+                    await UniTask.SwitchToMainThread();
+                    _lastMemoryCleanup = DateTime.UtcNow;
+                    if (_config.EnableDetailedLogging)
+                        Debug.Log("ResourceService: Editor cleanup cycle (lightweight)");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in resource cleanup timer (editor): {ex.Message}");
+                }
+#else
+                // Full cleanup for production builds
+                try
+                {
+                    await UniTask.SwitchToMainThread();
+                    await UnloadUnusedResourcesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error in resource cleanup timer: {ex.Message}");
+                }
+#endif
+            }, null, unloadInterval, unloadInterval);
 
             if (_config.EnableDetailedLogging)
             {

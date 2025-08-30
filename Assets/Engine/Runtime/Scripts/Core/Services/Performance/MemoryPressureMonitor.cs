@@ -14,6 +14,19 @@ namespace Sinkii09.Engine.Services.Performance
     /// </summary>
     public class MemoryPressureMonitor : IDisposable
     {
+        #region Constants
+        private const int MAX_CLEANUP_HISTORY = 100;
+        private const long COUNTER_RESET_THRESHOLD = 1_000_000;
+        private const int ADAPTIVE_THRESHOLD_MIN_CYCLES = 100;
+        private const double ADAPTIVE_THRESHOLD_FACTOR = 0.8;
+        private const double ADAPTIVE_ADJUSTMENT_FACTOR = 0.95;
+        private const double PERCENTAGE_THRESHOLD_LOW = 0.6;
+        private const double PERCENTAGE_THRESHOLD_MEDIUM = 0.75;
+        private const double PERCENTAGE_THRESHOLD_HIGH = 0.85;
+        private const double PERCENTAGE_THRESHOLD_CRITICAL = 0.95;
+        private const long MINIMUM_BASE_MEMORY = 100 * 1024 * 1024; // 100MB
+        #endregion
+
         public enum MemoryPressureLevel
         {
             None = 0,
@@ -36,6 +49,7 @@ namespace Sinkii09.Engine.Services.Performance
         private readonly object _respondersLock = new object();
         private readonly MemoryPressureConfiguration _config;
         private readonly GCOptimizationSettings _gcSettings;
+        private readonly Queue<MemoryCleanupResult> _cleanupHistory;
         
         // Memory thresholds (in bytes)
         private long _lowPressureThreshold;
@@ -90,6 +104,7 @@ namespace Sinkii09.Engine.Services.Performance
             _config = config ?? MemoryPressureConfiguration.Default();
             _gcSettings = gcSettings ?? GCOptimizationSettings.GetDefaultSettings();
             _responders = new List<IMemoryPressureResponder>();
+            _cleanupHistory = new Queue<MemoryCleanupResult>();
             _currentPressureLevel = MemoryPressureLevel.None;
             _lastCleanup = DateTime.UtcNow;
             
@@ -208,7 +223,7 @@ namespace Sinkii09.Engine.Services.Performance
         {
             // Get available memory (rough estimation)
             var availableMemory = GC.GetTotalMemory(false);
-            var baseMemory = Math.Max(availableMemory, 100 * 1024 * 1024); // Minimum 100MB
+            var baseMemory = Math.Max(availableMemory, MINIMUM_BASE_MEMORY);
             
             if (_config.UseAbsoluteThresholds)
             {
@@ -220,10 +235,10 @@ namespace Sinkii09.Engine.Services.Performance
             else
             {
                 // Use percentage-based thresholds
-                _lowPressureThreshold = (long)(baseMemory * 0.6);     // 60%
-                _mediumPressureThreshold = (long)(baseMemory * 0.75);  // 75%
-                _highPressureThreshold = (long)(baseMemory * 0.85);    // 85%
-                _criticalPressureThreshold = (long)(baseMemory * 0.95); // 95%
+                _lowPressureThreshold = (long)(baseMemory * PERCENTAGE_THRESHOLD_LOW);
+                _mediumPressureThreshold = (long)(baseMemory * PERCENTAGE_THRESHOLD_MEDIUM);
+                _highPressureThreshold = (long)(baseMemory * PERCENTAGE_THRESHOLD_HIGH);
+                _criticalPressureThreshold = (long)(baseMemory * PERCENTAGE_THRESHOLD_CRITICAL);
             }
         }
         
@@ -235,6 +250,12 @@ namespace Sinkii09.Engine.Services.Performance
             if (_disposed || !Application.isPlaying)
                 return;
                 
+            // Skip expensive profiling operations in editor but keep monitoring
+#if UNITY_EDITOR
+            PerformLightweightMonitoring();
+            return;
+#endif
+                
             try
             {
                 Interlocked.Increment(ref _monitoringCycles);
@@ -244,6 +265,9 @@ namespace Sinkii09.Engine.Services.Performance
                 
                 // Update average memory usage
                 UpdateAverageMemoryUsage(currentMemory);
+                
+                // Reset counters if needed to prevent overflow
+                ResetCountersIfNeeded();
                 
                 // Check if pressure level changed or cleanup is needed
                 if (newPressureLevel != _currentPressureLevel || ShouldPerformCleanup(newPressureLevel))
@@ -389,6 +413,9 @@ namespace Sinkii09.Engine.Services.Performance
                 result.Duration = result.EndTime - result.StartTime;
                 result.Success = true;
                 
+                // Add to cleanup history with size management
+                AddToCleanupHistory(result);
+                
                 return result;
             }
             catch (Exception ex)
@@ -482,21 +509,103 @@ namespace Sinkii09.Engine.Services.Performance
         private void AdjustThresholdsAdaptively(long currentMemory)
         {
             // Simple adaptive logic - could be enhanced
-            if (_monitoringCycles > 100) // Only adjust after sufficient data
+            if (_monitoringCycles > ADAPTIVE_THRESHOLD_MIN_CYCLES) // Only adjust after sufficient data
             {
                 var avgMemory = (long)_averageMemoryUsage;
                 
                 // If average is consistently low, lower thresholds
-                if (avgMemory < _lowPressureThreshold * 0.8)
+                if (avgMemory < _lowPressureThreshold * ADAPTIVE_THRESHOLD_FACTOR)
                 {
-                    var factor = 0.95;
-                    _lowPressureThreshold = (long)(_lowPressureThreshold * factor);
-                    _mediumPressureThreshold = (long)(_mediumPressureThreshold * factor);
-                    _highPressureThreshold = (long)(_highPressureThreshold * factor);
-                    _criticalPressureThreshold = (long)(_criticalPressureThreshold * factor);
+                    _lowPressureThreshold = (long)(_lowPressureThreshold * ADAPTIVE_ADJUSTMENT_FACTOR);
+                    _mediumPressureThreshold = (long)(_mediumPressureThreshold * ADAPTIVE_ADJUSTMENT_FACTOR);
+                    _highPressureThreshold = (long)(_highPressureThreshold * ADAPTIVE_ADJUSTMENT_FACTOR);
+                    _criticalPressureThreshold = (long)(_criticalPressureThreshold * ADAPTIVE_ADJUSTMENT_FACTOR);
                 }
             }
         }
+        
+        /// <summary>
+        /// Reset counters if they exceed threshold to prevent overflow and memory accumulation
+        /// </summary>
+        private void ResetCountersIfNeeded()
+        {
+            if (_monitoringCycles > COUNTER_RESET_THRESHOLD)
+            {
+                Interlocked.Exchange(ref _monitoringCycles, 0);
+                Interlocked.Exchange(ref _cleanupOperations, 0);
+                Interlocked.Exchange(ref _memoryReclaimed, 0);
+                _averageMemoryUsage = 0;
+            }
+        }
+        
+        /// <summary>
+        /// Add cleanup result to history and manage history size
+        /// </summary>
+        private void AddToCleanupHistory(MemoryCleanupResult result)
+        {
+            lock (_respondersLock)
+            {
+                _cleanupHistory.Enqueue(result);
+                while (_cleanupHistory.Count > MAX_CLEANUP_HISTORY)
+                {
+                    _cleanupHistory.Dequeue();
+                }
+            }
+        }
+        
+        #region Lightweight Editor Monitoring
+        
+        /// <summary>
+        /// Lightweight monitoring for editor - avoids profiler data accumulation
+        /// </summary>
+        private void PerformLightweightMonitoring()
+        {
+            try
+            {
+                // Only basic counter increment - no GC calls or heavy operations
+                Interlocked.Increment(ref _monitoringCycles);
+                
+                // Reset counters periodically to prevent overflow
+                ResetCountersIfNeeded();
+                
+                // Update basic stats without expensive operations
+                var basicMemory = Environment.WorkingSet; // Faster than GC.GetTotalMemory()
+                var newPressureLevel = CalculatePressureLevelBasic(basicMemory);
+                
+                if (newPressureLevel != _currentPressureLevel)
+                {
+                    _currentPressureLevel = newPressureLevel;
+                    // No cleanup operations in editor - just track state
+                }
+            }
+            catch (Exception ex)
+            {
+                if (Application.isPlaying && !_disposed)
+                {
+                    Debug.LogError($"Error in lightweight memory monitoring: {ex.Message}");
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Calculate pressure level using basic memory without GC calls
+        /// </summary>
+        private MemoryPressureLevel CalculatePressureLevelBasic(long currentMemory)
+        {
+            // Use simpler thresholds for editor monitoring
+            if (currentMemory >= _criticalPressureThreshold * 2)
+                return MemoryPressureLevel.Critical;
+            if (currentMemory >= _highPressureThreshold * 2)
+                return MemoryPressureLevel.High;
+            if (currentMemory >= _mediumPressureThreshold * 2)
+                return MemoryPressureLevel.Medium;
+            if (currentMemory >= _lowPressureThreshold * 2)
+                return MemoryPressureLevel.Low;
+                
+            return MemoryPressureLevel.None;
+        }
+        
+        #endregion
         
         /// <summary>
         /// Get memory pressure statistics
@@ -632,6 +741,7 @@ namespace Sinkii09.Engine.Services.Performance
             lock (_respondersLock)
             {
                 _responders.Clear();
+                _cleanupHistory.Clear();
             }
         }
     }

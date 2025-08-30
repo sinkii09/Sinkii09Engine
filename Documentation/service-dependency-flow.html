@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Dependency Resolution Flow - Sinkii09 Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .flow-container {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .phase {
+            flex: 1;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .phase::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .phase-number {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .phase h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .phase-content {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        .code-block {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+        
+        .arrow {
+            text-align: center;
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        
+        .graph-demo {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .graph-demo h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        svg {
+            width: 100%;
+            height: 400px;
+        }
+        
+        .node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .node:hover {
+            filter: brightness(1.1);
+        }
+        
+        .node-label {
+            fill: white;
+            font-size: 12px;
+            font-weight: bold;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+        
+        .edge {
+            fill: none;
+            stroke: #cbd5e0;
+            stroke-width: 2;
+            marker-end: url(#arrowhead);
+        }
+        
+        .edge.highlighted {
+            stroke: #667eea;
+            stroke-width: 3;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+        }
+        
+        .init-order {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .init-order h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .order-list {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .service-box {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: white;
+            position: relative;
+            animation: slideIn 0.5s ease-out;
+            transition: transform 0.3s ease;
+        }
+        
+        .service-box:hover {
+            transform: translateY(-5px);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .service-arrow {
+            color: #cbd5e0;
+            font-size: 1.5em;
+            margin: 0 5px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            margin: 0 10px;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .info-box {
+            background: #edf2f7;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .info-box h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .info-box p {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        .example-code {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        
+        .example-code pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        .keyword {
+            color: #f687b3;
+        }
+        
+        .type {
+            color: #81e6d9;
+        }
+        
+        .string {
+            color: #9ae6b4;
+        }
+        
+        .comment {
+            color: #718096;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Service Dependency Resolution Flow</h1>
+        <p class="subtitle">How Sinkii09 Engine ensures services initialize in the correct order</p>
+        
+        <div class="flow-container">
+            <div class="phase">
+                <div class="phase-number">1</div>
+                <h2>Registration Phase</h2>
+                <div class="phase-content">
+                    <p>Services declare their dependencies using attributes:</p>
+                    <div class="code-block">
+                        [EngineService(RequiredServices = new[] { typeof(IUIService) })]
+                    </div>
+                    <p>ServiceContainer captures these dependencies:</p>
+                    <div class="code-block">
+                        registration.RequiredDependencies = engineAttr?.RequiredServices
+                    </div>
+                </div>
+            </div>
+            
+            <div class="phase">
+                <div class="phase-number">2</div>
+                <h2>Graph Building</h2>
+                <div class="phase-content">
+                    <p>Build a directed graph of dependencies:</p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Each service becomes a node</li>
+                        <li>Dependencies become edges</li>
+                        <li>Detect circular dependencies</li>
+                    </ul>
+                    <div class="code-block">
+                        var dependencyGraph = container.BuildDependencyGraph();
+                    </div>
+                </div>
+            </div>
+            
+            <div class="phase">
+                <div class="phase-number">3</div>
+                <h2>Topological Sort</h2>
+                <div class="phase-content">
+                    <p>Calculate initialization order using Kahn's algorithm:</p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Find services with no dependencies</li>
+                        <li>Process them first</li>
+                        <li>Remove edges and repeat</li>
+                    </ul>
+                    <div class="code-block">
+                        var initOrder = await graph.GetInitializationOrderAsync();
+                    </div>
+                </div>
+            </div>
+            
+            <div class="phase">
+                <div class="phase-number">4</div>
+                <h2>Sequential Init</h2>
+                <div class="phase-content">
+                    <p>Initialize services in calculated order:</p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Dependencies init first</li>
+                        <li>Dependents can access them</li>
+                        <li>Guaranteed availability</li>
+                    </ul>
+                    <div class="code-block">
+                        foreach (var service in initOrder) {
+                            await service.InitializeAsync();
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="graph-demo">
+            <h2>Interactive Dependency Graph</h2>
+            <svg id="graph">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" fill="#cbd5e0" />
+                    </marker>
+                </defs>
+            </svg>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #48bb78;"></div>
+                    <span>Core Services (No Dependencies)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4299e1;"></div>
+                    <span>UI Services</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ed8936;"></div>
+                    <span>Game Services</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #9f7aea;"></div>
+                    <span>Complex Dependencies</span>
+                </div>
+            </div>
+            <div class="controls">
+                <button onclick="animateDependencyFlow()">🎬 Animate Initialization Flow</button>
+                <button onclick="resetGraph()">🔄 Reset Graph</button>
+            </div>
+        </div>
+        
+        <div class="init-order">
+            <h2>Initialization Order Example</h2>
+            <div class="order-list" id="orderList">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <h3>📌 Your DialogueService Case</h3>
+            <p>
+                DialogueService declares <strong>RequiredServices = [IUIService]</strong>. This ensures:
+            </p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>✅ UIService initializes before DialogueService</li>
+                <li>✅ When DialogueService.InitializeAsync() runs, UIService is already available</li>
+                <li>✅ No null reference exceptions when accessing required services</li>
+                <li>✅ AudioService, ActorService, and SaveLoadService are optional (null-checked)</li>
+            </ul>
+        </div>
+        
+        <div class="example-code">
+            <pre><span class="comment">// DialogueService.cs - Correct dependency declaration</span>
+<span class="keyword">[EngineService</span>(ServiceCategory.UserInterface, ServicePriority.High,
+    Description = <span class="string">"Manages character dialogue, player choices, and narrative progression"</span>,
+    <span class="keyword">RequiredServices</span> = <span class="keyword">new</span>[] { <span class="keyword">typeof</span>(<span class="type">IUIService</span>) })]  <span class="comment">// Only truly required service</span>
+<span class="keyword">public class</span> <span class="type">DialogueService</span> : <span class="type">IDialogueService</span>
+{
+    <span class="keyword">public async</span> <span class="type">UniTask</span>&lt;<span class="type">ServiceInitializationResult</span>&gt; InitializeAsync(<span class="type">IServiceProvider</span> provider, ...)
+    {
+        <span class="comment">// Required - will fail if missing</span>
+        _uiService = provider.GetService(<span class="keyword">typeof</span>(<span class="type">IUIService</span>)) <span class="keyword">as</span> <span class="type">IUIService</span>;
+        <span class="keyword">if</span> (_uiService == <span class="keyword">null</span>)
+            <span class="keyword">return</span> ServiceInitializationResult.Failed(<span class="string">"UIService dependency is required"</span>);
+        
+        <span class="comment">// Optional - null-safe operations</span>
+        _audioService = provider.GetService(<span class="keyword">typeof</span>(<span class="type">IAudioService</span>)) <span class="keyword">as</span> <span class="type">IAudioService</span>;
+        _saveLoadService = provider.GetService(<span class="keyword">typeof</span>(<span class="type">ISaveLoadService</span>)) <span class="keyword">as</span> <span class="type">ISaveLoadService</span>;
+    }
+}</pre>
+        </div>
+    </div>
+    
+    <script>
+        // Service graph data
+        const services = [
+            { id: 'resource', name: 'ResourceService', x: 150, y: 100, color: '#48bb78', priority: 'Critical' },
+            { id: 'config', name: 'ConfigService', x: 350, y: 100, color: '#48bb78', priority: 'Critical' },
+            { id: 'audio', name: 'AudioService', x: 550, y: 100, color: '#48bb78', priority: 'High' },
+            { id: 'actor', name: 'ActorService', x: 750, y: 100, color: '#48bb78', priority: 'High' },
+            { id: 'saveload', name: 'SaveLoadService', x: 950, y: 100, color: '#48bb78', priority: 'Medium' },
+            { id: 'ui', name: 'UIService', x: 350, y: 250, color: '#4299e1', priority: 'High', deps: ['resource'] },
+            { id: 'dialogue', name: 'DialogueService', x: 550, y: 350, color: '#9f7aea', priority: 'High', deps: ['ui'] },
+            { id: 'script', name: 'ScriptService', x: 750, y: 250, color: '#ed8936', priority: 'Critical', deps: ['resource', 'config'] },
+            { id: 'game', name: 'GameService', x: 150, y: 350, color: '#ed8936', priority: 'Low', deps: ['script', 'dialogue', 'actor'] }
+        ];
+        
+        const svg = document.getElementById('graph');
+        const orderList = document.getElementById('orderList');
+        
+        // Draw edges
+        function drawEdges() {
+            services.forEach(service => {
+                if (service.deps) {
+                    service.deps.forEach(depId => {
+                        const dep = services.find(s => s.id === depId);
+                        if (dep) {
+                            const edge = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            edge.classList.add('edge');
+                            edge.setAttribute('data-from', dep.id);
+                            edge.setAttribute('data-to', service.id);
+                            
+                            // Calculate path
+                            const dx = service.x - dep.x;
+                            const dy = service.y - dep.y;
+                            const dr = Math.sqrt(dx * dx + dy * dy);
+                            
+                            edge.setAttribute('d', `M${dep.x},${dep.y + 25} Q${(dep.x + service.x) / 2},${(dep.y + service.y) / 2 + 20} ${service.x},${service.y - 25}`);
+                            svg.appendChild(edge);
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Draw nodes
+        function drawNodes() {
+            services.forEach(service => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.classList.add('node');
+                g.setAttribute('transform', `translate(${service.x}, ${service.y})`);
+                g.setAttribute('data-id', service.id);
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', -60);
+                rect.setAttribute('y', -25);
+                rect.setAttribute('width', 120);
+                rect.setAttribute('height', 50);
+                rect.setAttribute('rx', 8);
+                rect.setAttribute('fill', service.color);
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.classList.add('node-label');
+                text.setAttribute('y', 0);
+                text.textContent = service.name;
+                
+                const priority = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                priority.classList.add('node-label');
+                priority.setAttribute('y', 15);
+                priority.setAttribute('font-size', '10');
+                priority.textContent = `[${service.priority}]`;
+                
+                g.appendChild(rect);
+                g.appendChild(text);
+                g.appendChild(priority);
+                
+                g.addEventListener('mouseenter', () => highlightDependencies(service.id));
+                g.addEventListener('mouseleave', () => resetHighlight());
+                
+                svg.appendChild(g);
+            });
+        }
+        
+        // Highlight dependencies
+        function highlightDependencies(serviceId) {
+            const service = services.find(s => s.id === serviceId);
+            if (service && service.deps) {
+                service.deps.forEach(depId => {
+                    const edges = svg.querySelectorAll(`.edge[data-from="${depId}"][data-to="${serviceId}"]`);
+                    edges.forEach(edge => edge.classList.add('highlighted'));
+                });
+            }
+        }
+        
+        function resetHighlight() {
+            svg.querySelectorAll('.edge').forEach(edge => edge.classList.remove('highlighted'));
+        }
+        
+        // Calculate initialization order
+        function getInitializationOrder() {
+            const order = [];
+            const visited = new Set();
+            const temp = new Set();
+            
+            function visit(serviceId) {
+                if (temp.has(serviceId)) {
+                    console.error('Circular dependency detected!');
+                    return;
+                }
+                if (visited.has(serviceId)) return;
+                
+                temp.add(serviceId);
+                const service = services.find(s => s.id === serviceId);
+                
+                if (service.deps) {
+                    service.deps.forEach(depId => visit(depId));
+                }
+                
+                temp.delete(serviceId);
+                visited.add(serviceId);
+                order.push(service);
+            }
+            
+            services.forEach(service => {
+                if (!visited.has(service.id)) {
+                    visit(service.id);
+                }
+            });
+            
+            return order;
+        }
+        
+        // Display initialization order
+        function displayOrder() {
+            const order = getInitializationOrder();
+            orderList.innerHTML = '';
+            
+            order.forEach((service, index) => {
+                setTimeout(() => {
+                    const box = document.createElement('div');
+                    box.className = 'service-box';
+                    box.style.background = service.color;
+                    box.textContent = service.name;
+                    box.style.animationDelay = `${index * 0.1}s`;
+                    
+                    if (index > 0) {
+                        const arrow = document.createElement('span');
+                        arrow.className = 'service-arrow';
+                        arrow.textContent = '→';
+                        orderList.appendChild(arrow);
+                    }
+                    
+                    orderList.appendChild(box);
+                }, index * 200);
+            });
+        }
+        
+        // Animate dependency flow
+        async function animateDependencyFlow() {
+            resetGraph();
+            const order = getInitializationOrder();
+            
+            for (let i = 0; i < order.length; i++) {
+                const service = order[i];
+                const node = svg.querySelector(`[data-id="${service.id}"]`);
+                
+                // Highlight current service
+                if (node) {
+                    const rect = node.querySelector('rect');
+                    rect.style.filter = 'brightness(1.5)';
+                    rect.style.transform = 'scale(1.1)';
+                    rect.style.transformOrigin = 'center';
+                    rect.style.transition = 'all 0.3s ease';
+                }
+                
+                // Highlight incoming edges
+                if (service.deps) {
+                    service.deps.forEach(depId => {
+                        const edges = svg.querySelectorAll(`.edge[data-from="${depId}"][data-to="${service.id}"]`);
+                        edges.forEach(edge => {
+                            edge.classList.add('highlighted');
+                            edge.style.strokeDasharray = '10,5';
+                            edge.style.animation = 'dash 1s linear infinite';
+                        });
+                    });
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // Reset current service highlight
+                if (node) {
+                    const rect = node.querySelector('rect');
+                    rect.style.filter = '';
+                    rect.style.transform = '';
+                }
+            }
+        }
+        
+        // Reset graph
+        function resetGraph() {
+            svg.querySelectorAll('.node rect').forEach(rect => {
+                rect.style.filter = '';
+                rect.style.transform = '';
+            });
+            svg.querySelectorAll('.edge').forEach(edge => {
+                edge.classList.remove('highlighted');
+                edge.style.strokeDasharray = '';
+                edge.style.animation = '';
+            });
+        }
+        
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes dash {
+                to {
+                    stroke-dashoffset: -20;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Initialize
+        drawEdges();
+        drawNodes();
+        displayOrder();
+    </script>
+</body>
+</html>

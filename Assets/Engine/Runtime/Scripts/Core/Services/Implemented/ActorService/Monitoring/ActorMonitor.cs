@@ -116,6 +116,21 @@ namespace Sinkii09.Engine.Services
         
         public void UpdateStatistics()
         {
+            if (!UnityEngine.Application.isPlaying)
+                return;
+            
+#if UNITY_EDITOR
+            // Lightweight editor statistics - basic counts only
+            lock (_statsLock)
+            {
+                _statistics.TotalActors = _registry.ActorCount;
+                _statistics.CharacterActors = _registry.CharacterActors.Count;
+                _statistics.BackgroundActors = _registry.BackgroundActors.Count;
+                _statistics.LastUpdateTime = DateTime.UtcNow;
+                // Skip expensive memory calculations in editor
+            }
+#else
+            // Full statistics for production builds
             lock (_statsLock)
             {
                 _statistics.TotalActors = _registry.ActorCount;
@@ -130,7 +145,10 @@ namespace Sinkii09.Engine.Services
                 {
                     // Store operation counts in statistics
                 }
+                
+                _statistics.LastUpdateTime = DateTime.UtcNow;
             }
+#endif
         }
         
         public void ResetStatistics()

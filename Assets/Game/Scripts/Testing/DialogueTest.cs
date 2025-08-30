@@ -2,6 +2,7 @@ using UnityEngine;
 using Sinkii09.Engine.Services;
 using Cysharp.Threading.Tasks;
 using Sinkii09.Engine;
+using Sirenix.OdinInspector;
 
 public class DialogueTest : MonoBehaviour
 {
@@ -10,23 +11,8 @@ public class DialogueTest : MonoBehaviour
     [SerializeField] private float delayBetweenLines = 1f;
     
     private IDialogueService _dialogueService;
-    
-    private void Start()
-    {
-        if (autoStart)
-        {
-            _ = RunDialogueTestAsync();
-        }
-    }
-    
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.T))
-        {
-            _ = RunDialogueTestAsync();
-        }
-    }
-    
+
+    [Button("Run Dialogue Test")]
     private async UniTaskVoid RunDialogueTestAsync()
     {
         _dialogueService = Engine.GetService<IDialogueService>();

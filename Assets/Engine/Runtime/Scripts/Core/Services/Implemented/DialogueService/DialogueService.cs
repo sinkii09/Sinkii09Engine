@@ -15,8 +15,8 @@ namespace Sinkii09.Engine.Services
     /// text display with typewriter effects, voice synchronization, and player choice handling
     /// </summary>
     [EngineService(ServiceCategory.UserInterface, ServicePriority.High,
-        Description = "Manages character dialogue, player choices, and narrative progression"
-/*        RequiredServices = new[] { typeof(IUIService), typeof(IAudioService), typeof(IActorService), typeof(ISaveLoadService) }*/)]
+        Description = "Manages character dialogue, player choices, and narrative progression",
+        RequiredServices = new[] { typeof(IUIService), typeof(IAudioService), typeof(IActorService), typeof(ISaveLoadService) })]
     [ServiceConfiguration(typeof(DialogueServiceConfiguration))]
     public class DialogueService : IDialogueService
     {

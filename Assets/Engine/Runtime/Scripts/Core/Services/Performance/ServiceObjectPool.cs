@@ -362,6 +362,21 @@ namespace Sinkii09.Engine.Services.Performance
         /// </summary>
         private static void PerformCleanup(object state)
         {
+            if (!UnityEngine.Application.isPlaying)
+                return;
+                
+#if UNITY_EDITOR
+            // Skip pool cleanup in editor to avoid profiler data
+            try
+            {
+                UnityEngine.Debug.Log("ServiceObjectPool: Editor cleanup cycle (lightweight)");
+            }
+            catch (Exception ex)
+            {
+                UnityEngine.Debug.LogError($"Error during pool cleanup (editor): {ex.Message}");
+            }
+#else
+            // Full pool cleanup for production builds
             try
             {
                 // Check memory pressure and trim if needed
@@ -376,8 +391,9 @@ namespace Sinkii09.Engine.Services.Performance
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error during pool cleanup: {ex.Message}");
+                UnityEngine.Debug.LogError($"Error during pool cleanup: {ex.Message}");
             }
+#endif
         }
         
         /// <summary>

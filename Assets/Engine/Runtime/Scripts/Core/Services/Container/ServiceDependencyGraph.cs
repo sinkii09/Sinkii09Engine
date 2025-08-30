@@ -308,14 +308,16 @@ namespace Sinkii09.Engine.Services
             
             lock (_graphLock)
             {
-                // Use advanced topological sort optimizer
+                // Use priority-aware topological sort optimizer
                 var dependencyIndices = CreateDependencyLookup();
                 var dependentIndices = CreateDependentLookup();
+                var registrations = CreateRegistrationLookup();
                 
-                _topologicalOrder = _topologicalSortOptimizer.TopologicalSort(
+                _topologicalOrder = _topologicalSortOptimizer.TopologicalSortWithPriority(
                     _nodes.Count, 
                     dependencyIndices, 
                     dependentIndices, 
+                    registrations,
                     _currentGraphHash);
                     
                 _cacheValid = true;
@@ -357,7 +359,7 @@ namespace Sinkii09.Engine.Services
                 graphHash = _currentGraphHash;
             }
             
-            // Perform async operation outside the lock
+            // Perform async operation outside the lock (using standard algorithm for now)
             var result = await _topologicalSortOptimizer.TopologicalSortAsync(
                 nodeCount, 
                 dependencyIndices, 
@@ -1044,6 +1046,21 @@ namespace Sinkii09.Engine.Services
             foreach (var kvp in _nodes)
             {
                 lookup[kvp.Key] = kvp.Value.DependentIndices ?? Array.Empty<int>();
+            }
+            
+            return lookup;
+        }
+        
+        /// <summary>
+        /// Create service registration lookup for priority-aware sorting
+        /// </summary>
+        private Dictionary<int, ServiceRegistration> CreateRegistrationLookup()
+        {
+            var lookup = new Dictionary<int, ServiceRegistration>();
+            
+            foreach (var kvp in _nodes)
+            {
+                lookup[kvp.Key] = kvp.Value.Registration;
             }
             
             return lookup;

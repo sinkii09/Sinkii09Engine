@@ -14,7 +14,8 @@ namespace Sinkii09.Engine.Services
     /// Follows enhanced service architecture patterns with dependency injection and configuration
     /// </summary>
     [EngineService(ServiceCategory.Audio, ServicePriority.High,
-        Description = "Manages all audio playback, mixing, and resource management with Unity AudioMixer integration")]
+        Description = "Manages all audio playback, mixing, and resource management with Unity AudioMixer integration",
+        RequiredServices = new[] { typeof(IResourceService) })]
     [ServiceConfiguration(typeof(AudioServiceConfiguration))]
     public class AudioService : IAudioService
     {

@@ -247,10 +247,6 @@ namespace Sinkii09.Engine.Services
                     // Fall back to standard resolution
                 }
             }
-            
-            // Note: Service initialization is now handled by ServiceLifecycleManager
-            // ResolveAsync simply returns the service instance
-            await UniTask.Yield(); // Keep async signature for future extensibility
             return Resolve<TService>();
         }
         
@@ -548,8 +544,8 @@ namespace Sinkii09.Engine.Services
                     if (dep == type)
                     {
                         Debug.LogError($"Service {type.Name} has self-dependency. Removing it.");
-                        registration.RequiredDependencies = registration.RequiredDependencies.Where(d => d != type).ToArray();
-                        registration.OptionalDependencies = registration.OptionalDependencies.Where(d => d != type).ToArray();
+                        registration.RequiredDependencies = registration.RequiredDependencies.AsValueEnumerable().Where(d => d != type).ToArray();
+                        registration.OptionalDependencies = registration.OptionalDependencies.AsValueEnumerable().Where(d => d != type).ToArray();
                     }
                 }
             }

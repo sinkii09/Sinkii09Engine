@@ -122,7 +122,9 @@ namespace Sinkii09.Engine.Services
     /// <summary>
     /// Enhanced Script Service implementation with async operations, caching, hot-reload support, and comprehensive monitoring
     /// </summary>
-    [EngineService(ServiceCategory.Core, ServicePriority.Critical, Description = "Manages script loading and hot-reload with advanced caching and performance optimization")]
+    [EngineService(ServiceCategory.Core, ServicePriority.Critical, 
+        Description = "Manages script loading and hot-reload with advanced caching and performance optimization",
+        RequiredServices = new[] { typeof(IResourceService), typeof(IResourcePathResolver) })]
     [ServiceConfiguration(typeof(ScriptServiceConfiguration))]
     public class ScriptService : IScriptService, IMemoryPressureResponder
     {

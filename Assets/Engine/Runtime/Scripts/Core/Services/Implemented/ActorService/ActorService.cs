@@ -13,7 +13,8 @@ namespace Sinkii09.Engine.Services
     /// Follows the enhanced service architecture patterns with dependency injection and configuration
     /// </summary>
     [EngineService(ServiceCategory.Core, ServicePriority.Critical, 
-        Description = "Manages all actors in the scene with complete lifecycle support")]
+        Description = "Manages all actors in the scene with complete lifecycle support",
+        RequiredServices = new[] { typeof(IResourceService) })]
     [ServiceConfiguration(typeof(ActorServiceConfiguration))]
     public class ActorService : IActorService
     {

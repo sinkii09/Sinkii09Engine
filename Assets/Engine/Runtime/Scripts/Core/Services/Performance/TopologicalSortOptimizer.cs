@@ -160,6 +160,47 @@ namespace Sinkii09.Engine.Services.Performance
         }
         
         /// <summary>
+        /// Priority-aware topological sort that considers service priorities
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int[] TopologicalSortWithPriority(
+            int nodeCount,
+            IReadOnlyDictionary<int, int[]> dependencyIndices,
+            IReadOnlyDictionary<int, int[]> dependentIndices,
+            IReadOnlyDictionary<int, ServiceRegistration> registrations,
+            string graphHash = null)
+        {
+            var startTime = DateTime.UtcNow;
+            System.Threading.Interlocked.Increment(ref _totalSorts);
+            
+            try
+            {
+                // Try cache first if hash provided
+                if (!string.IsNullOrEmpty(graphHash) && _resultCache.TryGetValue(graphHash, out var cachedResult))
+                {
+                    System.Threading.Interlocked.Increment(ref _cacheHits);
+                    return cachedResult.SortedIndices;
+                }
+                
+                // Use priority-aware algorithm
+                var result = PriorityAwareKahnsAlgorithm(nodeCount, dependencyIndices, dependentIndices, registrations);
+                
+                // Cache result if hash provided
+                if (!string.IsNullOrEmpty(graphHash))
+                {
+                    CacheResult(graphHash, result);
+                }
+                
+                return result;
+            }
+            finally
+            {
+                var duration = (DateTime.UtcNow - startTime).Milliseconds;
+                System.Threading.Interlocked.Add(ref _totalSortTimeMs, duration);
+            }
+        }
+        
+        /// <summary>
         /// Incremental topological sort for dynamic service addition
         /// </summary>
         public int[] IncrementalTopologicalSort(
@@ -301,22 +342,19 @@ namespace Sinkii09.Engine.Services.Performance
             var queue = new Queue<int>(nodeCount);
             var result = new List<int>(nodeCount);
             
-            // Calculate in-degrees efficiently
+            // Calculate in-degrees correctly - each service's in-degree is its dependency count
             foreach (var kvp in dependencyIndices)
             {
-                foreach (var dep in kvp.Value)
+                if (kvp.Key < nodeCount) // Bounds check
                 {
-                    if (dep < nodeCount) // Bounds check
-                    {
-                        inDegree[dep]++;
-                    }
+                    inDegree[kvp.Key] = kvp.Value.Length;
                 }
             }
             
-            // Find nodes with no incoming edges
+            // Find ALL nodes with zero in-degree (including those not in dependencyIndices)
             for (int i = 0; i < nodeCount; i++)
             {
-                if (dependencyIndices.ContainsKey(i) && inDegree[i] == 0)
+                if (inDegree[i] == 0)
                 {
                     queue.Enqueue(i);
                 }
@@ -344,10 +382,107 @@ namespace Sinkii09.Engine.Services.Performance
                 }
             }
             
-            // Validate no cycles
-            if (result.Count != dependencyIndices.Count)
+            // Validate no cycles - result should contain all nodes
+            if (result.Count != nodeCount)
             {
-                throw new InvalidOperationException($"Graph contains cycles. Expected {dependencyIndices.Count} nodes, got {result.Count}");
+                throw new InvalidOperationException($"Graph contains cycles. Expected {nodeCount} nodes, got {result.Count}");
+            }
+            
+            return result.ToArray();
+        }
+        
+        /// <summary>
+        /// Priority-aware Kahn's algorithm that considers service priorities for zero-dependency services
+        /// </summary>
+        private int[] PriorityAwareKahnsAlgorithm(
+            int nodeCount,
+            IReadOnlyDictionary<int, int[]> dependencyIndices,
+            IReadOnlyDictionary<int, int[]> dependentIndices,
+            IReadOnlyDictionary<int, ServiceRegistration> registrations)
+        {
+            // Pre-allocate arrays for better performance
+            var inDegree = new int[nodeCount];
+            var result = new List<int>(nodeCount);
+            
+            // Calculate in-degrees correctly
+            foreach (var kvp in dependencyIndices)
+            {
+                if (kvp.Key < nodeCount)
+                {
+                    inDegree[kvp.Key] = kvp.Value.Length;
+                }
+            }
+            
+            // Use priority queue for services with zero dependencies
+            var zeroDegreeServices = new List<(int index, ServicePriority priority, string name)>();
+            
+            // Find ALL nodes with zero in-degree and collect their priorities
+            for (int i = 0; i < nodeCount; i++)
+            {
+                if (inDegree[i] == 0)
+                {
+                    var priority = registrations?.TryGetValue(i, out var reg) == true ? reg.Priority : ServicePriority.Medium;
+                    var name = registrations?.TryGetValue(i, out var reg2) == true ? reg2.ServiceType?.Name ?? $"Service_{i}" : $"Service_{i}";
+                    zeroDegreeServices.Add((i, priority, name));
+                }
+            }
+            
+            // Sort by priority (Critical=0, High=1, Medium=2, Low=3) then by name for deterministic order
+            zeroDegreeServices.Sort((a, b) => 
+            {
+                var priorityComparison = a.priority.CompareTo(b.priority);
+                return priorityComparison != 0 ? priorityComparison : string.Compare(a.name, b.name, StringComparison.Ordinal);
+            });
+            
+            var queue = new Queue<int>(zeroDegreeServices.Count);
+            foreach (var (index, _, _) in zeroDegreeServices)
+            {
+                queue.Enqueue(index);
+            }
+            
+            // Process nodes in priority order
+            while (queue.Count > 0)
+            {
+                var nodeIndex = queue.Dequeue();
+                result.Add(nodeIndex);
+                
+                if (dependentIndices.TryGetValue(nodeIndex, out var dependents))
+                {
+                    // Collect newly available services for priority sorting
+                    var newlyAvailable = new List<(int index, ServicePriority priority, string name)>();
+                    
+                    foreach (var dependent in dependents)
+                    {
+                        if (dependent < nodeCount)
+                        {
+                            inDegree[dependent]--;
+                            if (inDegree[dependent] == 0)
+                            {
+                                var priority = registrations?.TryGetValue(dependent, out var reg) == true ? reg.Priority : ServicePriority.Medium;
+                                var name = registrations?.TryGetValue(dependent, out var reg2) == true ? reg2.ServiceType?.Name ?? $"Service_{dependent}" : $"Service_{dependent}";
+                                newlyAvailable.Add((dependent, priority, name));
+                            }
+                        }
+                    }
+                    
+                    // Sort newly available services by priority and add to queue
+                    newlyAvailable.Sort((a, b) => 
+                    {
+                        var priorityComparison = a.priority.CompareTo(b.priority);
+                        return priorityComparison != 0 ? priorityComparison : string.Compare(a.name, b.name, StringComparison.Ordinal);
+                    });
+                    
+                    foreach (var (index, _, _) in newlyAvailable)
+                    {
+                        queue.Enqueue(index);
+                    }
+                }
+            }
+            
+            // Validate no cycles
+            if (result.Count != nodeCount)
+            {
+                throw new InvalidOperationException($"Graph contains cycles. Expected {nodeCount} nodes, got {result.Count}");
             }
             
             return result.ToArray();

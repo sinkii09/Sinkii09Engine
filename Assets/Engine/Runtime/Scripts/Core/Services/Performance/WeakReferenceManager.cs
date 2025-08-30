@@ -269,9 +269,26 @@ namespace Sinkii09.Engine.Services.Performance
         /// </summary>
         private void PerformCleanup(object state)
         {
-            lock (_cleanupLock)
+            if (!Application.isPlaying)
+                return;
+            
+#if UNITY_EDITOR
+            // Lightweight editor cleanup - just increment counters
+            try
             {
-                try
+                Interlocked.Increment(ref _cleanupCycles);
+                // Skip actual cleanup in editor to avoid profiler data
+                Debug.Log("WeakReferenceManager: Editor cleanup cycle (lightweight)");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error during weak reference cleanup (editor): {ex.Message}");
+            }
+#else
+            // Full cleanup for production builds
+            try
+            {
+                lock (_cleanupLock)
                 {
                     Interlocked.Increment(ref _cleanupCycles);
                     var collectedCount = 0;
@@ -337,11 +354,12 @@ namespace Sinkii09.Engine.Services.Performance
                         Debug.Log($"WeakReferenceManager: Collected {collectedCount} dead references, {GetTotalLiveReferenceCount()} live references remaining");
                     }
                 }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"Error during weak reference cleanup: {ex.Message}");
-                }
             }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error during weak reference cleanup: {ex.Message}");
+            }
+#endif
         }
         
         /// <summary>

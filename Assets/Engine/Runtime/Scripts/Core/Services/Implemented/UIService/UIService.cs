@@ -13,7 +13,8 @@ namespace Sinkii09.Engine.Services
     /// This version delegates responsibilities to specialized component managers.
     /// </summary>
     [EngineService(ServiceCategory.Core, ServicePriority.High, 
-        Description = "Component-based UI service with improved architecture and separation of concerns")]
+        Description = "Component-based UI service with improved architecture and separation of concerns",
+        RequiredServices = new[] { typeof(IResourceService) })]
     [ServiceConfiguration(typeof(UIServiceConfiguration))]
     public class UIService : IUIService, IUIServiceContext
     {
