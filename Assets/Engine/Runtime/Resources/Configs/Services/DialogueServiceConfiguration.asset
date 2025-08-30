@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fe3cf0ef6211db46ad8354ac187eceb, type: 3}
+  m_Name: DialogueServiceConfiguration
+  m_EditorClassIdentifier: 
+  _version: 2
+  _description: Service configuration
+  _defaultTypingSpeed: 30
+  _enableRichText: 1
+  _enableTextAnimations: 1
+  _defaultAnimationType: 1
+  _minimumCharacterDelay: 0.01
+  _allowTextSkipping: 1
+  _enableVoicePlayback: 1
+  _autoAdvanceAfterVoice: 1
+  _voiceAutoAdvanceDelay: 0.5
+  _defaultVoiceVolume: 0.8
+  _voiceResourceBasePath: Audio/Voice
+  _enableVoiceDucking: 1
+  _voiceDuckingLevel: 0.3
+  _defaultAutoAdvanceMode: 0
+  _defaultAutoAdvanceDelay: 2
+  _allowAutoAdvanceToggle: 1
+  _showAutoAdvanceIndicator: 1
+  _maxChoiceCount: 6
+  _choiceTimeLimit: 0
+  _defaultTimeLimitChoice: 0
+  _highlightPreviousChoices: 1
+  _previousChoiceColor: {r: 0.7, g: 0.7, b: 0.7, a: 1}
+  _maxHistoryLines: 100
+  _enableDialogueHistory: 1
+  _allowHistoryNavigation: 1
+  _persistHistoryBetweenSessions: 0
+  _includeNarrationInHistory: 1
+  _includeThoughtsInHistory: 1
+  _defaultCharacterNameColor: {r: 1, g: 1, b: 1, a: 1}
+  _defaultDialogueTextColor: {r: 1, g: 1, b: 1, a: 1}
+  _narratorTextColor: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+  _thoughtTextColor: {r: 0.8, g: 0.8, b: 1, a: 1}
+  _characterNameFontScale: 1.2
+  _enableEmotionIntegration: 1
+  _enableTextPooling: 1
+  _textPoolInitialSize: 10
+  _enableAsyncTextProcessing: 1
+  _maxConcurrentAnimations: 3
+  _autoUnloadVoiceClips: 1
+  _enableDebugMode: 0
+  _logDialogueOperations: 0
+  _showTimingDebugInfo: 0
+  _enableProfiling: 0
+  _skipValidationOnStartup: 0
