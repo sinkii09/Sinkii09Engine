@@ -171,9 +171,49 @@ namespace Sinkii09.Engine.Editor.Core
             public static string ToolsScripts(string item, int offset = 0) =>
                 EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Tools, EditorMenuSystem.MenuSubcategory.Scripts, item);
                 
+            // Generators paths
+            public static string GeneratorsCode(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Generators, EditorMenuSystem.MenuSubcategory.CodeGeneration, item);
+                
+            public static string GeneratorsAssets(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Generators, EditorMenuSystem.MenuSubcategory.AssetGeneration, item);
+                
+            public static string GeneratorsUI(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Generators, EditorMenuSystem.MenuSubcategory.UIGeneration, item);
+                
+            // Configuration paths
+            public static string ConfigurationValidation(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Configuration, EditorMenuSystem.MenuSubcategory.Validation, item);
+                
+            public static string ConfigurationCreation(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Configuration, EditorMenuSystem.MenuSubcategory.Creation, item);
+                
+            public static string ConfigurationManagement(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Configuration, EditorMenuSystem.MenuSubcategory.Management, item);
+                
+            // Development paths
+            public static string DevelopmentTesting(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Development, EditorMenuSystem.MenuSubcategory.Testing, item);
+                
+            public static string DevelopmentDebugging(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Development, EditorMenuSystem.MenuSubcategory.Debugging, item);
+                
+            public static string DevelopmentUtilities(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Development, EditorMenuSystem.MenuSubcategory.Utilities, item);
+                
             // Export paths
-            public static string ExportPackage(string item, int offset = 0) =>
+            public static string ExportPackage(string item) =>
                 EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Export, EditorMenuSystem.MenuSubcategory.Package, item);
+                
+            public static string ExportProject(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Export, EditorMenuSystem.MenuSubcategory.Project, item);
+                
+            // Help paths
+            public static string HelpDocumentation(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Help, EditorMenuSystem.MenuSubcategory.Documentation, item);
+                
+            public static string HelpAbout(string item) =>
+                EditorMenuSystem.GetMenuPath(EditorMenuSystem.MenuCategory.Help, EditorMenuSystem.MenuSubcategory.About, item);
         }
     }
 }

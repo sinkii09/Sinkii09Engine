@@ -50,7 +50,13 @@ namespace Sinkii09.Engine
         }
         private void OnDestroy()
         {
-            OnBehaviourDestroy?.Invoke();
+            // Only invoke destroy callbacks in play mode
+            // This prevents services from shutting down when editing in the Unity Editor
+            if (Application.isPlaying)
+            {
+                OnBehaviourDestroy?.Invoke();
+            }
+            
             // Unsubscribe from events
             Engine.EngineInitialized -= OnEngineInitialized;
             Engine.EngineShuttingDown -= OnEngineShuttingDown;

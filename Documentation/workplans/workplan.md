@@ -118,6 +118,59 @@
 
 **Dependencies**: Enhanced service infrastructure (Phase 3.1-3.2 complete)
 
+### 4.5. Input Service Enhancement
+**File**: `workplans/input_service_enhancement.md`  
+**Status**: 🔄 IN PROGRESS  
+**Priority**: High  
+**Timeline**: 10 days  
+
+**Scope**: Complete InputService implementation with configuration features and advanced functionality
+
+**Current Progress** (~40% Complete):
+- ✅ **Core Foundation**: IEngineService implementation with proper lifecycle
+- ✅ **Type-Safe Events**: Enum-based events with Unity InputActionPhase
+- ✅ **Memory Management**: Proper event cleanup and unsubscription
+- ✅ **Auto-Generation**: InputActionCodeGenerator with delegate caching
+- 🔄 **Configuration Integration**: Sensitivity and device settings (PENDING)
+- 📋 **Advanced Features**: Rebinding, accessibility, device management (PLANNED)
+
+**Remaining Work**:
+
+**Phase 1: Configuration Features** (2 days)
+- Apply MouseSensitivity and GamepadSensitivity multipliers
+- Implement SensitivityCurve for analog inputs
+- Add InputUpdateRate configuration to Unity Input System
+
+**Phase 2: Device Management** (2 days)
+- Implement device detection and tracking
+- Add AutoSwitchDevices functionality
+- Implement PreferGamepad logic
+- Add DeviceTimeoutDuration handling
+
+**Phase 3: Input Rebinding** (2 days)
+- Create IRebindableAction interface
+- Implement runtime rebinding API
+- Add binding persistence to SaveLoadService
+- Create rebinding UI helper components
+
+**Phase 4: Accessibility Features** (1 day)
+- Implement hold-to-press actions
+- Add input assistance options
+- Create accessibility presets
+
+**Phase 5: Advanced Features** (2 days)
+- Add input smoothing/filtering
+- Implement double-tap/combo detection
+- Add analog stick dead zones configuration
+- Implement vibration/haptics support
+
+**Phase 6: Testing & Documentation** (1 day)
+- Create comprehensive unit tests
+- Add performance benchmarks
+- Write usage examples and best practices
+
+**Dependencies**: Enhanced service infrastructure (Phase 3.1-3.2 complete)
+
 ### 5. Audio System Implementation
 **File**: `workplans/audio_system_implementation.md`  
 **Status**: ✅ COMPLETED  
@@ -156,6 +209,7 @@
 | ScriptService Migration | 📋 Planned | 0% | High | 5 days |
 | SaveLoad Service Implementation | ✅ Completed | 100% | High | 12 days |
 | Actor System Implementation | ✅ Completed | 100% | High | 7 days |
+| Input Service Enhancement | 🔄 Active | 40% | High | 10 days |
 | Audio System Implementation | ✅ Completed | 100% | High | 8 days |
 
 ## Overall Architecture Progress
@@ -171,6 +225,7 @@
 - **Performance Framework**: 70% complete with major optimizations implemented
 
 ### 🔄 In Progress
+- **InputService Enhancement**: Configuration features, device management, rebinding, accessibility
 - **Error Handling Framework**: Circuit breakers, retry policies, recovery strategies
 - **Performance Optimization**: Remaining 30% of optimization components
 - **Service Pool Integration**: Advanced service management features
@@ -218,15 +273,20 @@
 
 ## Next Immediate Actions
 
-1. **Complete Error Handling Framework** (Phase 3.3)
+1. **Continue InputService Enhancement**
+   - Phase 1: Apply configuration features (sensitivity, update rate)
+   - Phase 2: Implement device management and switching
+   - Estimated: 4 days for both phases
+
+2. **Complete Error Handling Framework** (Phase 3.3)
    - ServiceErrorManager, CircuitBreaker, RetryPolicies
    - Estimated: 3-4 days
 
-2. **Begin ScriptService Migration**
+3. **Begin ScriptService Migration**
    - Start with configuration system design
    - Estimated: 5 days total
 
-3. **Finalize Performance Optimization**
+4. **Finalize Performance Optimization**
    - Complete remaining 30% of Phase 3.4
    - Estimated: 2-3 days
 
