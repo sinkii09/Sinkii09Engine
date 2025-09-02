@@ -276,8 +276,8 @@ namespace Sinkii09.Engine
                 Behaviour = behaviour ?? throw new ArgumentNullException(nameof(behaviour));
                 ConfigProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
 
-                // Initialize GC optimization first (before any service allocations)
-                InitializeGCOptimization();
+                // Initialize performance settings first (before any service allocations)
+                InitializePerformanceSettings();
 
                 // Setup termination callback
                 Behaviour.OnBehaviourDestroy += () => TerminateAsync().Forget();
@@ -529,9 +529,9 @@ namespace Sinkii09.Engine
         }
         
         /// <summary>
-        /// Initialize GC optimization system
+        /// Initialize performance settings including GC optimization and frame rate control
         /// </summary>
-        private static void InitializeGCOptimization()
+        private static void InitializePerformanceSettings()
         {
             try
             {
@@ -542,12 +542,16 @@ namespace Sinkii09.Engine
                 var customSettings = Resources.Load<GCOptimizationSettings>("GCOptimizationSettings");
                 if (customSettings != null)
                 {
+                    customSettings.ApplySettings(); // This now applies both GC and rendering settings
                     _gcOptimizationManager.UpdateSettings(customSettings);
-                    Debug.Log("Loaded custom GC optimization settings from Resources");
+                    Debug.Log("Loaded custom performance settings from Resources");
                 }
                 else
                 {
-                    Debug.Log("Using default GC optimization settings");
+                    // Apply default settings including frame rate
+                    var defaultSettings = GCOptimizationSettings.GetDefaultSettings();
+                    defaultSettings.ApplySettings();
+                    Debug.Log("Using default performance settings");
                 }
                 
                 var stats = _gcOptimizationManager.GetStatistics();

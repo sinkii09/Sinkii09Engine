@@ -51,11 +51,20 @@ namespace Sinkii09.Engine.Services.Performance
         [Range(1f, 10f)]
         public float GCWarningThresholdMs = 5f;
         
+        [Header("Rendering Performance")]
+        [Tooltip("Target frame rate (FPS). Set to -1 for unlimited")]
+        public int TargetFrameRate = 60;
+        
+        [Tooltip("VSync count (0=disabled, 1=every frame, 2=every other frame)")]
+        [Range(0, 2)]
+        public int VSyncCount = 0;
+        
         /// <summary>
-        /// Apply these settings to Unity's GC system
+        /// Apply these settings to Unity's GC and rendering systems
         /// </summary>
         public void ApplySettings()
         {
+            // Apply GC settings
             if (EnableIncrementalGC)
             {
                 // Unity 2021.3+ uses Enabled for incremental GC
@@ -67,9 +76,14 @@ namespace Sinkii09.Engine.Services.Performance
                 UnityEngine.Scripting.GarbageCollector.GCMode = UnityEngine.Scripting.GarbageCollector.Mode.Disabled;
             }
             
+            // Apply rendering settings
+            Application.targetFrameRate = TargetFrameRate;
+            QualitySettings.vSyncCount = VSyncCount;
+            
             if (EnableMetrics)
             {
-                Debug.Log($"GC Optimization Settings Applied: Mode={UnityEngine.Scripting.GarbageCollector.GCMode}, TimeSlice={MaxMillisecondsPerFrame}ms");
+                Debug.Log($"Performance Settings Applied: GC Mode={UnityEngine.Scripting.GarbageCollector.GCMode}, " +
+                         $"TimeSlice={MaxMillisecondsPerFrame}ms, FPS={TargetFrameRate}, VSync={VSyncCount}");
             }
         }
         

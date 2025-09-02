@@ -158,7 +158,13 @@ namespace Sinkii09.Engine.Services
                 if (_inputActions != null)
                 {
                     _inputActions.Disable();
-                    _inputActions.Dispose();
+                    
+                    // Only dispose in play mode to avoid Unity Destroy error in edit mode
+                    if (Application.isPlaying)
+                    {
+                        _inputActions.Dispose();
+                    }
+                    
                     _inputActions = null;
                 }
 

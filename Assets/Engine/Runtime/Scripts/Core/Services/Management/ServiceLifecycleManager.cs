@@ -26,7 +26,6 @@ namespace Sinkii09.Engine.Services
         // Performance optimization components
         private readonly ParallelServiceInitializer _parallelInitializer;
         private readonly ServiceMetadataCache _metadataCache;
-        private readonly MemoryPressureMonitor _memoryMonitor;
         private readonly ServiceObjectPool<List<string>> _stringListPool;
         private readonly ServiceObjectPool<List<Type>> _typeListPool;
         
@@ -52,10 +51,6 @@ namespace Sinkii09.Engine.Services
                 _parallelInitializer = new ParallelServiceInitializer(container);
                 _metadataCache = new ServiceMetadataCache();
                 
-                // Use optimized memory monitor with frame-aware GC
-                var gcSettings = GCOptimizationSettings.GetDefaultSettings();
-                _memoryMonitor = new MemoryPressureMonitor(null, gcSettings);
-                
                 // Initialize object pools for frequently created objects
                 _stringListPool = new ServiceObjectPool<List<string>>(
                     factory: () => new List<string>(),
@@ -70,7 +65,7 @@ namespace Sinkii09.Engine.Services
                     autoScale: true
                 );
                 
-                Debug.Log("ServiceLifecycleManager: Performance optimizations enabled with frame-aware GC and object pooling");
+                Debug.Log("ServiceLifecycleManager: Performance optimizations enabled with object pooling");
             }
         }
         
@@ -626,7 +621,7 @@ namespace Sinkii09.Engine.Services
             _healthCheckCts?.Dispose();
             
             // Dispose performance optimization components
-            _memoryMonitor?.Dispose();
+            // Memory monitor is owned by ServiceContainer, don't dispose here
             _metadataCache?.Clear();
             
             _disposed = true;

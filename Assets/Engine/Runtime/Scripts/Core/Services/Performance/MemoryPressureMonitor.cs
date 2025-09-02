@@ -44,12 +44,33 @@ namespace Sinkii09.Engine.Services.Performance
             Custom         // User-defined strategy
         }
         
-        private readonly Timer _monitoringTimer;
         private readonly List<IMemoryPressureResponder> _responders;
         private readonly object _respondersLock = new object();
         private readonly MemoryPressureConfiguration _config;
         private readonly GCOptimizationSettings _gcSettings;
-        private readonly Queue<MemoryCleanupResult> _cleanupHistory;
+        
+        // UniTask monitoring
+        private CancellationTokenSource _cancellationTokenSource;
+        
+        // Circular buffer for cleanup history (more memory efficient)
+        private readonly MemoryCleanupResult[] _cleanupHistoryBuffer;
+        private int _cleanupHistoryIndex;
+        private int _cleanupHistoryCount;
+        
+        // Object pooling for cleanup results
+        private readonly Queue<MemoryCleanupResult> _cleanupResultPool;
+        private readonly Queue<ResponderCleanupResult> _responderResultPool;
+        private const int MAX_POOL_SIZE = 20;
+        
+        // Cached strings to reduce allocations
+        private static readonly string ErrorMemoryMonitoringLoop = "Memory pressure monitoring loop failed: ";
+        private static readonly string ErrorMonitoringCycle = "Error in memory monitoring cycle: ";
+        private static readonly string ErrorCleanupOperation = "Error during memory cleanup: ";
+        private static readonly string ErrorResponder = "Error in memory pressure responder ";
+        private static readonly string ErrorNotifyingResponder = "Error notifying responder ";
+        private static readonly string ErrorLightweightMonitoring = "Error in lightweight memory monitoring: ";
+        private static readonly string WarningGCThreshold = "GC took ";
+        private static readonly string WarningLowMemory = "Unity low memory warning received";
         
         // Memory thresholds (in bytes)
         private long _lowPressureThreshold;
@@ -68,6 +89,11 @@ namespace Sinkii09.Engine.Services.Performance
         private long _cleanupOperations;
         private long _memoryReclaimed;
         private double _averageMemoryUsage;
+        
+        // Self-monitoring for memory budget
+        private long _lastSelfMemoryCheck;
+        private long _monitorStartMemory;
+        private bool _selfThrottling;
         
         /// <summary>
         /// Current memory pressure level
@@ -104,7 +130,20 @@ namespace Sinkii09.Engine.Services.Performance
             _config = config ?? MemoryPressureConfiguration.Default();
             _gcSettings = gcSettings ?? GCOptimizationSettings.GetDefaultSettings();
             _responders = new List<IMemoryPressureResponder>();
-            _cleanupHistory = new Queue<MemoryCleanupResult>();
+            _cleanupHistoryBuffer = new MemoryCleanupResult[MAX_CLEANUP_HISTORY];
+            _cleanupHistoryIndex = 0;
+            _cleanupHistoryCount = 0;
+            
+            // Initialize object pools
+            _cleanupResultPool = new Queue<MemoryCleanupResult>();
+            _responderResultPool = new Queue<ResponderCleanupResult>();
+            
+            // Pre-populate pools
+            for (int i = 0; i < MAX_POOL_SIZE; i++)
+            {
+                _cleanupResultPool.Enqueue(CreateCleanupResult());
+                _responderResultPool.Enqueue(CreateResponderResult());
+            }
             _currentPressureLevel = MemoryPressureLevel.None;
             _lastCleanup = DateTime.UtcNow;
             
@@ -118,10 +157,16 @@ namespace Sinkii09.Engine.Services.Performance
             {
                 Application.lowMemory += OnUnityLowMemory;
             }
+
+            // Record starting memory for self-monitoring
+            _monitorStartMemory = GC.GetTotalMemory(false);
+            _lastSelfMemoryCheck = _monitorStartMemory;
+            _selfThrottling = false;
             
-            // Start monitoring timer
-            _monitoringTimer = new Timer(MonitorMemoryPressure, null, 
-                _config.MonitoringInterval, _config.MonitoringInterval);
+            
+            // Start UniTask monitoring loop
+            _cancellationTokenSource = new CancellationTokenSource();
+            StartMonitoringLoop().Forget();
         }
         
         /// <summary>
@@ -161,7 +206,7 @@ namespace Sinkii09.Engine.Services.Performance
         public async UniTask<MemoryCleanupResult> ForceCleanupAsync(CleanupStrategy strategy = CleanupStrategy.Moderate)
         {
             var beforeMemory = CurrentMemoryUsage;
-            var result = await PerformCleanupAsync(_currentPressureLevel, strategy, true);
+            var result = await PerformCleanupAsync(_currentPressureLevel, strategy, true, _cancellationTokenSource.Token);
             var afterMemory = CurrentMemoryUsage;
             
             result.MemoryReclaimed = Math.Max(0, beforeMemory - afterMemory);
@@ -243,66 +288,227 @@ namespace Sinkii09.Engine.Services.Performance
         }
         
         /// <summary>
-        /// Monitor memory pressure (timer callback)
+        /// Start the UniTask-based monitoring loop
         /// </summary>
-        private void MonitorMemoryPressure(object state)
+        private async UniTaskVoid StartMonitoringLoop()
         {
-            if (_disposed || !Application.isPlaying)
-                return;
-                
-            // Skip expensive profiling operations in editor but keep monitoring
-#if UNITY_EDITOR
-            PerformLightweightMonitoring();
-            return;
-#endif
-                
             try
             {
-                Interlocked.Increment(ref _monitoringCycles);
-                
-                var currentMemory = CurrentMemoryUsage;
-                var newPressureLevel = CalculatePressureLevel(currentMemory);
-                
-                // Update average memory usage
-                UpdateAverageMemoryUsage(currentMemory);
-                
-                // Reset counters if needed to prevent overflow
-                ResetCountersIfNeeded();
-                
-                // Check if pressure level changed or cleanup is needed
-                if (newPressureLevel != _currentPressureLevel || ShouldPerformCleanup(newPressureLevel))
-                {
-                    var previousLevel = _currentPressureLevel;
-                    _currentPressureLevel = newPressureLevel;
-                    
-                    // Notify about pressure level change
-                    if (newPressureLevel != previousLevel)
-                    {
-                        NotifyPressureLevelChanged(previousLevel, newPressureLevel);
-                    }
-                    
-                    // Perform cleanup if needed
-                    if (newPressureLevel > MemoryPressureLevel.None)
-                    {
-                        _ = PerformCleanupAsync(newPressureLevel, GetCleanupStrategy(newPressureLevel));
-                    }
-                }
-                
-                _lastMemoryUsage = currentMemory;
-                
-                // Adaptive threshold adjustment
-                if (_config.UseAdaptiveThresholds)
-                {
-                    AdjustThresholdsAdaptively(currentMemory);
-                }
+                await MonitoringLoopAsync(_cancellationTokenSource.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when disposing
             }
             catch (Exception ex)
             {
-                if (Application.isPlaying && !_disposed)
+                if (!_disposed && Application.isPlaying)
                 {
-                    Debug.LogError($"Error in memory pressure monitoring: {ex.Message}");
+                    LogError(ErrorMemoryMonitoringLoop, ex.Message);
                 }
             }
+        }
+        
+        /// <summary>
+        /// Main monitoring loop using UniTask
+        /// </summary>
+        private async UniTask MonitoringLoopAsync(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested && !_disposed)
+            {
+                try
+                {
+                    // Skip monitoring when not playing
+                    if (!Application.isPlaying)
+                    {
+                        await UniTask.Delay(1000, cancellationToken: cancellationToken); // Check every second in edit mode
+                        continue;
+                    }
+                    
+                    await PerformMonitoringCycleAsync(cancellationToken);
+                    
+                    // Self-monitoring: check if monitor is using too much memory
+                    await PerformSelfMonitoringAsync();
+                    
+                    // Adaptive delay based on pressure level and self-throttling
+                    var delay = GetAdaptiveMonitoringInterval();
+                    if (_config.EnableSelfThrottling && _selfThrottling)
+                    {
+                        delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2); // Slow down when throttling
+                    }
+                    await UniTask.Delay(delay, cancellationToken: cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw; // Re-throw cancellation
+                }
+                catch (Exception ex)
+                {
+                    if (!_disposed && Application.isPlaying)
+                    {
+                        LogError(ErrorMonitoringCycle, ex.Message);
+                    }
+                    
+                    // Wait before retrying on error
+                    await UniTask.Delay(TimeSpan.FromSeconds(5), cancellationToken: cancellationToken);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Perform a single monitoring cycle
+        /// </summary>
+        private async UniTask PerformMonitoringCycleAsync(CancellationToken cancellationToken)
+        {
+#if UNITY_EDITOR
+            if (_config.EnableEditorMonitoring)
+            {
+                // Lightweight monitoring in editor
+                PerformLightweightMonitoring();
+            }
+            await UniTask.Yield();
+            return;
+#else
+            
+            Interlocked.Increment(ref _monitoringCycles);
+            
+            var currentMemory = CurrentMemoryUsage;
+            var newPressureLevel = CalculatePressureLevel(currentMemory);
+            
+            // Update average memory usage
+            UpdateAverageMemoryUsage(currentMemory);
+            
+            // Reset counters if needed to prevent overflow
+            ResetCountersIfNeeded();
+            
+            // Check if pressure level changed or cleanup is needed
+            if (newPressureLevel != _currentPressureLevel || ShouldPerformCleanup(newPressureLevel))
+            {
+                var previousLevel = _currentPressureLevel;
+                _currentPressureLevel = newPressureLevel;
+                
+                // Notify about pressure level change
+                if (newPressureLevel != previousLevel)
+                {
+                    NotifyPressureLevelChanged(previousLevel, newPressureLevel);
+                }
+                
+                // Perform cleanup if needed
+                if (newPressureLevel > MemoryPressureLevel.None)
+                {
+                    await PerformCleanupAsync(newPressureLevel, GetCleanupStrategy(newPressureLevel), false, cancellationToken);
+                }
+            }
+            
+            _lastMemoryUsage = currentMemory;
+            
+            // Adaptive threshold adjustment
+            if (_config.UseAdaptiveThresholds)
+            {
+                AdjustThresholdsAdaptively(currentMemory);
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Get adaptive monitoring interval based on current pressure level
+        /// </summary>
+        private TimeSpan GetAdaptiveMonitoringInterval()
+        {
+            return _currentPressureLevel switch
+            {
+                MemoryPressureLevel.None => _config.MonitoringInterval,
+                MemoryPressureLevel.Low => TimeSpan.FromMilliseconds(_config.MonitoringInterval.TotalMilliseconds * 0.8),
+                MemoryPressureLevel.Medium => TimeSpan.FromMilliseconds(_config.MonitoringInterval.TotalMilliseconds * 0.5),
+                MemoryPressureLevel.High => TimeSpan.FromMilliseconds(_config.MonitoringInterval.TotalMilliseconds * 0.3),
+                MemoryPressureLevel.Critical => TimeSpan.FromMilliseconds(_config.MonitoringInterval.TotalMilliseconds * 0.1),
+                _ => _config.MonitoringInterval
+            };
+        }
+        
+        /// <summary>
+        /// Monitor the memory monitor itself to prevent excessive memory usage
+        /// </summary>
+        private async UniTask PerformSelfMonitoringAsync()
+        {
+            // Skip self-monitoring if disabled
+            if (!_config.EnableSelfThrottling)
+                return;
+                
+            // Only check every 10th cycle to reduce overhead
+            if (_monitoringCycles % 10 != 0)
+                return;
+                
+            var currentMemory = GC.GetTotalMemory(false);
+            var memoryGrowth = currentMemory - _lastSelfMemoryCheck;
+            var totalGrowth = currentMemory - _monitorStartMemory;
+            
+            // If monitor itself is growing too much, enable throttling
+            var maxMonitorMemoryBudget = _config.MaxMonitorMemoryBudget;
+            var maxGrowthPerCheck = maxMonitorMemoryBudget / 10; // 10% of budget per check
+            
+            if (totalGrowth > maxMonitorMemoryBudget || memoryGrowth > maxGrowthPerCheck)
+            {
+                if (!_selfThrottling)
+                {
+                    _selfThrottling = true;
+                    if (Application.isPlaying)
+                    {
+                        Debug.LogWarning($"MemoryPressureMonitor self-throttling activated. Total growth: {totalGrowth / 1024 / 1024}MB");
+                    }
+                }
+                
+                // Perform emergency cleanup of our own allocations
+                await PerformSelfCleanupAsync();
+            }
+            else if (_selfThrottling && totalGrowth < _config.MaxMonitorMemoryBudget / 2)
+            {
+                // Disable throttling if memory usage is back to normal
+                _selfThrottling = false;
+            }
+            
+            _lastSelfMemoryCheck = currentMemory;
+        }
+        
+        /// <summary>
+        /// Perform cleanup of monitor's own allocations
+        /// </summary>
+        private async UniTask PerformSelfCleanupAsync()
+        {
+            lock (_respondersLock)
+            {
+                // Clear excess pooled objects
+                while (_cleanupResultPool.Count > MAX_POOL_SIZE / 2)
+                {
+                    _cleanupResultPool.Dequeue();
+                }
+                
+                while (_responderResultPool.Count > MAX_POOL_SIZE / 2)
+                {
+                    _responderResultPool.Dequeue();
+                }
+                
+                // Clear older cleanup history more aggressively
+                var keepCount = MAX_CLEANUP_HISTORY / 2;
+                if (_cleanupHistoryCount > keepCount)
+                {
+                    var itemsToRemove = _cleanupHistoryCount - keepCount;
+                    for (int i = 0; i < itemsToRemove; i++)
+                    {
+                        var oldIndex = (_cleanupHistoryIndex - _cleanupHistoryCount + i + MAX_CLEANUP_HISTORY) % MAX_CLEANUP_HISTORY;
+                        if (_cleanupHistoryBuffer[oldIndex] != null)
+                        {
+                            ReturnCleanupResultToPool(_cleanupHistoryBuffer[oldIndex]);
+                            _cleanupHistoryBuffer[oldIndex] = null;
+                        }
+                    }
+                    _cleanupHistoryCount = keepCount;
+                }
+            }
+            
+            // Force a small GC to clean up our released objects
+            await UniTask.Yield();
+            GC.Collect(0, GCCollectionMode.Optimized);
         }
         
         /// <summary>
@@ -361,20 +567,18 @@ namespace Sinkii09.Engine.Services.Performance
         /// <summary>
         /// Perform cleanup operations asynchronously
         /// </summary>
-        private async UniTask<MemoryCleanupResult> PerformCleanupAsync(MemoryPressureLevel pressureLevel, CleanupStrategy strategy, bool force = false)
+        private async UniTask<MemoryCleanupResult> PerformCleanupAsync(MemoryPressureLevel pressureLevel, CleanupStrategy strategy, bool force = false, CancellationToken cancellationToken = default)
         {
             try
             {
                 Interlocked.Increment(ref _cleanupOperations);
                 _lastCleanup = DateTime.UtcNow;
                 
-                var result = new MemoryCleanupResult
-                {
-                    PressureLevel = pressureLevel,
-                    Strategy = strategy,
-                    StartTime = DateTime.UtcNow,
-                    ResponderResults = new List<ResponderCleanupResult>()
-                };
+                var result = GetPooledCleanupResult();
+                result.PressureLevel = pressureLevel;
+                result.Strategy = strategy;
+                result.StartTime = DateTime.UtcNow;
+                result.ResponderResults.Clear();
                 
                 var beforeMemory = CurrentMemoryUsage;
                 
@@ -391,7 +595,7 @@ namespace Sinkii09.Engine.Services.Performance
                 
                 if (tasks.Count > 0)
                 {
-                    var responderResults = await UniTask.WhenAll(tasks);
+                    var responderResults = await UniTask.WhenAll(tasks).AttachExternalCancellation(cancellationToken);
                     result.ResponderResults.AddRange(responderResults);
                 }
                 
@@ -399,7 +603,7 @@ namespace Sinkii09.Engine.Services.Performance
                 if (_gcSettings.DisableAggressiveGC)
                 {
                     // Use frame-aware incremental collection
-                    await PerformFrameAwareGCAsync(strategy, pressureLevel);
+                    await PerformFrameAwareGCAsync(strategy, pressureLevel, cancellationToken);
                 }
                 else
                 {
@@ -422,15 +626,15 @@ namespace Sinkii09.Engine.Services.Performance
             {
                 if (Application.isPlaying && !_disposed)
                 {
-                    Debug.LogError($"Error during memory cleanup: {ex.Message}");
+                    LogError(ErrorCleanupOperation, ex.Message);
                 }
-                return new MemoryCleanupResult
-                {
-                    PressureLevel = pressureLevel,
-                    Strategy = strategy,
-                    Success = false,
-                    ErrorMessage = ex.Message
-                };
+                var errorResult = GetPooledCleanupResult();
+                errorResult.PressureLevel = pressureLevel;
+                errorResult.Strategy = strategy;
+                errorResult.Success = false;
+                errorResult.ErrorMessage = ex.Message;
+                errorResult.ResponderResults.Clear();
+                return errorResult;
             }
         }
         
@@ -439,11 +643,12 @@ namespace Sinkii09.Engine.Services.Performance
         /// </summary>
         private async UniTask<ResponderCleanupResult> ExecuteResponderAsync(IMemoryPressureResponder responder, MemoryPressureLevel pressureLevel, CleanupStrategy strategy)
         {
-            var result = new ResponderCleanupResult
-            {
-                ResponderName = responder.GetType().Name,
-                StartTime = DateTime.UtcNow
-            };
+            var result = GetPooledResponderResult();
+            result.ResponderName = responder.GetType().Name;
+            result.StartTime = DateTime.UtcNow;
+            result.MemoryReclaimed = 0;
+            result.Success = false;
+            result.ErrorMessage = null;
             
             try
             {
@@ -460,7 +665,7 @@ namespace Sinkii09.Engine.Services.Performance
                 result.ErrorMessage = ex.Message;
                 if (Application.isPlaying && !_disposed)
                 {
-                    Debug.LogError($"Error in memory pressure responder {responder.GetType().Name}: {ex.Message}");
+                    LogError(ErrorResponder, responder.GetType().Name, ": ", ex.Message);
                 }
             }
             finally
@@ -487,7 +692,7 @@ namespace Sinkii09.Engine.Services.Performance
                     }
                     catch (Exception ex)
                     {
-                        Debug.LogError($"Error notifying responder {responder.GetType().Name}: {ex.Message}");
+                        LogError(ErrorNotifyingResponder, responder.GetType().Name, ": ", ex.Message);
                     }
                 }
             }
@@ -539,17 +744,22 @@ namespace Sinkii09.Engine.Services.Performance
         }
         
         /// <summary>
-        /// Add cleanup result to history and manage history size
+        /// Add cleanup result to circular buffer history
         /// </summary>
         private void AddToCleanupHistory(MemoryCleanupResult result)
         {
             lock (_respondersLock)
             {
-                _cleanupHistory.Enqueue(result);
-                while (_cleanupHistory.Count > MAX_CLEANUP_HISTORY)
+                // Return the old result to pool before overwriting
+                var oldResult = _cleanupHistoryBuffer[_cleanupHistoryIndex];
+                if (oldResult != null)
                 {
-                    _cleanupHistory.Dequeue();
+                    ReturnCleanupResultToPool(oldResult);
                 }
+                
+                _cleanupHistoryBuffer[_cleanupHistoryIndex] = result;
+                _cleanupHistoryIndex = (_cleanupHistoryIndex + 1) % MAX_CLEANUP_HISTORY;
+                _cleanupHistoryCount = Math.Min(_cleanupHistoryCount + 1, MAX_CLEANUP_HISTORY);
             }
         }
         
@@ -582,7 +792,7 @@ namespace Sinkii09.Engine.Services.Performance
             {
                 if (Application.isPlaying && !_disposed)
                 {
-                    Debug.LogError($"Error in lightweight memory monitoring: {ex.Message}");
+                    LogError(ErrorLightweightMonitoring, ex.Message);
                 }
             }
         }
@@ -607,31 +817,186 @@ namespace Sinkii09.Engine.Services.Performance
         
         #endregion
         
+        #region Object Pooling
+        
+        /// <summary>
+        /// Get a pooled cleanup result or create new if pool is empty
+        /// </summary>
+        private MemoryCleanupResult GetPooledCleanupResult()
+        {
+            lock (_respondersLock)
+            {
+                if (_cleanupResultPool.Count > 0)
+                {
+                    var pooled = _cleanupResultPool.Dequeue();
+                    // Reset properties to default values
+                    pooled.PressureLevel = MemoryPressureLevel.None;
+                    pooled.Strategy = CleanupStrategy.Conservative;
+                    pooled.StartTime = default;
+                    pooled.EndTime = default;
+                    pooled.Duration = default;
+                    pooled.MemoryReclaimed = 0;
+                    pooled.Success = false;
+                    pooled.ErrorMessage = null;
+                    return pooled;
+                }
+                return CreateCleanupResult();
+            }
+        }
+        
+        /// <summary>
+        /// Get a pooled responder result or create new if pool is empty
+        /// </summary>
+        private ResponderCleanupResult GetPooledResponderResult()
+        {
+            lock (_respondersLock)
+            {
+                if (_responderResultPool.Count > 0)
+                {
+                    var pooled = _responderResultPool.Dequeue();
+                    // Reset properties to default values
+                    pooled.ResponderName = null;
+                    pooled.StartTime = default;
+                    pooled.EndTime = default;
+                    pooled.Duration = default;
+                    pooled.MemoryReclaimed = 0;
+                    pooled.Success = false;
+                    pooled.ErrorMessage = null;
+                    return pooled;
+                }
+                return CreateResponderResult();
+            }
+        }
+        
+        /// <summary>
+        /// Return cleanup result to pool for reuse
+        /// </summary>
+        private void ReturnCleanupResultToPool(MemoryCleanupResult result)
+        {
+            if (result == null) return;
+            
+            lock (_respondersLock)
+            {
+                // Return responder results to their pool first
+                if (result.ResponderResults != null)
+                {
+                    foreach (var responderResult in result.ResponderResults)
+                    {
+                        ReturnResponderResultToPool(responderResult);
+                    }
+                }
+                
+                // Return to pool if not at capacity
+                if (_cleanupResultPool.Count < MAX_POOL_SIZE)
+                {
+                    _cleanupResultPool.Enqueue(result);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Return responder result to pool for reuse
+        /// </summary>
+        private void ReturnResponderResultToPool(ResponderCleanupResult result)
+        {
+            if (result == null) return;
+            
+            lock (_respondersLock)
+            {
+                if (_responderResultPool.Count < MAX_POOL_SIZE)
+                {
+                    _responderResultPool.Enqueue(result);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Create a new cleanup result with initialized collections
+        /// </summary>
+        private static MemoryCleanupResult CreateCleanupResult()
+        {
+            return new MemoryCleanupResult
+            {
+                ResponderResults = new List<ResponderCleanupResult>()
+            };
+        }
+        
+        /// <summary>
+        /// Create a new responder result
+        /// </summary>
+        private static ResponderCleanupResult CreateResponderResult()
+        {
+            return new ResponderCleanupResult();
+        }
+        
+        #endregion
+        
+        #region Optimized Logging
+        
+        /// <summary>
+        /// Optimized error logging to reduce string allocations
+        /// </summary>
+        private static void LogError(string prefix, string message)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogError(prefix + message);
+#endif
+        }
+        
+        /// <summary>
+        /// Optimized error logging with multiple parts
+        /// </summary>
+        private static void LogError(string part1, string part2, string part3, string part4)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogError(part1 + part2 + part3 + part4);
+#endif
+        }
+        
+        /// <summary>
+        /// Optimized warning logging with multiple parts
+        /// </summary>
+        private static void LogWarning(string part1, string part2, string part3, string part4, string part5)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning(part1 + part2 + part3 + part4 + part5);
+#endif
+        }
+        
+        #endregion
+        
+        #region Statistics and Reporting
+        
         /// <summary>
         /// Get memory pressure statistics
         /// </summary>
         public MemoryPressureStatistics GetStatistics()
         {
+            var currentMemory = CurrentMemoryUsage;
             return new MemoryPressureStatistics
             {
                 MonitoringCycles = _monitoringCycles,
                 CleanupOperations = _cleanupOperations,
                 MemoryReclaimed = _memoryReclaimed,
                 AverageMemoryUsage = _averageMemoryUsage,
-                CurrentMemoryUsage = CurrentMemoryUsage,
+                CurrentMemoryUsage = currentMemory,
                 CurrentPressureLevel = _currentPressureLevel,
                 RegisteredResponders = _responders.Count,
                 LowThreshold = _lowPressureThreshold,
                 MediumThreshold = _mediumPressureThreshold,
                 HighThreshold = _highPressureThreshold,
-                CriticalThreshold = _criticalPressureThreshold
+                CriticalThreshold = _criticalPressureThreshold,
+                MonitorMemoryUsage = currentMemory - _monitorStartMemory,
+                SelfThrottling = _selfThrottling
             };
         }
-        
+
+        #endregion
+
         /// <summary>
         /// Perform frame-aware incremental garbage collection
         /// </summary>
-        private async UniTask PerformFrameAwareGCAsync(CleanupStrategy strategy, MemoryPressureLevel pressureLevel)
+        private async UniTask PerformFrameAwareGCAsync(CleanupStrategy strategy, MemoryPressureLevel pressureLevel, CancellationToken cancellationToken = default)
         {
             var startTime = DateTime.UtcNow;
             
@@ -639,7 +1004,7 @@ namespace Sinkii09.Engine.Services.Performance
             if (_gcSettings.EnableAsyncCollection)
             {
                 // Simple delay to avoid blocking - frame timing requires main thread
-                await UniTask.Delay(16); // ~60fps frame delay
+                await UniTask.Delay(16, cancellationToken: cancellationToken); // ~60fps frame delay
             }
             
             // Perform incremental collection based on strategy
@@ -657,7 +1022,7 @@ namespace Sinkii09.Engine.Services.Performance
                     {
                         // Collect Gen0 and Gen1 incrementally
                         GarbageCollector.CollectIncremental((ulong)(_gcSettings.MaxMillisecondsPerFrame * 1_000_000));
-                        await UniTask.Yield();
+                        await UniTask.Yield(cancellationToken);
                         GarbageCollector.CollectIncremental((ulong)(_gcSettings.MaxMillisecondsPerFrame * 1_000_000));
                     }
                     break;
@@ -670,10 +1035,10 @@ namespace Sinkii09.Engine.Services.Performance
                         for (int i = 0; i < 3; i++)
                         {
                             GarbageCollector.CollectIncremental(frameBudget);
-                            await UniTask.Yield();
+                            await UniTask.Yield(cancellationToken);
                             
-                            // Stop if frame time is too high
-                            if (Time.deltaTime * 1000f > _gcSettings.FrameTimeBudgetMs * 1.5f)
+                            // Stop if frame time is too high or cancelled
+                            if (Time.deltaTime * 1000f > _gcSettings.FrameTimeBudgetMs * 1.5f || cancellationToken.IsCancellationRequested)
                                 break;
                         }
                     }
@@ -683,7 +1048,7 @@ namespace Sinkii09.Engine.Services.Performance
             var duration = (DateTime.UtcNow - startTime).TotalMilliseconds;
             if (_gcSettings.LogGCWarnings && duration > _gcSettings.GCWarningThresholdMs && Application.isPlaying && !_disposed)
             {
-                Debug.LogWarning($"GC took {duration:F1}ms (threshold: {_gcSettings.GCWarningThresholdMs}ms)");
+                LogWarning(WarningGCThreshold, duration.ToString("F1"), "ms (threshold: ", _gcSettings.GCWarningThresholdMs.ToString(), "ms)");
             }
         }
         
@@ -715,10 +1080,13 @@ namespace Sinkii09.Engine.Services.Performance
         /// </summary>
         private void OnUnityLowMemory()
         {
-            Debug.LogWarning("Unity low memory warning received");
+            if (Application.isPlaying)
+            {
+                Debug.LogWarning(WarningLowMemory);
+            }
             
             // Force a moderate cleanup
-            _ = PerformCleanupAsync(MemoryPressureLevel.High, CleanupStrategy.Moderate, true);
+            _ = PerformCleanupAsync(MemoryPressureLevel.High, CleanupStrategy.Moderate, true, _cancellationTokenSource?.Token ?? default);
         }
         
         /// <summary>
@@ -730,7 +1098,10 @@ namespace Sinkii09.Engine.Services.Performance
                 return;
                 
             _disposed = true;
-            _monitoringTimer?.Dispose();
+            
+            // Cancel monitoring loop
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
             
             // Unregister Unity callbacks
             if (_gcSettings?.UseUnityLowMemoryCallback == true)
@@ -741,7 +1112,22 @@ namespace Sinkii09.Engine.Services.Performance
             lock (_respondersLock)
             {
                 _responders.Clear();
-                _cleanupHistory.Clear();
+                
+                // Return all cleanup results to pool and clear circular buffer
+                for (int i = 0; i < _cleanupHistoryBuffer.Length; i++)
+                {
+                    if (_cleanupHistoryBuffer[i] != null)
+                    {
+                        ReturnCleanupResultToPool(_cleanupHistoryBuffer[i]);
+                        _cleanupHistoryBuffer[i] = null;
+                    }
+                }
+                _cleanupHistoryCount = 0;
+                _cleanupHistoryIndex = 0;
+                
+                // Clear pools
+                _cleanupResultPool.Clear();
+                _responderResultPool.Clear();
             }
         }
     }
@@ -764,6 +1150,11 @@ namespace Sinkii09.Engine.Services.Performance
         public TimeSpan MinimumCleanupInterval { get; set; } = TimeSpan.FromSeconds(60);  // Increased from 30s
         public bool UseAdaptiveThresholds { get; set; } = true;
         public bool UseAbsoluteThresholds { get; set; } = false;
+        
+        // Self-monitoring configuration
+        public long MaxMonitorMemoryBudget { get; set; } = 10 * 1024 * 1024; // 10MB
+        public bool EnableSelfThrottling { get; set; } = true;
+        public bool EnableEditorMonitoring { get; set; } = false; // Disabled by default
         
         // Absolute thresholds (when UseAbsoluteThresholds = true) - Increased for modern games
         public long LowPressureThreshold { get; set; } = 500 * 1024 * 1024;    // 500MB
@@ -839,12 +1230,16 @@ namespace Sinkii09.Engine.Services.Performance
         public long MediumThreshold { get; set; }
         public long HighThreshold { get; set; }
         public long CriticalThreshold { get; set; }
+        public long MonitorMemoryUsage { get; set; } // Memory used by the monitor itself
+        public bool SelfThrottling { get; set; } // Whether monitor is in self-throttling mode
         
         public override string ToString()
         {
+            var throttleStatus = SelfThrottling ? " (throttled)" : "";
             return $"MemoryMonitor: {CurrentMemoryUsage / 1024 / 1024}MB current, " +
                    $"{CurrentPressureLevel} pressure, {CleanupOperations} cleanups, " +
-                   $"{MemoryReclaimed / 1024 / 1024}MB reclaimed";
+                   $"{MemoryReclaimed / 1024 / 1024}MB reclaimed, " +
+                   $"monitor: {MonitorMemoryUsage / 1024 / 1024}MB{throttleStatus}";
         }
     }
 }

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e8d4f3a2c145b4893f6e5d8c9a7b1f, type: 3}
+  m_Name: GCOptimizationSettings
+  m_EditorClassIdentifier: 
+  EnableIncrementalGC: 1
+  MaxMillisecondsPerFrame: 2
+  EnableAsyncCollection: 1
+  DisableAggressiveGC: 1
+  UseUnityLowMemoryCallback: 1
+  FrameTimeBudgetMs: 16.67
+  MinCollectionInterval: 60
+  UseIncrementalForGen0: 1
+  UseIncrementalForGen1: 1
+  UseIncrementalForGen2: 1
+  EnableMetrics: 1
+  LogGCWarnings: 1
+  GCWarningThresholdMs: 5
+  TargetFrameRate: 60
+  VSyncCount: 0
