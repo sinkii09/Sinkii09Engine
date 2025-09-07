@@ -17,10 +17,23 @@ namespace Sinkii09.Engine.Commands
     /// </summary>
     [Serializable]
     [CommandAlias("show")]
+    [CommandMeta(
+        timeout: 15f,
+        maxRetries: 2,
+        category: CommandCategory.ActorManagement,
+        retryStrategy: RetryStrategy.Linear,
+        fallback: FallbackAction.Continue,
+        preloadResources: true,
+        expectedDuration: 2f)]
     public class ShowActorCommand : Command
     {
         [Header("Actor Identification")]
-        public StringParameter actorId = new StringParameter();
+        [RequiredParameter]
+        [ParameterAlias(ParameterAliases.Actor)]
+        [NotEmpty("Actor ID cannot be empty")]
+        public ActorIdParameter actorId = new ActorIdParameter();
+        [ParameterAlias(ParameterAliases.Type)]
+        [DefaultValue("character")]
         public StringParameter actorType = new StringParameter(); // "char", "bg", "character", "background"
         
         [Header("Character Appearance")]
@@ -34,18 +47,29 @@ namespace Sinkii09.Engine.Commands
         public StringParameter backgroundType = new StringParameter();
         
         [Header("Positioning")]
-        public StringParameter position = new StringParameter(); // "left", "center", "right" or Vector3
-        public StringParameter rotation = new StringParameter(); // Quaternion or Euler angles
-        public StringParameter scale = new StringParameter(); // Vector3 or single float
+        [ParameterAlias(ParameterAliases.Position)]
+        [DefaultValue("center")]
+        public Vector3Parameter position = new Vector3Parameter(); // "left", "center", "right" or Vector3
+        [DefaultValue("0,0,0")]
+        public Vector3Parameter rotation = new Vector3Parameter(); // Euler angles as Vector3
+        [DefaultValue("1,1,1")]
+        public Vector3Parameter scale = new Vector3Parameter(); // Vector3 scale
         
         [Header("Animation")]
+        [ParameterAlias(ParameterAliases.Duration)]
+        [Range(0.0, 10.0)]
+        [DefaultValue(1.0f)]
         public DecimalParameter duration = new DecimalParameter();
         public StringParameter transition = new StringParameter(); // "fade", "slide", "zoom", "instant"
         public StringParameter easing = new StringParameter(); // DOTween easing types
         
         [Header("Visual Properties")]
+        [Range(0.0, 1.0)]
+        [DefaultValue(1.0f)]
         public DecimalParameter alpha = new DecimalParameter();
-        public StringParameter tintColor = new StringParameter(); // Color name or hex
+        [DefaultValue("white")]
+        public ColorParameter tintColor = new ColorParameter(); // Color name or hex
+        [DefaultValue(0)]
         public IntegerParameter sortingOrder = new IntegerParameter();
         
         public override async UniTask ExecuteAsync(CancellationToken token = default)
@@ -226,100 +250,34 @@ namespace Sinkii09.Engine.Commands
         
         private void ApplyPositioning(IActor actor)
         {
-            // Apply position
-            if (!string.IsNullOrEmpty(position.Value))
+
+            if (position.HasValue)
             {
-                var pos = ParsePosition(position.Value);
-                actor.Position = pos;
+                actor.Position = position.Value;
             }
-            
-            // Apply rotation
-            if (!string.IsNullOrEmpty(rotation.Value))
+            else
             {
-                var rot = ParseRotation(rotation.Value);
-                actor.Rotation = rot;
+                actor.Position = Vector3.zero;
             }
-            
-            // Apply scale
-            if (!string.IsNullOrEmpty(scale.Value))
+
+            if (rotation.HasValue)
             {
-                var scl = ParseScale(scale.Value);
-                actor.Scale = scl;
+                actor.Rotation = Quaternion.Euler(rotation.Value.x, rotation.Value.y, rotation.Value.z);
             }
-        }
-        
-        private Vector3 ParsePosition(string positionString)
-        {
-            // Handle named positions
-            switch (positionString.ToLower())
+            else
             {
-                case "left": return new Vector3(-3f, 0f, 0f);
-                case "center": return new Vector3(0f, 0f, 0f);
-                case "right": return new Vector3(3f, 0f, 0f);
-                case "far-left": return new Vector3(-5f, 0f, 0f);
-                case "far-right": return new Vector3(5f, 0f, 0f);
+                actor.Rotation = Quaternion.identity;
             }
-            
-            // Parse Vector3 format (x,y,z)
-            if (positionString.Contains(","))
+
+            if (scale.HasValue)
             {
-                var parts = positionString.Split(',');
-                if (parts.Length >= 2)
-                {
-                    if (float.TryParse(parts[0], out var x) && float.TryParse(parts[1], out var y))
-                    {
-                        var z = parts.Length > 2 && float.TryParse(parts[2], out var zVal) ? zVal : 0f;
-                        return new Vector3(x, y, z);
-                    }
-                }
+                actor.Scale = scale.Value;
             }
-            
-            return Vector3.zero;
-        }
-        
-        private Quaternion ParseRotation(string rotationString)
-        {
-            // Parse Euler angles (x,y,z)
-            if (rotationString.Contains(","))
+            else
             {
-                var parts = rotationString.Split(',');
-                if (parts.Length >= 3)
-                {
-                    if (float.TryParse(parts[0], out var x) && 
-                        float.TryParse(parts[1], out var y) && 
-                        float.TryParse(parts[2], out var z))
-                    {
-                        return Quaternion.Euler(x, y, z);
-                    }
-                }
+                actor.Scale = Vector3.one;
             }
-            
-            return Quaternion.identity;
-        }
-        
-        private Vector3 ParseScale(string scaleString)
-        {
-            // Single float (uniform scale)
-            if (float.TryParse(scaleString, out var uniformScale))
-            {
-                return Vector3.one * uniformScale;
-            }
-            
-            // Vector3 format (x,y,z)
-            if (scaleString.Contains(","))
-            {
-                var parts = scaleString.Split(',');
-                if (parts.Length >= 2)
-                {
-                    if (float.TryParse(parts[0], out var x) && float.TryParse(parts[1], out var y))
-                    {
-                        var z = parts.Length > 2 && float.TryParse(parts[2], out var zVal) ? zVal : 1f;
-                        return new Vector3(x, y, z);
-                    }
-                }
-            }
-            
-            return Vector3.one;
+
         }
         
         private void ApplyVisualProperties(IActor actor)
@@ -329,14 +287,12 @@ namespace Sinkii09.Engine.Commands
             {
                 actor.Alpha = Mathf.Clamp01((float)alpha.Value);
             }
-            
+
             // Apply tint color
-            if (!string.IsNullOrEmpty(tintColor.Value))
-            {
-                var color = ParseColor(tintColor.Value);
-                actor.TintColor = color;
-            }
-            
+            if (tintColor.HasValue)
+                actor.TintColor = tintColor.Value;
+
+
             // Apply sorting order
             if (sortingOrder.HasValue)
             {

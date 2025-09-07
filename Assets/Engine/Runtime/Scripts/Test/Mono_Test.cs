@@ -26,7 +26,6 @@ public class Mono_Test : MonoBehaviour
             actorType = testActorType.ToString(),
             expression = testEmotion.ToString(),
             pose = testPose.ToString(),
-            tintColor = testColor.ToString(),
         };
 
         showCmd.ExecuteAsync().Forget();

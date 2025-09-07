@@ -17,12 +17,23 @@ namespace Sinkii09.Engine.Commands
     /// </summary>
     [Serializable]
     [CommandAlias("say")]
+    [CommandMeta(
+        timeout: 30f,
+        maxRetries: 2,
+        category: CommandCategory.Dialogue,
+        retryStrategy: RetryStrategy.Linear,
+        fallback: FallbackAction.Continue,
+        trackPerformance: true,
+        expectedDuration: 3f)]
     public class SayCommand : Command
     {
         #region Core Parameters
         
         [Header("Character & Content")]
+        [ParameterAlias(ParameterAliases.Character)]
         public StringParameter character = new StringParameter();
+        [RequiredParameter]
+        [ParameterAlias(ParameterAliases.Text)]
         public StringParameter text = new StringParameter();
         
         [Header("Voice Integration")]

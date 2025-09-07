@@ -24,10 +24,12 @@ namespace Sinkii09.Engine.Commands
     public class RemoveActorCommand : Command
     {
         [Header("Actor Identification")]
+        [ParameterAlias(ParameterAliases.Actor)]
         public StringParameter actorId = new StringParameter(); // Single actor, comma-separated list, "all", or "*"
         
         [Header("Removal Options")]
         public StringParameter transition = new StringParameter(); // "fade", "slide", "zoom", "instant"
+        [ParameterAlias(ParameterAliases.Duration)]
         public DecimalParameter duration = new DecimalParameter();
         public StringParameter easing = new StringParameter();
         public DecimalParameter delay = new DecimalParameter(); // Delay before starting removal

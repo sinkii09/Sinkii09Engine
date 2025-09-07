@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ad837a266766f844af0960a45c28eea, type: 3}
+  m_Name: ScriptPlayerConfiguration
+  m_EditorClassIdentifier: 
+  _version: 2
+  _description: Service configuration
+  _defaultPlaybackSpeed: 1
+  _commandExecutionTimeout: 30
+  _defaultLineDelay: 0
+  _enableAutoSave: 1
+  _autoSaveInterval: 60
+  _pauseOnBreakpoints: 1
+  _continueOnError: 0
+  _maxExecutionStackDepth: 10
+  _enableCommandCaching: 1
+  _commandCacheSize: 100
+  _batchProcessingSize: 10
+  _enablePerformanceMonitoring: 1
+  _maxContextVariables: 1000
+  _enableBreakpoints: 1
+  _logExecutionFlow: 0
+  _enableStepMode: 0
+  _logCommandExecution: 0
+  _enableExecutionHistory: 1
+  _maxExecutionHistorySize: 100
+  _enableErrorRecovery: 1
+  _maxRetryAttempts: 3
+  _retryDelay: 1
+  _skipErrorLines: 0
+  _logErrorsToFile: 1
+  _maxFastForwardSpeed: 10
+  _skipAnimationsInFastForward: 1
+  _skipDelaysInFastForward: 1
+  _skipAudioInFastForward: 1
+  _enableStateSaving: 1
+  _compressSavedState: 1
+  _maxSaveSlots: 5

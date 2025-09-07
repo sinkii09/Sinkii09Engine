@@ -33,40 +33,97 @@ namespace Sinkii09.Engine.Commands
             if (!string.IsNullOrEmpty(errors)) return null;
 
             var paramfields = commandType.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                        .AsValueEnumerable()
                         .Where(field => typeof(ICommandParameter).IsAssignableFrom(field.FieldType));
 
-            List<string> supportedParams = new List<string>(paramfields.Select(field => field.Name));
+            List<string> supportedParams = paramfields.Select(field => field.Name).ToList();
+            var createdParameters = new Dictionary<string, ICommandParameter>();
+            var errorList = new List<string>();
 
+            // Phase 1: Create parameters and apply values/defaults
             foreach (var field in paramfields)
             {
                 var alias = field.GetCustomAttribute<ParameterAliasAttribute>()?.Alias;
-                if (!string.IsNullOrEmpty(alias) && !supportedParams.Contains(alias, StringComparer.OrdinalIgnoreCase))
+                if (!string.IsNullOrEmpty(alias))
                 {
-                    supportedParams.Add(alias);
+                    // Use faster lookup - avoid Contains() on List
+                    bool alreadyExists = false;
+                    for (int i = 0; i < supportedParams.Count; i++)
+                    {
+                        if (StringComparer.OrdinalIgnoreCase.Equals(supportedParams[i], alias))
+                        {
+                            alreadyExists = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyExists)
+                    {
+                        supportedParams.Add(alias);
+                    }
                 }
+                
                 bool isRequired = field.GetCustomAttribute<RequiredParameterAttribute>() != null;
-
                 var paramId = alias != null && parameters.ContainsKey(alias) ? alias : field.Name;
-                if (!parameters.ContainsKey(paramId))
-                {
-                    if (isRequired)
-                    errors = $"Required parameter '{paramId}' is missing for command '{commandId}'.";
-                    continue;
-                }
-
                 var parameter = Activator.CreateInstance(field.FieldType) as ICommandParameter;
-                var paramValue = parameters.ContainsKey(paramId) ? parameters[paramId] : null;
-                parameter.SetValueFromScriptText(paramValue, out string error);
-                //TODO: Handle playback spot for parameter if needed.
-                if (!string.IsNullOrEmpty(error))
+                
+                // Try to set value from script
+                if (parameters.ContainsKey(paramId))
                 {
-                    errors = $"Failed to set value for parameter '{paramId}' in command '{commandId}': {error}";
-                    continue;
+                    var paramValue = parameters[paramId];
+                    parameter.SetValueFromScriptText(paramValue, out string error);
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        errorList.Add($"Failed to set value for parameter '{paramId}' in command '{commandId}': {error}");
+                    }
                 }
+                // Apply default value if no value provided
+                else
+                {
+                    var defaultValueAttr = field.GetCustomAttribute<DefaultValueAttribute>();
+                    if (defaultValueAttr != null)
+                    {
+                        parameter.SetValueFromScriptText(defaultValueAttr.DefaultValue?.ToString(), out string defaultError);
+                        if (!string.IsNullOrEmpty(defaultError))
+                        {
+                            errorList.Add($"Failed to set default value for parameter '{paramId}' in command '{commandId}': {defaultError}");
+                        }
+                    }
+                    else if (isRequired)
+                    {
+                        errorList.Add($"Required parameter '{paramId}' is missing for command '{commandId}'.");
+                    }
+                }
+                
+                createdParameters[field.Name] = parameter;
                 field.SetValue(command, parameter);
             }
-            // Check for unsupported parameters
-            var unsupportedParams = parameters.Keys.Where(param => !supportedParams.Contains(param, StringComparer.OrdinalIgnoreCase)).ToList();
+            
+            // Phase 2: Run validation on all parameters
+            var validator = new ParameterValidator();
+            var validationResult = validator.ValidateAllParameters(commandType, createdParameters);
+            if (!validationResult.IsValid)
+            {
+                errorList.AddRange(validationResult.Errors);
+            }
+            
+            // Report all errors
+            if (errorList.Count > 0)
+            {
+                errors = string.Join("; ", errorList);
+                return null;
+            }
+            // Check for unsupported parameters using HashSet for O(1) lookups
+            var supportedParamsSet = new HashSet<string>(supportedParams, StringComparer.OrdinalIgnoreCase);
+            var unsupportedParams = new List<string>();
+            
+            foreach (var paramKey in parameters.Keys)
+            {
+                if (!supportedParamsSet.Contains(paramKey))
+                {
+                    unsupportedParams.Add(paramKey);
+                }
+            }
+            
             if (unsupportedParams.Count > 0)
             {
                 string warning = $"Command '{commandId}' does not support parameters: {string.Join(", ", unsupportedParams)}.";

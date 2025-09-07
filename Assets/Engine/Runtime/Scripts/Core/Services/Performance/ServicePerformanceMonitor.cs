@@ -26,6 +26,14 @@ namespace Sinkii09.Engine.Services.Performance
         private const float HighMemoryAllocationThreshold = 50 * 1024 * 1024; // 50MB per service
         private const float FrequentGCTriggerThreshold = 10; // 10 services with high allocation
         
+        // Command performance thresholds
+        private const float SLOW_COMMAND_THRESHOLD_SECONDS = 10f;
+        private const float TIMEOUT_RATE_THRESHOLD = 0.1f;
+        private const float RETRY_RATE_THRESHOLD = 0.2f;
+        private const float ADAPTIVE_TIMEOUT_BUFFER = 1.2f;
+        private const float MIN_TIMEOUT_RATIO = 0.5f;
+        private const int MIN_SAMPLES_FOR_ADAPTATION = 5;
+        
         public ServicePerformanceMonitor()
         {
             _serviceMetrics = new Dictionary<Type, ServicePerformanceMetrics>();
@@ -253,6 +261,68 @@ namespace Sinkii09.Engine.Services.Performance
                 Debug.LogWarning($"ServicePerformanceMonitor: Memory pressure increased to {newLevel}");
             }
         }
+
+        #region Command Performance Tracking
+        private readonly Dictionary<Type, CommandPerformanceMetrics> _commandMetrics = new Dictionary<Type, CommandPerformanceMetrics>();
+
+        /// <summary>
+        /// Record command performance metrics for script execution
+        /// </summary>
+        public void RecordCommandMetrics(Type commandType, long memoryUsage, TimeSpan executionTime, bool wasTimeout, bool wasRetried)
+        {
+            if (_disposed) return;
+
+            if (!_commandMetrics.TryGetValue(commandType, out var metrics))
+            {
+                metrics = new CommandPerformanceMetrics(commandType);
+                _commandMetrics[commandType] = metrics;
+            }
+
+            metrics.RecordExecution(memoryUsage, executionTime, wasTimeout, wasRetried);
+
+            // Log performance warnings for slow commands
+            if (executionTime.TotalSeconds > SLOW_COMMAND_THRESHOLD_SECONDS)
+            {
+                Debug.LogWarning($"Command {commandType.Name} took {executionTime.TotalSeconds:F2}s to execute");
+            }
+        }
+
+        /// <summary>
+        /// Get performance metrics for a command type
+        /// </summary>
+        public CommandPerformanceMetrics GetCommandMetrics(Type commandType)
+        {
+            _commandMetrics.TryGetValue(commandType, out var metrics);
+            return metrics;
+        }
+
+        /// <summary>
+        /// Get adaptive timeout suggestion based on historical performance
+        /// </summary>
+        public float GetSuggestedTimeout(Type commandType, float defaultTimeout)
+        {
+            var metrics = GetCommandMetrics(commandType);
+            if (metrics == null || metrics.ExecutionCount < MIN_SAMPLES_FOR_ADAPTATION)
+                return defaultTimeout;
+
+            // Use average execution time + buffer for adaptive timeout
+            var adaptiveTimeout = (float)(metrics.AverageExecutionTime.TotalSeconds * ADAPTIVE_TIMEOUT_BUFFER);
+            return Math.Max(adaptiveTimeout, defaultTimeout * MIN_TIMEOUT_RATIO);
+        }
+
+        /// <summary>
+        /// Check if command type has performance issues
+        /// </summary>
+        public bool HasPerformanceIssues(Type commandType)
+        {
+            var metrics = GetCommandMetrics(commandType);
+            if (metrics == null) return false;
+
+            return metrics.TimeoutRate > TIMEOUT_RATE_THRESHOLD || 
+                   metrics.RetryRate > RETRY_RATE_THRESHOLD ||   
+                   metrics.AverageExecutionTime.TotalSeconds > SLOW_COMMAND_THRESHOLD_SECONDS;
+        }
+        #endregion
     }
     
     /// <summary>
@@ -308,6 +378,76 @@ namespace Sinkii09.Engine.Services.Performance
         {
             return $"{_serviceType.Name}: {AverageMemoryUsage / 1024.0 / 1024.0:F1}MB avg, " +
                    $"{AverageExecutionTime.TotalMilliseconds:F1}ms avg exec, {ExecutionCount} calls";
+        }
+    }
+
+    /// <summary>
+    /// Performance metrics for command execution tracking
+    /// </summary>
+    public class CommandPerformanceMetrics
+    {
+        private readonly Type _commandType;
+        private readonly List<long> _memoryUsageHistory;
+        private readonly List<TimeSpan> _executionTimeHistory;
+        private int _timeoutCount;
+        private int _retryCount;
+        
+        private const int MaxHistorySize = 100;
+
+        public CommandPerformanceMetrics(Type commandType)
+        {
+            _commandType = commandType;
+            _memoryUsageHistory = new List<long>();
+            _executionTimeHistory = new List<TimeSpan>();
+        }
+
+        public int ExecutionCount => _executionTimeHistory.Count;
+        public float TimeoutRate => ExecutionCount > 0 ? (float)_timeoutCount / ExecutionCount : 0f;
+        public float RetryRate => ExecutionCount > 0 ? (float)_retryCount / ExecutionCount : 0f;
+
+        public TimeSpan AverageExecutionTime
+        {
+            get
+            {
+                if (_executionTimeHistory.Count == 0) return TimeSpan.Zero;
+                var totalTicks = _executionTimeHistory.Sum(t => t.Ticks);
+                return new TimeSpan(totalTicks / _executionTimeHistory.Count);
+            }
+        }
+
+        public long AverageMemoryUsage
+        {
+            get
+            {
+                if (_memoryUsageHistory.Count == 0) return 0;
+                return (long)_memoryUsageHistory.Average();
+            }
+        }
+
+        public void RecordExecution(long memoryUsage, TimeSpan executionTime, bool wasTimeout, bool wasRetried)
+        {
+            _memoryUsageHistory.Add(memoryUsage);
+            _executionTimeHistory.Add(executionTime);
+            
+            if (wasTimeout) _timeoutCount++;
+            if (wasRetried) _retryCount++;
+            
+            // Trim history if needed
+            if (_memoryUsageHistory.Count > MaxHistorySize)
+            {
+                _memoryUsageHistory.RemoveAt(0);
+            }
+            if (_executionTimeHistory.Count > MaxHistorySize)
+            {
+                _executionTimeHistory.RemoveAt(0);
+            }
+        }
+        
+        public override string ToString()
+        {
+            return $"{_commandType.Name}: {AverageMemoryUsage / 1024.0 / 1024.0:F1}MB avg, " +
+                   $"{AverageExecutionTime.TotalMilliseconds:F1}ms avg exec, {ExecutionCount} calls, " +
+                   $"{TimeoutRate:P1} timeout rate, {RetryRate:P1} retry rate";
         }
     }
 }

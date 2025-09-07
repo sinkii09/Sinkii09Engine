@@ -18,11 +18,20 @@ namespace Sinkii09.Engine.Commands
     /// </summary>
     [Serializable]
     [CommandAlias("wait")]
+    [CommandMeta(
+        timeout: 300f, // Long timeout for wait commands
+        maxRetries: 1,
+        category: CommandCategory.Timing,
+        critical: false,
+        fallback: FallbackAction.Continue,
+        expectedDuration: 5f)]
     public class WaitCommand : Command
     {
         #region Core Parameters
         
         [Header("Timing")]
+        [RequiredParameter]
+        [ParameterAlias(ParameterAliases.Duration)]
         public DecimalParameter duration = new DecimalParameter();  // Duration in seconds
         
         #endregion
