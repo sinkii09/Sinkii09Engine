@@ -15,6 +15,9 @@ namespace Sinkii09.Engine.Common.Script
         [field: SerializeField]
         public string LineHash { get; private set; } = default;
 
+        [field: SerializeField]
+        public string OriginalLineText { get; private set; } = default;
+
         [OdinSerialize]
         public int LineNumber => LineIndex + 1;
 
@@ -22,6 +25,7 @@ namespace Sinkii09.Engine.Common.Script
         {
             ScriptName = scriptName;
             LineIndex = lineIndex;
+            OriginalLineText = lineText ?? string.Empty;
             LineHash = lineText.GetHashCode().ToString("X8"); // TODO: Use a more robust hash function if needed
 
             ParseLineText(lineText, out string errors);

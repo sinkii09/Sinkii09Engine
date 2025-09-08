@@ -18,7 +18,7 @@ namespace Sinkii09.Engine.Services
     /// </summary>
     [EngineService(ServiceCategory.Core, ServicePriority.High,
         Description = "Manages script execution and playback control with comprehensive command processing",
-        RequiredServices = new[] { typeof(IScriptService), typeof(IResourceService), typeof(ISaveLoadService) })]
+        RequiredServices = new[] { typeof(IScriptService), typeof(IResourceService), typeof(ISaveLoadService), typeof(IDialogueService) })]
     [ServiceConfiguration(typeof(ScriptPlayerConfiguration))]
     public class ScriptPlayerService : IScriptPlayerService
     {
@@ -27,6 +27,7 @@ namespace Sinkii09.Engine.Services
         private IScriptService _scriptService;
         private IResourceService _resourceService;
         private ISaveLoadService _saveloadService;
+        private IDialogueService _dialogueService;
 
         private ScriptExecutionContext _executionContext;
         private readonly Dictionary<string, ICommand> _commandCache;
@@ -139,6 +140,7 @@ namespace Sinkii09.Engine.Services
                 _resourceService = Engine.GetService<IResourceService>() ;
                 _saveloadService = Engine.GetService<ISaveLoadService>();
                 _scriptService = Engine.GetService<IScriptService>();
+                _dialogueService = Engine.GetService<IDialogueService>();
                 _performanceMonitor = Engine.GetService<ServicePerformanceMonitor>();
 
                 // Validate dependencies
@@ -155,6 +157,11 @@ namespace Sinkii09.Engine.Services
                 if (_saveloadService == null)
                 {
                     return ServiceInitializationResult.Failed(new InvalidOperationException("SaveLoadService dependency is required"));
+                }
+
+                if (_dialogueService == null)
+                {
+                    return ServiceInitializationResult.Failed(new InvalidOperationException("DialogueService dependency is required"));
                 }
 
                 // Initialize execution context
@@ -476,7 +483,7 @@ namespace Sinkii09.Engine.Services
                 LineExecuted?.Invoke(currentLine, CurrentLineIndex);
 
                 // Handle flow control
-                if (!HandleFlowControl(result))
+                if (!await HandleFlowControl(result))
                 {
                     // Move to next line normally if no flow control
                     _executionContext.CurrentLineIndex++;
@@ -803,32 +810,45 @@ namespace Sinkii09.Engine.Services
 
                         case GenericTextLine textLine:
                             PreprocessTextLine(textLine, i);
-                            
-                            // Check for labels during preprocessing
-                            var lineText = GetLineText(textLine);
-                            if (!string.IsNullOrEmpty(lineText) && lineText.StartsWith("#"))
+
+                            // Check for labels during preprocessing using enhanced metadata when available
+                            string labelName = null;
+
+                            if (textLine?.Metadata != null && textLine.Metadata.ContentType == TextContentType.Label)
                             {
-                                var labelName = lineText.Substring(1).Trim();
-                                if (!string.IsNullOrEmpty(labelName))
+                                // Use parsed metadata for enhanced GenericTextLine
+                                labelName = textLine.Metadata.LabelName;
+                            }
+                            else
+                            {
+                                // Fallback to legacy text parsing
+                                var lineText = GetLineText(textLine);
+                                if (!string.IsNullOrEmpty(lineText) && lineText.StartsWith("#"))
                                 {
-                                    if (_executionContext.HasLabel(labelName))
+                                    labelName = lineText.Substring(1).Trim();
+                                }
+                            }
+
+                            // Process label if found
+                            if (!string.IsNullOrEmpty(labelName))
+                            {
+                                if (_executionContext.HasLabel(labelName))
+                                {
+                                    preprocessingErrors.Add($"Duplicate label '{labelName}' at line {i}");
+                                }
+                                else
+                                {
+                                    _executionContext.RegisterLabel(labelName, i);
+                                    labelCount++;
+
+                                    if (_config.LogExecutionFlow)
                                     {
-                                        preprocessingErrors.Add($"Duplicate label '{labelName}' at line {i}");
-                                    }
-                                    else
-                                    {
-                                        _executionContext.RegisterLabel(labelName, i);
-                                        labelCount++;
-                                        
-                                        if (_config.LogExecutionFlow)
-                                        {
-                                            Debug.Log($"Registered label '{labelName}' at line {i}");
-                                        }
+                                        Debug.Log($"Registered label '{labelName}' at line {i}");
                                     }
                                 }
                             }
-                            break;
 
+                            break;
                         default:
                             if (_config.LogExecutionFlow)
                             {
@@ -901,16 +921,107 @@ namespace Sinkii09.Engine.Services
 
         private void PreprocessTextLine(GenericTextLine textLine, int lineIndex)
         {
-            // Text line preprocessing - could validate dialog syntax, check for variables, etc.
-            var lineText = GetLineText(textLine);
-            
-            // Example: Check for variable references like {variableName}
-            if (!string.IsNullOrEmpty(lineText) && lineText.Contains("{") && lineText.Contains("}"))
+            // Enhanced text line preprocessing using parsed metadata
+            if (textLine?.Metadata != null)
             {
-                if (_config.LogExecutionFlow)
+                // Use enhanced GenericTextLine preprocessing
+                PreprocessParsedTextLine(textLine, lineIndex);
+            }
+            else
+            {
+                // Fallback to legacy preprocessing for compatibility
+                var lineText = GetLineText(textLine);
+                
+                // Example: Check for variable references like {variableName}
+                if (!string.IsNullOrEmpty(lineText) && lineText.Contains("{") && lineText.Contains("}"))
                 {
-                    Debug.Log($"Text line {lineIndex} contains variable references: {lineText}");
+                    if (_config.LogExecutionFlow)
+                    {
+                        Debug.Log($"Text line {lineIndex} contains variable references: {lineText}");
+                    }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Enhanced preprocessing for GenericTextLine with parsed metadata
+        /// </summary>
+        private void PreprocessParsedTextLine(GenericTextLine textLine, int lineIndex)
+        {
+            var metadata = textLine.Metadata;
+
+            try
+            {
+                // Handle different content types during preprocessing
+                switch (metadata.ContentType)
+                {
+                    case TextContentType.Label:
+                        // Labels are already handled in main preprocessing loop
+                        if (_config.LogExecutionFlow && !string.IsNullOrEmpty(metadata.LabelName))
+                        {
+                            Debug.Log($"[Preprocessing] Found label '{metadata.LabelName}' at line {lineIndex}");
+                        }
+                        break;
+
+                    case TextContentType.Comment:
+                        // Log comments during preprocessing if verbose logging enabled
+                        if (_config.LogExecutionFlow)
+                        {
+                            Debug.Log($"[Preprocessing] Comment at line {lineIndex}: {metadata.ProcessedText}");
+                        }
+                        break;
+
+                    case TextContentType.Empty:
+                        // Nothing to preprocess for empty lines
+                        break;
+
+                    case TextContentType.CharacterSpeech:
+                    case TextContentType.CharacterThought:
+                    case TextContentType.Narration:
+                        // Validate content and check for variables
+                        PreprocessDialogueContent(metadata, lineIndex);
+                        break;
+
+                    default:
+                        Debug.LogWarning($"[Preprocessing] Unknown text content type at line {lineIndex}: {metadata.ContentType}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Preprocessing] Error processing text line at {lineIndex}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Preprocess dialogue content for validation and optimization
+        /// </summary>
+        private void PreprocessDialogueContent(TextLineMetadata metadata, int lineIndex)
+        {
+            // Validate speaker names for character speech and thoughts
+            if (metadata.ContentType == TextContentType.CharacterSpeech || 
+                metadata.ContentType == TextContentType.CharacterThought)
+            {
+                if (string.IsNullOrWhiteSpace(metadata.SpeakerId))
+                {
+                    Debug.LogWarning($"[Preprocessing] Line {lineIndex}: {metadata.ContentType} has no speaker ID");
+                }
+                else if (_config.LogExecutionFlow)
+                {
+                    Debug.Log($"[Preprocessing] Line {lineIndex}: {metadata.ContentType} for speaker '{metadata.SpeakerId}'");
+                }
+            }
+
+            // Check for variables and log if verbose
+            if (metadata.HasVariables && _config.LogExecutionFlow)
+            {
+                Debug.Log($"[Preprocessing] Line {lineIndex} contains variables: {string.Join(", ", metadata.VariableNames)}");
+            }
+
+            // Validate text content
+            if (string.IsNullOrWhiteSpace(metadata.ProcessedText))
+            {
+                Debug.LogWarning($"[Preprocessing] Line {lineIndex}: {metadata.ContentType} has empty text content");
             }
         }
         #endregion
@@ -966,7 +1077,7 @@ namespace Sinkii09.Engine.Services
                     LineExecuted?.Invoke(currentLine, CurrentLineIndex);
 
                     // Handle flow control
-                    if (HandleFlowControl(result))
+                    if (await HandleFlowControl(result))
                     {
                         // Flow control handled the line advancement
                         continue;
@@ -1056,44 +1167,23 @@ namespace Sinkii09.Engine.Services
         {
             if (_config.LogExecutionFlow)
             {
-                Debug.Log($"Executing text line {CurrentLineIndex}: {textLine}");
+                Debug.Log($"Executing text line {CurrentLineIndex}: {textLine?.GetParsedInfo() ?? textLine?.ToString()}");
             }
 
-            // Check if this is a label line (starts with #)
-            var lineText = GetLineText(textLine);
-            if (!string.IsNullOrEmpty(lineText))
+            // Use enhanced GenericTextLine processing if available
+            if (textLine?.Metadata != null)
             {
-                if (lineText.StartsWith("#"))
+                await ProcessParsedTextLineAsync(textLine, cancellationToken);
+            }
+            else
+            {
+                // Simple fallback for legacy GenericTextLine without metadata
+                var lineText = GetLineText(textLine);
+                if (!string.IsNullOrEmpty(lineText))
                 {
-                    // This is a label, register it if not already registered
-                    var labelName = lineText.Substring(1).Trim();
-                    if (!string.IsNullOrEmpty(labelName))
-                    {
-                        _executionContext.RegisterLabel(labelName, CurrentLineIndex);
-                        
-                        if (_config.LogExecutionFlow)
-                        {
-                            Debug.Log($"Registered label '{labelName}' at line {CurrentLineIndex}");
-                        }
-                    }
-                }
-                else if (lineText.StartsWith("//") || lineText.StartsWith(";"))
-                {
-                    // This is a comment, just log it if needed
-                    if (_config.LogExecutionFlow)
-                    {
-                        Debug.Log($"Comment at line {CurrentLineIndex}: {lineText}");
-                    }
-                }
-                else
-                {
-                    // Regular text line - could be dialog or narrative
                     await ProcessTextContentAsync(lineText, cancellationToken);
                 }
             }
-
-            // Text lines typically don't need async processing unless they trigger events
-            await UniTask.Yield();
         }
 
         private async UniTask ExecuteUnknownLineAsync(ScriptLine line, CancellationToken cancellationToken)
@@ -1106,159 +1196,400 @@ namespace Sinkii09.Engine.Services
             await UniTask.Yield();
         }
 
+        /// <summary>
+        /// Simplified legacy text processing for fallback scenarios (non-GenericTextLine cases)
+        /// </summary>
         private async UniTask ProcessTextContentAsync(string textContent, CancellationToken cancellationToken)
         {
-            // TODO: Implement text content processing logic
-            // This is where you could integrate with dialog systems, UI display, etc.
-            // For now, just log the text content
-            if (_config.LogExecutionFlow)
+            // Skip empty or null content
+            if (string.IsNullOrWhiteSpace(textContent))
+                return;
+
+            try
             {
-                Debug.Log($"Text content at line {CurrentLineIndex}: {textContent}");
+                // Basic text processing with variable substitution
+                var processedText = SubstituteVariables(textContent);
+
+                // Simple fallback: treat all text as narration for basic compatibility
+                if (_dialogueService != null)
+                {
+                    await _dialogueService.ShowNarrationAsync(processedText, cancellationToken);
+                }
+                else
+                {
+                    Debug.LogWarning($"[ScriptPlayer] DialogueService unavailable, logging text: {processedText}");
+                }
+
+                if (_config.LogExecutionFlow)
+                {
+                    Debug.Log($"[ScriptPlayer] Legacy processed text at line {CurrentLineIndex}: {processedText}");
+                }
             }
-            
-            // Apply line delay for text content if configured
-            if (_config.DefaultLineDelay > 0 && !_isFastForwarding)
+            catch (System.Exception ex)
             {
-                var delay = (int)(_config.DefaultLineDelay * 1000 / PlaybackSpeed);
-                await UniTask.Delay(delay, cancellationToken: cancellationToken);
+                Debug.LogError($"[ScriptPlayer] Error processing legacy text content at line {CurrentLineIndex}: {ex.Message}");
+                Debug.LogError($"[ScriptPlayer] Failed to display text: {textContent}");
+            }
+            finally
+            {
+                // Apply line delay for text content if configured and not fast forwarding
+                if (_config.DefaultLineDelay > 0 && !_isFastForwarding)
+                {
+                    var delay = (int)(_config.DefaultLineDelay * 1000 / PlaybackSpeed);
+                    await UniTask.Delay(delay, cancellationToken: cancellationToken);
+                }
             }
         }
 
         private string GetLineText(ScriptLine line)
         {
-            // This is a helper method to extract the original line text
-            // Since we don't store the original text in ScriptLine, we'll need to work with what we have
-            // In a full implementation, you might want to store the original text in ScriptLine
-            // TODO: For now, just return a placeholder
-            return line?.ToString() ?? string.Empty;
+            // Extract the original line text from ScriptLine
+            return line?.OriginalLineText ?? string.Empty;
         }
 
-        private async UniTask<CommandResult> ExecuteCommandAsync(ICommand command, CancellationToken cancellationToken)
+        /// <summary>
+        /// Substitutes variables in text content using execution context
+        /// </summary>
+        private string SubstituteVariables(string text)
         {
-            if (command == null)
-                return CommandResult.Success();
+            if (string.IsNullOrEmpty(text) || !text.Contains("{"))
+                return text;
 
-            _stateManager.TransitionToWaiting();
+            var result = text;
+            
+            // Simple variable substitution: {variableName}
+            var startIndex = 0;
+            while (startIndex < result.Length)
+            {
+                var openBrace = result.IndexOf('{', startIndex);
+                if (openBrace == -1) break;
 
-            var commandType = command.GetType();
-            var metadata = CommandMetadataCache.GetMetadata(commandType);
-            var retryCount = 0;
-            CommandResult result = null;
-            var startTime = DateTime.Now;
+                var closeBrace = result.IndexOf('}', openBrace);
+                if (closeBrace == -1) break;
+
+                var variableName = result.Substring(openBrace + 1, closeBrace - openBrace - 1).Trim();
+                var variableValue = _executionContext.GetVariable(variableName)?.ToString() ?? $"{{UNDEFINED:{variableName}}}";
+
+                result = result.Substring(0, openBrace) + variableValue + result.Substring(closeBrace + 1);
+                startIndex = openBrace + variableValue.Length;
+            }
+
+            return result;
+        }
+
+
+
+        /// <summary>
+        /// Processes a GenericTextLine using pre-parsed metadata for enhanced performance
+        /// </summary>
+        private async UniTask ProcessParsedTextLineAsync(GenericTextLine textLine, CancellationToken cancellationToken)
+        {
+            var metadata = textLine.Metadata;
 
             try
             {
-                // Fire command executing event
-                CommandExecuting?.Invoke(command);
-
-                if (_config.LogCommandExecution)
+                // Handle different content types based on parsed metadata
+                switch (metadata.ContentType)
                 {
-                    Debug.Log($"[ScriptPlayer] Executing {metadata.Alias} command at line {CurrentLineIndex} (timeout: {metadata.Timeout}s, retries: {metadata.MaxRetries})");
+                    case TextContentType.Label:
+                        // Register label for navigation
+                        if (!string.IsNullOrEmpty(metadata.LabelName))
+                        {
+                            _executionContext.RegisterLabel(metadata.LabelName, CurrentLineIndex);
+                            if (_config.LogExecutionFlow)
+                            {
+                                Debug.Log($"[ScriptPlayer] Registered label '{metadata.LabelName}' at line {CurrentLineIndex}");
+                            }
+                        }
+                        return; // Labels don't display content
+
+                    case TextContentType.Comment:
+                        // Log comment if needed
+                        if (_config.LogExecutionFlow)
+                        {
+                            Debug.Log($"[ScriptPlayer] Comment at line {CurrentLineIndex}: {metadata.ProcessedText}");
+                        }
+                        return; // Comments don't display content
+
+                    case TextContentType.Empty:
+                        // Skip empty lines
+                        return;
+
+                    case TextContentType.CharacterSpeech:
+                    case TextContentType.CharacterThought:
+                    case TextContentType.Narration:
+                        // Process dialogue content
+                        await ProcessDialogueContentAsync(metadata, cancellationToken);
+                        break;
+
+                    default:
+                        Debug.LogWarning($"[ScriptPlayer] Unknown text content type: {metadata.ContentType}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ScriptPlayer] Error processing parsed text line at {CurrentLineIndex}: {ex.Message}");
+                
+                // Fallback to original processing
+                var lineText = GetLineText(textLine);
+                await ProcessTextContentAsync(lineText, cancellationToken);
+            }
+        }
+
+        /// <summary>
+        /// Processes dialogue content using parsed metadata with DialogueService integration
+        /// </summary>
+        private async UniTask ProcessDialogueContentAsync(TextLineMetadata metadata, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(metadata.ProcessedText))
+                return;
+
+            try
+            {
+                // Substitute variables if needed
+                var processedText = metadata.HasVariables 
+                    ? SubstituteVariablesInParsedText(metadata.ProcessedText, metadata.VariableNames)
+                    : metadata.ProcessedText;
+
+                // Integrate with DialogueService if available
+                if (_dialogueService != null)
+                {
+                    switch (metadata.ContentType)
+                    {
+                        case TextContentType.CharacterSpeech:
+                            await _dialogueService.ShowDialogueAsync(metadata.SpeakerId, processedText, null, cancellationToken);
+                            break;
+
+                        case TextContentType.CharacterThought:
+                            await _dialogueService.ShowThoughtAsync(metadata.SpeakerId, processedText, cancellationToken);
+                            break;
+
+                        case TextContentType.Narration:
+                        default:
+                            await _dialogueService.ShowNarrationAsync(processedText, cancellationToken);
+                            break;
+                    }
+                }
+                else
+                {
+                    // Fallback: Log text content if DialogueService unavailable
+                    Debug.LogWarning($"[ScriptPlayer] DialogueService unavailable, logging text: {metadata.SpeakerId ?? "Narrator"}: {processedText}");
                 }
 
-                // Execute command with enhanced error handling
-                while (retryCount <= metadata.MaxRetries)
+                if (_config.LogExecutionFlow)
+                {
+                    Debug.Log($"[ScriptPlayer] Processed {metadata.ContentType} at line {CurrentLineIndex}: {metadata.SpeakerId ?? "Narrator"}: {processedText}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ScriptPlayer] Error processing dialogue content at line {CurrentLineIndex}: {ex.Message}");
+                
+                // Fallback: Show as narration if possible
+                if (_dialogueService != null)
                 {
                     try
                     {
-                        // Execute command with type-based timeout management
-                        result = await _timeoutManager.ExecuteWithTimeoutAsync(
-                            commandType,
-                            async (token) =>
-                            {
-                                // Check if command supports CommandResult pattern
-                                if (command is IFlowControlCommand flowCommand)
-                                {
-                                    return await flowCommand.ExecuteWithResultAsync(token);
-                                }
-                                else
-                                {
-                                    // Execute traditional command
-                                    await command.ExecuteAsync(token);
-                                    return CommandResult.Success();
-                                }
-                            },
-                            cancellationToken);
-
-                        // Success - record performance and cache if needed
-                        var executionTime = DateTime.Now - startTime;
-                        var memoryUsage = GC.GetTotalMemory(false);
-                        
-                        _timeoutManager.RecordCommandCompletion(commandType, executionTime, true);
-                        _performanceMonitor?.RecordCommandMetrics(commandType, memoryUsage, executionTime, false, retryCount > 0);
-                        _executionContext.PerformanceMetrics?.RecordCommandExecution(commandType, (float)executionTime.TotalSeconds);
-
-                        if (_config.EnableCommandCaching)
-                        {
-                            CacheCommand(GetCommandCacheKey(command), command);
-                        }
-
-                        // Fire command executed event
-                        CommandExecuted?.Invoke(command);
-                        break; // Success, exit retry loop
+                        await _dialogueService.ShowNarrationAsync(metadata.ProcessedText, cancellationToken);
                     }
-                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    catch
                     {
-                        // Main cancellation - don't retry, just propagate
-                        var executionTime = DateTime.Now - startTime;
-                        var memoryUsage = GC.GetTotalMemory(false);
-                        
-                        _timeoutManager.RecordCommandCompletion(commandType, executionTime, false);
-                        _performanceMonitor?.RecordCommandMetrics(commandType, memoryUsage, executionTime, true, retryCount > 0);
-                        _executionContext.PerformanceMetrics?.RecordCommandExecution(commandType, (float)executionTime.TotalSeconds);
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        var executionTime = DateTime.Now - startTime;
-                        var memoryUsage = GC.GetTotalMemory(false);
-                        
-                        _timeoutManager.RecordCommandCompletion(commandType, executionTime, false, ex);
-                        _performanceMonitor?.RecordCommandMetrics(commandType, memoryUsage, executionTime, false, retryCount > 0);
-                        _executionContext.PerformanceMetrics?.RecordCommandExecution(commandType, (float)executionTime.TotalSeconds);
-
-                        // Create enhanced script execution error
-                        var scriptError = CreateScriptExecutionError(ex, commandType, retryCount);
-                        
-                        // Check if we should retry
-                        if (metadata.ShouldRetry(retryCount, ex) && retryCount < metadata.MaxRetries)
-                        {
-                            retryCount++;
-                            scriptError = scriptError.WithRetryAttempt(retryCount);
-
-                            Debug.LogWarning($"[ScriptPlayer] {scriptError.GetSummary()} - Retrying ({retryCount}/{metadata.MaxRetries})");
-
-                            // Apply retry delay strategy
-                            var retryDelay = metadata.CalculateRetryDelay(retryCount);
-                            if (retryDelay > 0)
-                            {
-                                await UniTask.Delay((int)(retryDelay * 1000), cancellationToken: cancellationToken);
-                            }
-                            
-                            startTime = DateTime.Now; // Reset timer for retry
-                            continue;
-                        }
-
-                        // Retry exhausted or not retryable - attempt recovery
-                        result = await AttemptCommandRecovery(scriptError, cancellationToken);
-                        break;
+                        Debug.LogError($"[ScriptPlayer] Failed to display text via DialogueService: {metadata.ProcessedText}");
                     }
                 }
             }
             finally
             {
-                _stateManager.TransitionToPlaying();
+                // Apply line delay for text content if configured and not fast forwarding
+                if (_config.DefaultLineDelay > 0 && !_isFastForwarding)
+                {
+                    var delay = (int)(_config.DefaultLineDelay * 1000 / PlaybackSpeed);
+                    await UniTask.Delay(delay, cancellationToken: cancellationToken);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Optimized variable substitution for parsed text with known variable names
+        /// </summary>
+        private string SubstituteVariablesInParsedText(string text, List<string> variableNames)
+        {
+            if (string.IsNullOrEmpty(text) || variableNames == null || variableNames.Count == 0)
+                return text;
+
+            var result = text;
+            
+            // More efficient substitution since we know the variable names
+            foreach (var variableName in variableNames)
+            {
+                var placeholder = $"{{{variableName}}}";
+                if (result.Contains(placeholder))
+                {
+                    var variableValue = _executionContext.GetVariable(variableName)?.ToString() ?? $"{{UNDEFINED:{variableName}}}";
+                    result = result.Replace(placeholder, variableValue);
+                }
             }
 
-            return result ?? CommandResult.Success();
+            return result;
         }
+
+        /// <summary>
+        /// Handles script calling by loading and executing a nested script
+        /// </summary>
+        private async UniTask<bool> HandleScriptCallingAsync(CommandResult result)
+        {
+            if (string.IsNullOrEmpty(result.TargetLabel))
+            {
+                Debug.LogError("[ScriptPlayer] Script calling requires a target script name");
+                return false;
+            }
+
+            try
+            {
+                var scriptName = result.TargetLabel;
+
+                if (_config.LogExecutionFlow)
+                {
+                    Debug.Log($"[ScriptPlayer] Calling script '{scriptName}' from line {CurrentLineIndex}");
+                }
+
+                // Check for maximum call stack depth
+                if (_executionContext.GetCallStackDepth() >= _executionContext.MaxCallStackDepth)
+                {
+                    Debug.LogError($"[ScriptPlayer] Maximum call stack depth ({_executionContext.MaxCallStackDepth}) exceeded");
+                    return false;
+                }
+
+                // Load the target script
+                var targetScript = await _scriptService.LoadScriptAsync(scriptName);
+                if (targetScript == null)
+                {
+                    Debug.LogError($"[ScriptPlayer] Failed to load script '{scriptName}'");
+                    return false;
+                }
+
+                // Create and push execution frame for return
+                var executionFrame = ScriptExecutionFrame.CreateScriptCall(
+                    scriptName,
+                    CurrentScript?.Name,
+                    CurrentLineIndex,
+                    CurrentLineIndex + 1 // Return to next line after call
+                );
+
+                // Snapshot current variables to local variables
+                foreach (var kvp in _executionContext.Variables)
+                {
+                    executionFrame.LocalVariables[kvp.Key] = kvp.Value;
+                }
+
+                _executionContext.PushFrame(executionFrame);
+
+                // Set up execution context for called script
+                _executionContext.Script = targetScript;
+                _executionContext.CurrentLineIndex = 0;
+
+                // Preprocess the called script
+                await PreprocessScriptAsync(targetScript, _executionContext.CancellationTokenSource?.Token ?? CancellationToken.None);
+
+                if (_config.LogExecutionFlow)
+                {
+                    Debug.Log($"[ScriptPlayer] Successfully set up script call to '{scriptName}', call stack depth: {_executionContext.GetCallStackDepth()}");
+                }
+
+                return true; // Flow control handled - continue with new script
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ScriptPlayer] Error calling script '{result.TargetLabel}': {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Handles returning from a called script
+        /// </summary>
+        private bool HandleScriptReturn()
+        {
+            try
+            {
+                if (_executionContext.GetCallStackDepth() == 0)
+                {
+                    if (_config.LogExecutionFlow)
+                    {
+                        Debug.Log("[ScriptPlayer] Return called but no call stack - ending script execution");
+                    }
+                    _stateManager.TransitionToCompleted();
+                    return true;
+                }
+
+                // Pop the execution frame
+                var frame = _executionContext.PopFrame();
+                if (frame == null)
+                {
+                    Debug.LogError("[ScriptPlayer] Failed to pop execution frame on script return");
+                    return false;
+                }
+
+                if (_config.LogExecutionFlow)
+                {
+                    Debug.Log($"[ScriptPlayer] Returning from script '{CurrentScript?.Name}' to '{frame.ScriptName}' at line {frame.ReturnLineIndex}");
+                }
+
+                // Restore execution context for parent script
+                if (!string.IsNullOrEmpty(frame.ScriptName))
+                {
+                    // We need to reload the parent script
+                    // Note: In a more sophisticated implementation, you might cache loaded scripts
+                    var parentScript = _scriptService.LoadScriptAsync(frame.ScriptName).GetAwaiter().GetResult();
+                    if (parentScript == null)
+                    {
+                        Debug.LogError($"[ScriptPlayer] Failed to reload parent script '{frame.ScriptName}' on return");
+                        return false;
+                    }
+
+                    _executionContext.Script = parentScript;
+                }
+
+                _executionContext.CurrentLineIndex = frame.ReturnLineIndex;
+
+                // Optionally restore variables from frame (depending on your variable scoping rules)
+                // For now, we'll restore the variables that existed at the time of the call
+                // You can modify this behavior based on your variable scoping needs
+                if (frame.LocalVariables != null && frame.LocalVariables.Count > 0)
+                {
+                    // Clear current variables and restore from frame
+                    // Note: This gives you lexical scoping where variables from called scripts don't persist
+                    // Comment out these lines if you want called script variables to persist
+                    _executionContext.Variables.Clear();
+                    foreach (var kvp in frame.LocalVariables)
+                    {
+                        _executionContext.Variables[kvp.Key] = kvp.Value;
+                    }
+                }
+
+                if (_config.LogExecutionFlow)
+                {
+                    Debug.Log($"[ScriptPlayer] Successfully returned to script '{frame.ScriptName}' at line {frame.ReturnLineIndex}, call stack depth: {_executionContext.GetCallStackDepth()}");
+                }
+
+                return true; // Flow control handled
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[ScriptPlayer] Error returning from script: {ex.Message}");
+                _stateManager.TransitionToFailed();
+                return true; // Stop execution due to error
+            }
+        }
+
 
         /// <summary>
         /// Handle flow control actions from command results
         /// </summary>
         /// <param name="result">The command result to process</param>
         /// <returns>True if flow control was handled, false if normal execution should continue</returns>
-        private bool HandleFlowControl(CommandResult result)
+        private async UniTask<bool> HandleFlowControl(CommandResult result)
         {
             if (result == null || !result.IsSuccess)
             {
@@ -1316,214 +1647,15 @@ namespace Sinkii09.Engine.Services
                     return true; // Flow control handled
 
                 case FlowControlAction.Return:
-                    // Handle return from subroutine/nested call
-                    if (_executionContext.CallStack.Count > 0)
-                    {
-                        var frame = _executionContext.CallStack.Pop();
-                        _executionContext.CurrentLineIndex = frame.ReturnLineIndex;
-                        if (_config.LogExecutionFlow)
-                        {
-                            Debug.Log($"[ScriptPlayer] Flow control: Return to line {frame.ReturnLineIndex}");
-                        }
-                        return true;
-                    }
-                    else
-                    {
-                        // No call stack, end script
-                        _stateManager.TransitionToCompleted();
-                        return true;
-                    }
+                    // Handle return from subroutine/nested call using enhanced return handling
+                    return HandleScriptReturn();
 
                 case FlowControlAction.CallScript:
-                    // TODO: Implement script calling
-                    Debug.LogWarning($"[ScriptPlayer] Script calling not yet implemented: {result.TargetLabel}");
-                    return false;
+                    return await HandleScriptCallingAsync(result);
 
                 default:
                     Debug.LogWarning($"[ScriptPlayer] Unknown flow control action: {result.FlowAction}");
                     return false;
-            }
-        }
-
-        /// <summary>
-        /// Creates a ScriptExecutionError from an exception with enhanced context
-        /// </summary>
-        private ScriptExecutionError CreateScriptExecutionError(Exception ex, Type commandType, int retryCount)
-        {
-            var metadata = CommandMetadataCache.GetMetadata(commandType);
-            
-            // Determine error category and severity based on exception type
-            var (category, severity) = ClassifyError(ex);
-            
-            var error = new ScriptExecutionError(
-                ex.Message,
-                severity,
-                category,
-                commandType,
-                CurrentLineIndex,
-                CurrentScript?.Name,
-                isRetryable: metadata.ShouldRetry(retryCount, ex),
-                recoveryAction: GetRecoveryActionSuggestion(ex, metadata),
-                innerException: ex)
-                .WithRetryAttempt(retryCount)
-                .WithContext("CommandAlias", metadata.Alias)
-                .WithContext("CommandCategory", metadata.Category.ToString())
-                .WithContext("ExecutionTime", DateTime.Now);
-
-            return error;
-        }
-
-        /// <summary>
-        /// Attempts to recover from a command execution error using the recovery manager
-        /// </summary>
-        private async UniTask<CommandResult> AttemptCommandRecovery(ScriptExecutionError error, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var recoveryResult = await _errorRecoveryManager.AttemptRecoveryAsync(error, _executionContext, cancellationToken);
-                
-                if (recoveryResult.Success)
-                {
-                    Debug.Log($"[ScriptPlayer] Error recovery successful: {recoveryResult.Message}");
-                    
-                    return recoveryResult.Action switch
-                    {
-                        RecoveryAction.Skip => CommandResult.Success(), // Continue execution
-                        RecoveryAction.Jump => CommandResult.JumpToLine(recoveryResult.TargetLine ?? CurrentLineIndex),
-                        RecoveryAction.Stop => CommandResult.Stop("Recovery requested execution stop"),
-                        RecoveryAction.Rollback => CommandResult.Failed($"Rollback recovery: {recoveryResult.Message}", error),
-                        RecoveryAction.Retry => CommandResult.Failed($"Retry recovery: {recoveryResult.Message}", error), // Will be handled by caller
-                        _ => CommandResult.Success()
-                    };
-                }
-                else
-                {
-                    Debug.LogError($"[ScriptPlayer] Error recovery failed: {recoveryResult.Message}");
-                    return HandleUnrecoverableError(error);
-                }
-            }
-            catch (Exception recoveryException)
-            {
-                Debug.LogError($"[ScriptPlayer] Recovery mechanism failed: {recoveryException.Message}");
-                return HandleUnrecoverableError(error);
-            }
-        }
-
-        /// <summary>
-        /// Handles errors that cannot be recovered from
-        /// </summary>
-        private CommandResult HandleUnrecoverableError(ScriptExecutionError error)
-        {
-            var errorMessage = error.GetDetailedMessage();
-            
-            if (_config.LogErrorsToFile)
-            {
-                Debug.LogError($"[ScriptPlayer] Unrecoverable Error:\n{errorMessage}");
-            }
-
-            // Fire script failed event
-            ScriptFailed?.Invoke(CurrentScript, error);
-
-            if (_config.ContinueOnError || _config.SkipErrorLines)
-            {
-                Debug.LogWarning($"[ScriptPlayer] Continuing execution despite error: {error.GetSummary()}");
-                return CommandResult.Success(); // Continue execution
-            }
-            else
-            {
-                return CommandResult.Stop($"Critical error: {error.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Classifies an exception into error category and severity
-        /// </summary>
-        private (ErrorCategory category, ErrorSeverity severity) ClassifyError(Exception ex)
-        {
-            return ex switch
-            {
-                OperationCanceledException => (ErrorCategory.Timeout, ErrorSeverity.Recoverable),
-                ArgumentException or ArgumentNullException => (ErrorCategory.Validation, ErrorSeverity.Critical),
-                InvalidOperationException => (ErrorCategory.StateManagement, ErrorSeverity.Critical),
-                UnauthorizedAccessException => (ErrorCategory.Security, ErrorSeverity.Critical),
-                System.IO.FileNotFoundException or System.IO.DirectoryNotFoundException => (ErrorCategory.ResourceLoading, ErrorSeverity.Critical),
-                NetworkInformationException => (ErrorCategory.Network, ErrorSeverity.Recoverable),
-                NotImplementedException => (ErrorCategory.Configuration, ErrorSeverity.Fatal),
-                OutOfMemoryException => (ErrorCategory.Unknown, ErrorSeverity.Fatal),
-                _ => (ErrorCategory.Unknown, ErrorSeverity.Critical)
-            };
-        }
-
-        /// <summary>
-        /// Provides recovery action suggestions based on error type and command metadata
-        /// </summary>
-        private string GetRecoveryActionSuggestion(Exception ex, CommandMetadata metadata)
-        {
-            return ex switch
-            {
-                OperationCanceledException => "Increase timeout or check for infinite loops",
-                ArgumentException => "Validate command parameters and syntax",
-                InvalidOperationException => "Check service dependencies and system state",
-                System.IO.FileNotFoundException => "Verify resource paths and file availability",
-                NetworkInformationException => "Check network connectivity",
-                _ when metadata.Category == CommandCategory.ResourceLoading => "Verify resource exists and is accessible",
-                _ when metadata.Category == CommandCategory.Network => "Check network settings and endpoints", 
-                _ when metadata.Category == CommandCategory.Audio => "Check audio system and device availability",
-                _ => "Review command usage and system configuration"
-            };
-        }
-
-        private string GetCommandCacheKey(ICommand command)
-        {
-            if (command == null)
-                return null;
-
-            return $"{command.GetType().Name}_{CurrentScript?.Name}_{CurrentLineIndex}";
-        }
-
-        private void CacheCommand(string key, ICommand command)
-        {
-            if (_commandCache.Count >= _config.CommandCacheSize)
-            {
-                var firstKey = _commandCache.Keys.First();
-                _commandCache.Remove(firstKey);
-            }
-
-            _commandCache[key] = command;
-            
-            if (_config.LogCommandExecution)
-            {
-                Debug.Log($"Cached command: {key}");
-            }
-        }
-
-        /// <summary>
-        /// Trigger GC optimization through performance monitor if available
-        /// </summary>
-        private async UniTask TriggerGCOptimizationAsync(string reason)
-        {
-            if (_performanceMonitor == null)
-                return;
-
-            try
-            {
-                // Record GC event in context performance metrics
-                var gcStartTime = DateTime.Now;
-                
-                // Request incremental GC through performance monitor
-                await RequestGCOptimizationAsync();
-                
-                var gcTime = (float)(DateTime.Now - gcStartTime).TotalSeconds;
-                _executionContext.PerformanceMetrics?.RecordGCEvent(gcTime);
-                
-                if (_config.LogExecutionFlow)
-                {
-                    Debug.Log($"GC optimization triggered: {reason} (took {gcTime:F3}s)");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"GC optimization failed for {reason}: {ex.Message}");
             }
         }
 
@@ -1599,28 +1731,7 @@ namespace Sinkii09.Engine.Services
             }
         }
 
-        /// <summary>
-        /// Request GC optimization from performance monitor
-        /// </summary>
-        private async UniTask RequestGCOptimizationAsync()
-        {
-            // Use reflection to call internal GC optimization method if available
-            var gcManagerField = _performanceMonitor.GetType().GetField("_gcManager", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            
-            if (gcManagerField?.GetValue(_performanceMonitor) is object gcManager)
-            {
-                var requestMethod = gcManager.GetType().GetMethod("RequestIncrementalGCAsync");
-                if (requestMethod != null)
-                {
-                    var task = requestMethod.Invoke(gcManager, new object[] { 0 });
-                    if (task is UniTask gcTask)
-                    {
-                        await gcTask;
-                    }
-                }
-            }
-        }
         #endregion
     }
+
 }
